@@ -10,27 +10,27 @@ import {
 } from '@aws-sdk/client-s3';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-const IRA_MAP_PATH = 'ira-bil/interactives/ira-bil-map/_app';
+const CHI_MAP_PATH = 'chi-pb/interactives/chi-pb-map/_app';
 
 /**
- * Delete all objects in the ira-bil-map/_app directory from the Grist Digital
+ * Delete all objects in the chi-pb-map/_app directory from the Grist Digital
  * Ocean Spaces bucket.
  *
  * @param s3Client – The S3 client instance.
  */
 async function deleteMap(s3Client: S3Client): Promise<void> {
 	try {
-		// List all objects in the ira-bil-map/_app directory.
+		// List all objects in the chi-pb-map/_app directory.
 		const listObjectsCommand = new ListObjectsCommand({
 			Bucket: 'grist',
-			Prefix: IRA_MAP_PATH
+			Prefix: CHI_MAP_PATH
 		});
 
 		// Grab the contents and delete them in a single request.
 		const { Contents } = await s3Client.send(listObjectsCommand);
 
 		if (!Contents) {
-			console.log(`No objects found at ${IRA_MAP_PATH}. Moving on.`);
+			console.log(`No objects found at ${CHI_MAP_PATH}. Moving on.`);
 			return;
 		}
 
@@ -44,9 +44,9 @@ async function deleteMap(s3Client: S3Client): Promise<void> {
 
 		await s3Client.send(deleteObjectsCommand);
 
-		console.log(`Successfully deleted objects at ${IRA_MAP_PATH}.`);
+		console.log(`Successfully deleted objects at ${CHI_MAP_PATH}.`);
 	} catch (error) {
-		console.error(`Failed to delete objects at ${IRA_MAP_PATH}. Error: `, error);
+		console.error(`Failed to delete objects at ${CHI_MAP_PATH}. Error: `, error);
 	}
 }
 
@@ -103,7 +103,7 @@ async function main(): Promise<void> {
 		}
 	});
 
-	// console.log(`Deleting objects at ${IRA_MAP_PATH}`);
+	// console.log(`Deleting objects at ${CHI_MAP_PATH}`);
 	// await deleteMap(s3Client);
 
 	const files = await fs.readdir(path.resolve(__dirname, '../../build/_app'), { recursive: true });
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
 		const Body = await fs.readFile(filePath);
 		const putObjectCommand = new PutObjectCommand({
 			Bucket: 'grist',
-			Key: `${IRA_MAP_PATH}/${file}`,
+			Key: `${CHI_MAP_PATH}/${file}`,
 			Body,
 			ACL: 'public-read',
 			ContentType: deriveContentType(file)

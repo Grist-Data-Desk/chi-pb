@@ -2,70 +2,170 @@
 	import {
 		searchState,
 		visualState,
-		filteredResults,
+		filteredAddresses,
 		currentCount,
-		isDataLoading
+		isAddressDataLoading,
+		addressStore
 	} from '$lib/stores';
+	import type { AddressWithServiceLine } from '$lib/types';
 	import { debounce } from 'lodash-es';
 
 	export let onSearch: () => void;
-	let isSpinning = false;
-	let hasCharged = false;
-	let previousAmount = 0;
 	let searchInput: HTMLInputElement;
-	let suggestions: Array<{
-		place_name: string;
-		text: string;
-		coordinates: [number, number];
-	}> = [];
+	let suggestions: AddressWithServiceLine[] = [];
 	let isFetchingSuggestions = false;
 	let showSuggestions = false;
 	let suggestionsContainer: HTMLDivElement;
 
 	const handleSearch = () => {
-		previousAmount = totalAwardAmount;
-		isSpinning = true;
-		hasCharged = false;
-		setTimeout(() => {
-			isSpinning = false;
-			hasCharged = true;
-		}, 2000);
 		onSearch();
 	};
 
-	function formatNumberForTicker(num: number): string {
-		return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-	}
+	// Enhanced normalization for Chicago address variants
+	function normalizeAddress(address: string): string {
+		let normalized = address.toLowerCase()
+			.replace(/[^\w\s]/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
 
-	$: totalAwardAmount = $filteredResults.reduce((sum, project) => {
-		if (!project.fundingAmount) return sum;
-		const amount =
-			typeof project.fundingAmount === 'string'
-				? parseFloat(project.fundingAmount.replace(/[$,]/g, ''))
-				: typeof project.fundingAmount === 'number'
-					? project.fundingAmount
-					: 0;
-		return sum + (isNaN(amount) ? 0 : amount);
-	}, 0);
+		// Handle street type variants
+		const streetTypeReplacements = {
+			'avenue': 'ave',
+			'street': 'st',
+			'saint': 'st',
+			'boulevard': 'blvd',
+			'parkway': 'park',
+			'terrace': 'ter',
+			'plaza': 'plz',
+			'place': 'pl',
+			'court': 'ct',
+			'drive': 'dr',
+			'lane': 'ln',
+			'road': 'rd',
+			'circle': 'cir'
+		};
 
-	function validateLatLon(input: string): boolean {
-		const latLonRe = /^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/;
-
-		if (!latLonRe.test(input)) {
-			return false;
+		// Apply street type normalizations
+		for (const [full, abbrev] of Object.entries(streetTypeReplacements)) {
+			normalized = normalized.replace(new RegExp(`\\b${full}\\b`, 'g'), abbrev);
 		}
 
-		const [lat, lon] = input.split(',').map((coord) => parseFloat(coord.trim()));
+		// Handle specific Chicago street name variants
+		const streetNameReplacements = {
+			'martin luther king jr': 'king',
+			'martin l king jr': 'king',
+			'lakeshore': 'lake shore',
+			'crestline': 'crest line',
+			'blueisland': 'blue island',
+			'blue island': 'blueisland',
+			'dekoven': 'de koven',
+			'de koven': 'dekoven',
+			'desplaines': 'des plaines',
+			'des plaines': 'desplaines'
+		};
 
-		if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-			return false;
+		// Apply street name normalizations
+		for (const [variant, standard] of Object.entries(streetNameReplacements)) {
+			normalized = normalized.replace(new RegExp(`\\b${variant}\\b`, 'g'), standard);
 		}
 
-		return true;
+		// Handle prefix variants (LA, MC, O)
+		normalized = normalized
+			.replace(/\bla\s+/g, 'la')  // "LA SALLE" -> "lasalle"
+			.replace(/\bmc\s+/g, 'mc')  // "MC VICKER" -> "mcvicker"
+			.replace(/\bo\s+/g, 'o');   // "O BRIEN" -> "obrien"
+
+		// Handle direction variants (N, S, E, W, NE, NW, SE, SW)
+		const directions = ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'];
+		const directionAbbrevs = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+		
+		directions.forEach((dir, i) => {
+			normalized = normalized.replace(new RegExp(`\\b${dir}\\b`, 'g'), directionAbbrevs[i]);
+		});
+
+		return normalized;
 	}
 
-	const fetchSuggestions = debounce(async (query: string) => {
-		if (!query || query.length < 2 || validateLatLon(query)) {
+	function extractNumberFromQuery(query: string): number | null {
+		const match = query.match(/^\d+/);
+		return match ? parseInt(match[0]) : null;
+	}
+
+	function searchAddresses(query: string): AddressWithServiceLine[] {
+		if (!query || query.length < 3) return [];
+		
+		const normalizedQuery = normalizeAddress(query);
+		const queryNumber = extractNumberFromQuery(query.trim());
+		const allAddresses = $addressStore.collection.collection.features.map(f => f.properties);
+		
+		return allAddresses
+			.filter(addr => {
+				// Use fullAddress for searching and display
+				const normalizedAddr = normalizeAddress(addr.fullAddress);
+				
+				// Create multiple search variants for better matching
+				const searchVariants = [normalizedQuery];
+				
+				// Add partial word matching (for cases like "11730 S Fr" matching "FRONT")
+				const queryWords = normalizedQuery.split(/\s+/);
+				if (queryWords.length > 1) {
+					// Try progressively shorter versions
+					for (let i = queryWords.length - 1; i >= 0; i--) {
+						const partial = queryWords.slice(0, i + 1).join(' ');
+						if (partial !== normalizedQuery) {
+							searchVariants.push(partial);
+						}
+					}
+				}
+				
+				// Check each search variant
+				for (const variant of searchVariants) {
+					if (normalizedAddr.includes(variant)) {
+						return true;
+					}
+				}
+				
+				// If query starts with a number, check if it falls within the address range
+				if (queryNumber !== null && addr.stnum1 && addr.stnum2) {
+					const streetPart = normalizedQuery.replace(/^\d+\s*/, ''); // Remove number from query
+					const addrStreetPart = normalizedAddr.replace(/^\d+(-\d+)?\s*/, ''); // Remove range from address
+					
+					// Check if the street part matches and the number is in range
+					if (streetPart.length > 0 && addrStreetPart.includes(streetPart) && 
+						queryNumber >= addr.stnum1 && 
+						queryNumber <= addr.stnum2) {
+						return true;
+					}
+				}
+				
+				return false;
+			})
+			.sort((a, b) => {
+				// Prioritize exact matches and closer range matches
+				const aNormalized = normalizeAddress(a.fullAddress);
+				const bNormalized = normalizeAddress(b.fullAddress);
+				
+				const aExact = aNormalized.includes(normalizedQuery) ? 0 : 1;
+				const bExact = bNormalized.includes(normalizedQuery) ? 0 : 1;
+				
+				if (aExact !== bExact) return aExact - bExact;
+				
+				// If both are range matches, prioritize closer numbers
+				if (queryNumber !== null) {
+					const aMidpoint = (a.stnum1 + a.stnum2) / 2;
+					const bMidpoint = (b.stnum1 + b.stnum2) / 2;
+					const aDistance = Math.abs(queryNumber - aMidpoint);
+					const bDistance = Math.abs(queryNumber - bMidpoint);
+					return aDistance - bDistance;
+				}
+				
+				return 0;
+			})
+			.slice(0, 5); // Limit to 5 suggestions
+	}
+
+	const fetchSuggestions = debounce((query: string) => {
+		if (!query || query.length < 3) {
 			suggestions = [];
 			showSuggestions = false;
 			return;
@@ -73,21 +173,10 @@
 
 		isFetchingSuggestions = true;
 		try {
-			const response = await fetch(
-				`https://nominatim.openstreetmap.org/search?format=geojson&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&countrycodes=us`
-			);
-			const data = await response.json();
-
-			if (data.features) {
-				suggestions = data.features.map((feature: any) => ({
-					place_name: feature.properties.display_name,
-					text: feature.properties.display_name.split(',')[0],
-					coordinates: feature.geometry.coordinates
-				}));
-				showSuggestions = true;
-			}
+			suggestions = searchAddresses(query);
+			showSuggestions = suggestions.length > 0;
 		} catch (error) {
-			console.error('Error fetching suggestions:', error);
+			console.error('Error searching addresses:', error);
 			suggestions = [];
 		} finally {
 			isFetchingSuggestions = false;
@@ -108,15 +197,19 @@
 		}
 	}
 
-	function onSuggestionKeyDown(event: KeyboardEvent, suggestion: (typeof suggestions)[0]) {
+	function onSuggestionKeyDown(event: KeyboardEvent, suggestion: AddressWithServiceLine) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
 			onSuggestionClick(suggestion);
 		}
 	}
 
-	function onSuggestionClick(suggestion: (typeof suggestions)[0]) {
-		searchState.update(state => ({ ...state, query: suggestion.place_name }));
+	function onSuggestionClick(suggestion: AddressWithServiceLine) {
+		searchState.update(state => ({ 
+			...state, 
+			query: suggestion.fullAddress,
+			selectedAddress: suggestion 
+		}));
 		showSuggestions = false;
 		handleSearch();
 	}
@@ -142,7 +235,6 @@
 <div class="relative col-span-1 space-y-4 overflow-visible rounded-lg border border-slate-200">
 	<div class="absolute -right-[22px] -top-12 h-40 w-40 text-gold/30">
 		<svg
-			class:sun-spin={isSpinning}
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 100 100"
 			fill="currentColor"
@@ -158,19 +250,19 @@
 
 	<div class="relative z-10">
 		<h1 class="font-['PolySans'] text-3xl font-medium text-slate-800">
-			Find Climate Spending Near You
+			Chicago Water Service Line Lookup
 		</h1>
 		<p class="m-0 font-['Basis_Grotesque'] text-sm text-slate-600">
-			Look up federal investments from the <span class="text-orange">Inflation Reduction Act</span> and
-			the <span class="text-cobalt">bipartisan infrastructure law</span> in your area using the control
-			panel below. You can search by ZIP code, city name, coordinates, or names of known locations.
+			Enter your Chicago address to find information about your water service line composition and 
+			<span class="text-orange">lead status</span>. The map will show your address location and 
+			<span class="text-cobalt">Census tract</span> demographic data.
 		</p>
 	</div>
 	<div class="relative flex items-stretch gap-2">
 		<div class="flex-[5]">
 			<label
 				class="mb-0.5 block font-['Basis_Grotesque'] text-sm font-medium text-slate-700"
-				for="search">Location</label
+				for="search">Chicago Address</label
 			>
 			<div class="relative">
 				<input
@@ -183,8 +275,8 @@
 					on:focus={onInputFocus}
 					on:blur={onInputBlur}
 					class="search-input w-full rounded border border-slate-300 bg-white/50 p-1.5 font-['Basis_Grotesque'] transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-					placeholder="ZIP code or city"
-					disabled={$isDataLoading}
+					placeholder="1234 N State St"
+					disabled={$isAddressDataLoading}
 				/>
 				{#if isFetchingSuggestions}
 					<div class="absolute right-2 top-1/2 -translate-y-1/2">
@@ -201,9 +293,11 @@
 								on:mousedown={() => onSuggestionClick(suggestion)}
 								on:keydown={(e) => onSuggestionKeyDown(e, suggestion)}
 							>
-								<div class="suggestion-main">{suggestion.text}</div>
+								<div class="suggestion-main">{suggestion.fullAddress}</div>
 								<div class="suggestion-secondary">
-									{suggestion.place_name.split(',').slice(1).join(',')}
+									Lead Status: <span class="font-medium" class:text-red-600={suggestion.leadStatus === 'LEAD'} class:text-emerald-600={suggestion.leadStatus === 'NON_LEAD'} class:text-amber-600={suggestion.leadStatus === 'UNKNOWN'}>
+										{suggestion.leadStatus.replace('_', ' ')}
+									</span>
 								</div>
 							</div>
 						{/each}
@@ -212,30 +306,14 @@
 			</div>
 		</div>
 
-		<div class="w-20">
-			<label
-				class="mb-0.5 block font-['Basis_Grotesque'] text-sm font-medium text-slate-700"
-				for="radius">Radius (mi)</label
-			>
-			<input
-				type="number"
-				id="radius"
-				value={$searchState.radius}
-				on:input={(e) => searchState.update(state => ({ ...state, radius: parseInt(e.currentTarget.value) }))}
-				class="search-input w-full rounded border border-slate-300 bg-white/50 p-1.5 font-['Basis_Grotesque'] transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-				min="1"
-				max="500"
-				disabled={$isDataLoading}
-			/>
-		</div>
 
 		<div class="flex flex-col justify-end">
 			<button
 				on:click={handleSearch}
 				class="flex w-[100px] items-center justify-center gap-2 whitespace-nowrap rounded-md border border-emerald-600 bg-emerald-500 p-1.5 font-['Basis_Grotesque'] text-white shadow-md transition-all hover:bg-emerald-600 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-				disabled={$isDataLoading || $searchState.isSearching}
+				disabled={$isAddressDataLoading || $searchState.isSearching}
 			>
-				{#if $isDataLoading || $searchState.isSearching}
+				{#if $isAddressDataLoading || $searchState.isSearching}
 					<div class="flex items-center gap-2">
 						<svg
 							class="h-4 w-4 animate-spin"
@@ -279,167 +357,25 @@
 		</div>
 	</div>
 
-	<div class="overflow-hidden">
-		{#if $searchState.results.length > 0 || true}
-			<div
-				class="transition-all duration-300 ease-in-out"
-				style="transform: translateY({$searchState.results.length > 0 ? '0' : '-100%'}); 
-                  opacity: {$searchState.results.length > 0 ? '1' : '0'}; 
-                  margin-top: {$searchState.results.length > 0 ? '0.25rem' : '-10rem'};"
-			>
-				<div class="font-['Basis_Grotesque']">
-					<p class="mt-0 mb-3 text-xs text-slate-600 md:text-sm">
-						Total funding across <span class="font-bold text-emerald-600"
-							>{$currentCount} project{$currentCount === 1 ? '' : 's'}</span
-						>
-						in search radius
-						{#if $visualState.filters.size > 0}
-							(filtered by {$visualState.colorMode === 'fundingSource'
-								? 'funding source'
-								: $visualState.colorMode} to include {(() => {
-								const items = Array.from($visualState.filters);
-								if (items.length === 1) return items[0];
-								if (items.length === 2) return `${items[0]} and ${items[1]}`;
-								return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
-							})()})
-						{/if}:
-					</p>
-					<p class="mb-3 mt-1 text-center font-['PolySans'] text-2xl font-medium text-emerald-600">
-						<span class:charging={isSpinning} class:charged={hasCharged}>
-							<span class="number-container">
-								<span class="currency-symbol">$</span>
-								{#each formatNumberForTicker(totalAwardAmount) as digit, i}
-									{#if digit === ','}
-										<span class="separator">,</span>
-									{:else if digit === '.'}
-										<span class="separator">.</span>
-									{:else}
-										<span class="digit-wrapper">
-											<span
-												class="digit-column"
-												class:animating={isSpinning}
-												style="transform: translateY(calc(-1em * {parseInt(digit)}))"
-											>
-												{#each Array(10) as _, num}
-													<span class="digit-static">{num}</span>
-												{/each}
-											</span>
-										</span>
-									{/if}
-								{/each}
-							</span>
-						</span>
-					</p>
-				</div>
+	{#if $searchState.selectedAddress}
+		<div class="mt-4 rounded border border-slate-200 bg-slate-50/50 p-3">
+			<div class="font-['Basis_Grotesque']">
+				<p class="mb-2 text-sm font-medium text-slate-700">Selected Address:</p>
+				<p class="text-lg font-medium text-slate-800">{$searchState.selectedAddress.fullAddress}</p>
+				<p class="mt-2 text-sm text-slate-600">
+					Lead Status: <span class="font-medium" 
+						class:text-red-600={$searchState.selectedAddress.leadStatus === 'LEAD'} 
+						class:text-emerald-600={$searchState.selectedAddress.leadStatus === 'NON_LEAD'} 
+						class:text-amber-600={$searchState.selectedAddress.leadStatus === 'UNKNOWN'}>
+						{$searchState.selectedAddress.leadStatus.replace('_', ' ')}
+					</span>
+				</p>
 			</div>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </div>
 
 <style lang="postcss">
-	@keyframes spin {
-		0% {
-			transform: rotate(0deg);
-		}
-		100% {
-			transform: rotate(720deg);
-		}
-	}
-
-	@keyframes charge {
-		0% {
-			width: 0%;
-		}
-		100% {
-			width: 100%;
-		}
-	}
-
-	.sun-spin {
-		animation: spin 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-	}
-
-	.charging,
-	.charged {
-		position: relative;
-		display: inline-block;
-	}
-
-	.charging::after,
-	.charged::after {
-		content: '';
-		position: absolute;
-		bottom: -4px;
-		left: 0;
-		height: 3px;
-		@apply bg-cobalt/40;
-		border-radius: 2px;
-		width: 100%;
-	}
-
-	.charging::after {
-		width: 0%;
-		animation: charge 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-	}
-
-	.number-container {
-		@apply inline-flex items-baseline font-['PolySans'];
-		font-variant-numeric: tabular-nums;
-		line-height: 1;
-	}
-
-	.digit-wrapper {
-		@apply relative inline-block overflow-hidden;
-		width: 0.6em;
-		height: 1em;
-		vertical-align: baseline;
-	}
-
-	.digit-column.animating {
-		transition:
-			transform 2s cubic-bezier(0.16, 1, 0.3, 1),
-			opacity 2s cubic-bezier(0.16, 1, 0.3, 1);
-		opacity: 0.99;
-	}
-
-	.digit-column {
-		position: absolute;
-		left: 0;
-		top: 0;
-		display: flex;
-		flex-direction: column;
-		transform-origin: 50% 50%;
-		line-height: 1;
-		opacity: 1;
-	}
-
-	.digit-static {
-		@apply inline-block text-center;
-		height: 1em;
-		width: 0.6em;
-		line-height: 1;
-	}
-
-	.separator {
-		@apply inline-block text-center;
-		width: 0.25em;
-		height: 1em;
-		line-height: 1;
-		vertical-align: baseline;
-		position: relative;
-		top: -0.12em;
-	}
-
-	.currency-symbol {
-		@apply inline-block text-center;
-		margin-right: 0.05em;
-		height: 1em;
-		line-height: 1;
-		vertical-align: baseline;
-		position: relative;
-		top: -0.12em;
-	}
-
 	.suggestions {
 		@apply absolute left-0 z-50 mt-1 max-h-[300px] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg;
 		width: 200%;

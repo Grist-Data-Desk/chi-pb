@@ -5,9 +5,8 @@ import url from 'node:url';
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 const inputFiles = [
-	'../../scripts/data/processed/projects.geojson',
-	'../../scripts/data/processed/reservations.geojson',
-	'../../scripts/data/processed/reservation-labels.geojson'
+	'../../scripts/data/raw/chi-acs-filled.geojson',
+	'../../scripts/data/processed/geocoded-addresses.geojson'
 ];
 
 interface ExecError extends Error {
@@ -21,7 +20,8 @@ const main = async (): Promise<void> => {
 	for await (const file of inputFiles) {
 		const name = path.parse(file).name;
 		const filePath = path.resolve(__dirname, file);
-		const outFile = file.replace('.geojson', '.pmtiles');
+		// Always output to processed folder
+		const outFile = `../../scripts/data/processed/${name}.pmtiles`;
 		const outFilePath = path.resolve(__dirname, outFile);
 
 		const cmd = `tippecanoe -zg -o ${outFilePath} -l ${name} --drop-densest-as-needed --extend-zooms-if-still-dropping --force ${filePath}`;

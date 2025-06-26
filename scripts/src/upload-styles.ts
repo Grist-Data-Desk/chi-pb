@@ -1,11 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as url from 'node:url';
+import 'dotenv/config';
 
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-const STYLE_PATH = 'ira-bil/styles';
+const STYLE_PATH = 'chi-pb/styles';
 
 /**
  * Store our basemap style in the Grist DigitalOcean Spaces bucket.

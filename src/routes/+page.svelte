@@ -516,7 +516,8 @@
 		const stateConfig = stateParam ? STATE_BOUNDS[stateParam] : undefined;
 
 		try {
-			await loadGeoJSONData();
+			// Temporarily disable legacy GeoJSON loading for Chicago testing
+			// await loadGeoJSONData();
 
 			const protocol = new pmtiles.Protocol();
 			maplibregl.addProtocol('pmtiles', protocol.tile);
@@ -588,11 +589,7 @@
 				Object.values(SOURCE_CONFIG).forEach(({ id, config }) => {
 					try {
 						if (!map.getSource(id)) {
-							const source: maplibregl.VectorSourceSpecification = {
-								type: 'vector',
-								url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/${id}.pmtiles`
-							};
-							map.addSource(id, source);
+							map.addSource(id, config);
 						}
 					} catch (error) {
 						console.error(`Error adding source ${id}:`, error);
@@ -600,15 +597,27 @@
 				});
 
 				try {
-					if (!map.getLayer(LAYER_CONFIG.reservationsPolygons.id)) {
-						map.addLayer(LAYER_CONFIG.reservationsPolygons);
+					// Add Chicago layers
+					if (!map.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
+						map.addLayer(LAYER_CONFIG.censusTractsFill);
 					}
-					if (!map.getLayer(LAYER_CONFIG.reservationLabels.id)) {
-						map.addLayer(LAYER_CONFIG.reservationLabels);
+					if (!map.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
+						map.addLayer(LAYER_CONFIG.censusTractsStroke);
 					}
-					if (!map.getLayer(LAYER_CONFIG.projectsPoints.id)) {
-						map.addLayer(LAYER_CONFIG.projectsPoints);
+					if (!map.getLayer(LAYER_CONFIG.addressesPoints.id)) {
+						map.addLayer(LAYER_CONFIG.addressesPoints);
 					}
+					
+					// Legacy layers temporarily disabled for Chicago testing
+					// if (!map.getLayer(LAYER_CONFIG.reservationsPolygons.id)) {
+					// 	map.addLayer(LAYER_CONFIG.reservationsPolygons);
+					// }
+					// if (!map.getLayer(LAYER_CONFIG.reservationLabels.id)) {
+					// 	map.addLayer(LAYER_CONFIG.reservationLabels);
+					// }
+					// if (!map.getLayer(LAYER_CONFIG.projectsPoints.id)) {
+					// 	map.addLayer(LAYER_CONFIG.projectsPoints);
+					// }
 				} catch (error) {
 					console.error('Error adding layers:', error);
 				}

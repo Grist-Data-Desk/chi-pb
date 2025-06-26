@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { visualState, uiState } from '$lib/stores';
-	import { COLORS, CATEGORIES } from '$lib/utils/constants';
+	import { COLORS } from '$lib/utils/constants';
+	import { CHOROPLETH_CATEGORIES, LEAD_STATUS_CATEGORIES } from '$lib/utils/config';
 
 	const colorOrder = [
 		COLORS.ORANGE,
@@ -12,64 +13,53 @@
 		COLORS.GOLD
 	];
 
-	const legendItems = {
-		agency: [
-			...CATEGORIES.agency.map((name, i) => ({
-				color: colorOrder[i],
-				label: name
-			})),
-			{ color: COLORS.EARTH, label: 'Other' }
+	// Chicago choropleth legend items - continuous scales
+	const choroplethLegendItems = {
+		median_household_income: [
+			{ color: COLORS.RED, label: 'Low', range: '$0 - $50K' },
+			{ color: COLORS.GOLD, label: 'Medium', range: '$50K - $100K' },
+			{ color: COLORS.TURQUOISE, label: 'High', range: '$100K - $150K' },
+			{ color: COLORS.COBALT, label: 'Very High', range: '$150K+' }
 		],
-		category: [
-			...CATEGORIES.category.map((name, i) => ({
-				color: colorOrder[i],
-				label: name
-			})),
-			{ color: COLORS.EARTH, label: 'Other' }
+		pct_black: [
+			{ color: COLORS.EARTH, label: 'Low', range: '0% - 25%' },
+			{ color: COLORS.ORANGE, label: 'Medium', range: '25% - 50%' },
+			{ color: COLORS.RED, label: 'High', range: '50% - 75%' },
+			{ color: COLORS.FUCHSIA, label: 'Very High', range: '75% - 100%' }
 		],
-		fundingSource: [
-			...CATEGORIES.fundingSource.map((name, i) => ({
-				color: colorOrder[i],
-				label: name
-			})),
-			{ color: COLORS.EARTH, label: 'Other' }
+		pct_minority: [
+			{ color: COLORS.EARTH, label: 'Low', range: '0% - 25%' },
+			{ color: COLORS.GOLD, label: 'Medium', range: '25% - 50%' },
+			{ color: COLORS.ORANGE, label: 'High', range: '50% - 75%' },
+			{ color: COLORS.RED, label: 'Very High', range: '75% - 100%' }
+		],
+		pct_poverty: [
+			{ color: COLORS.TURQUOISE, label: 'Low', range: '0% - 10%' },
+			{ color: COLORS.GOLD, label: 'Medium', range: '10% - 20%' },
+			{ color: COLORS.ORANGE, label: 'High', range: '20% - 30%' },
+			{ color: COLORS.RED, label: 'Very High', range: '30%+' }
 		]
 	};
 
-	const modes = [
-		{ value: 'agency', label: 'Agency' },
-		{ value: 'category', label: 'Category' },
-		{ value: 'fundingSource', label: 'Funding' }
-	];
+	// Choropleth modes
+	const choroplethModes = Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => ({
+		value: key,
+		label: label.replace('Household ', '').replace('Percent ', '% ')
+	}));
 
 	function handleModeChange(event: Event) {
 		const target = event.target as HTMLInputElement;
 		visualState.update(state => ({ 
 			...state, 
-			colorMode: target.value as typeof state.colorMode,
-			filters: new Set()
+			choroplethMode: target.value as typeof state.choroplethMode
 		}));
 	}
 
-	function toggleFilter(label: string) {
-		const newFilters = new Set($visualState.filters);
-		
-		if (newFilters.has(label)) {
-			newFilters.delete(label);
-		} else {
-			newFilters.add(label);
-		}
-		
-		visualState.update(state => ({
-			...state,
-			filters: newFilters
-		}));
-	}
-
-	$: isItemActive = (label: string) => $visualState.filters.has(label);
+	// No filtering for choropleth - it's a continuous visualization
+	// Individual legend items are just informational
 
 	const longestLabel = Math.max(
-		...Object.values(legendItems).flatMap((items) => items.map((item) => item.label.length))
+		...Object.values(choroplethLegendItems).flatMap((items) => items.map((item) => `${item.label} ${item.range}`.length))
 	);
 
 	const minPanelWidth = longestLabel * 6 + 20;
@@ -96,21 +86,22 @@
 			/>
 		</svg>
 		<p class="font-['Basis_Grotesque'] text-xs leading-tight text-gray-500">
-			Click categories below to filter the map
+			Census tract data visualization
 		</p>
 	</div>
-	<div class="mode-selector relative mb-2 grid grid-cols-3">
+	<div class="mode-selector relative mb-2 grid grid-cols-4">
 		<div
 			class="mode-selector__background"
-			class:agency={$visualState.colorMode === 'agency'}
-			class:category={$visualState.colorMode === 'category'}
-			class:funding={$visualState.colorMode === 'fundingSource'}
+			class:income={$visualState.choroplethMode === 'median_household_income'}
+			class:poverty={$visualState.choroplethMode === 'pct_poverty'}
+			class:black={$visualState.choroplethMode === 'pct_black'}
+			class:minority={$visualState.choroplethMode === 'pct_minority'}
 		></div>
-		{#each modes as mode}
+		{#each choroplethModes as mode}
 			<div class="mode-selector__radio-container relative">
 				<input
 					type="radio"
-					bind:group={$visualState.colorMode}
+					bind:group={$visualState.choroplethMode}
 					id="{mode.value}-radio"
 					value={mode.value}
 					class="mode-selector__radio-input absolute opacity-0"
@@ -119,7 +110,7 @@
 				<label
 					for="{mode.value}-radio"
 					class="mode-selector__radio-label relative z-10 block cursor-pointer py-1.5 text-center font-['PolySans'] text-xs"
-					class:active={$visualState.colorMode === mode.value}
+					class:active={$visualState.choroplethMode === mode.value}
 				>
 					{mode.label}
 				</label>
@@ -127,15 +118,14 @@
 		{/each}
 	</div>
 	<div class="space-y-0.5">
-		{#each legendItems[$visualState.colorMode] as item}
-			<button
-				class="flex w-full items-center gap-2 rounded border border-gray-200 bg-slate-50/90 px-1.5 py-0.5 transition-colors hover:bg-gray-100"
-				class:opacity-40={$visualState.filters.size > 0 && !isItemActive(item.label)}
-				on:click={() => toggleFilter(item.label)}
-			>
+		{#each choroplethLegendItems[$visualState.choroplethMode] as item}
+			<div class="flex w-full items-center gap-2 rounded border border-gray-200 bg-slate-50/90 px-1.5 py-0.5">
 				<div class="h-2 w-2 rounded-full" style="background-color: {item.color}"></div>
-				<span class="text-left font-['Basis_Grotesque'] text-xs">{item.label}</span>
-			</button>
+				<div class="flex-1">
+					<span class="font-['Basis_Grotesque'] text-xs font-medium">{item.label}</span>
+					<span class="font-['Basis_Grotesque'] text-xs text-gray-500 ml-1">{item.range}</span>
+				</div>
+			</div>
 		{/each}
 	</div>
 </div>
@@ -149,23 +139,27 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		width: 33.333333%;
+		width: 25%;
 		height: 100%;
 		background-color: theme(colors.earth);
 		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		z-index: 1;
 	}
 
-	.mode-selector__background.agency {
+	.mode-selector__background.income {
 		transform: translateX(0);
 	}
 
-	.mode-selector__background.category {
+	.mode-selector__background.black {
 		transform: translateX(100%);
 	}
 
-	.mode-selector__background.funding {
+	.mode-selector__background.minority {
 		transform: translateX(200%);
+	}
+
+	.mode-selector__background.poverty {
+		transform: translateX(300%);
 	}
 
 	.mode-selector__radio-label {

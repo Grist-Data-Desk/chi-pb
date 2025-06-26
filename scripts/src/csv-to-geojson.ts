@@ -11,11 +11,26 @@ const __dirname = path.dirname(__filename);
 
 const brotliCompressAsync = promisify(brotliCompress);
 
-interface CSVRow {
-	[key: string]: string | number;
-	Latitude: number;
-	Longitude: number;
-	UID: string;
+interface AddressRow {
+	row: number;
+	full_address: string;
+	is_intersection: boolean;
+	stnum1: number;
+	stnum2: number;
+	stdir: string;
+	stname: string;
+	sttype: string;
+	zip: string;
+	geocoder: string;
+	lat: number;
+	long: number;
+	geoid: string;
+	m_is_intersection: boolean;
+	m_stnum1: number;
+	m_stnum2: number;
+	m_stdir: string;
+	m_stname: string;
+	m_zip: string;
 }
 
 function cleanFieldName(key: string): string {
@@ -47,8 +62,8 @@ async function writeCompressedJSON(filePath: string, data: any): Promise<void> {
 	fs.writeFileSync(`${filePath}.br.meta`, JSON.stringify(metadata, null, 2));
 }
 
-async function processCSV(inputPath: string, outputDir: string): Promise<void> {
-	const rows: CSVRow[] = [];
+async function processAddressCSV(inputPath: string, outputDir: string): Promise<void> {
+	const rows: AddressRow[] = [];
 
 	return new Promise((resolve, reject) => {
 		fs.createReadStream(inputPath)
@@ -63,90 +78,85 @@ async function processCSV(inputPath: string, outputDir: string): Promise<void> {
 					Object.entries(row).map(([key, value]) => [cleanFieldName(key), value])
 				);
 
-				if (
-					!Object.keys(normalizedRow).some((key) => /latitude/i.test(key)) ||
-					!Object.keys(normalizedRow).some((key) => /longitude/i.test(key)) ||
-					!Object.keys(normalizedRow).some((key) => /uid/i.test(key))
-				) {
-					console.error(`CSV ${inputPath} missing required columns`);
-					console.error('Required: Latitude, Longitude, UID');
-					console.error('Found:', Object.keys(normalizedRow));
-					process.exit(1);
-				}
-
-				const latKey = Object.keys(normalizedRow).find((key) => /latitude/i.test(key))!;
-				const lonKey = Object.keys(normalizedRow).find((key) => /longitude/i.test(key))!;
-				const uidKey = Object.keys(normalizedRow).find((key) => /uid/i.test(key))!;
-
-				const processedRow: CSVRow = {
-					Latitude: parseFloat(normalizedRow[latKey] as string),
-					Longitude: parseFloat(normalizedRow[lonKey] as string),
-					UID: String(normalizedRow[uidKey])
+				const addressRow: AddressRow = {
+					row: parseInt(normalizedRow.row as string) || 0,
+					full_address: String(normalizedRow.full_address || ''),
+					is_intersection: String(normalizedRow.is_intersection).toLowerCase() === 'true',
+					stnum1: parseInt(normalizedRow.stnum1 as string) || 0,
+					stnum2: parseInt(normalizedRow.stnum2 as string) || 0,
+					stdir: String(normalizedRow.stdir || ''),
+					stname: String(normalizedRow.stname || ''),
+					sttype: String(normalizedRow.sttype || ''),
+					zip: String(normalizedRow.zip || ''),
+					geocoder: String(normalizedRow.geocoder || ''),
+					lat: parseFloat(normalizedRow.lat as string) || 0,
+					long: parseFloat(normalizedRow.long as string) || 0,
+					geoid: String(normalizedRow.geoid || ''),
+					m_is_intersection: String(normalizedRow.m_is_intersection).toLowerCase() === 'true',
+					m_stnum1: parseInt(normalizedRow.m_stnum1 as string) || 0,
+					m_stnum2: parseInt(normalizedRow.m_stnum2 as string) || 0,
+					m_stdir: String(normalizedRow.m_stdir || ''),
+					m_stname: String(normalizedRow.m_stname || ''),
+					m_zip: String(normalizedRow.m_zip || '')
 				};
 
-				for (const [key, value] of Object.entries(row)) {
-					if (!['Latitude', 'Longitude', 'UID'].includes(key)) {
-						processedRow[key] = isNaN(Number(value)) ? String(value) : Number(value);
-					}
-				}
-
-				rows.push(processedRow);
+				rows.push(addressRow);
 			})
 			.on('end', async () => {
-				const fullGeoJSON = createFullGeoJSON(rows);
-				const strippedGeoJSON = createStrippedGeoJSON(rows);
-
+				const addressGeoJSON = createAddressGeoJSON(rows);
 				const baseName = path.basename(inputPath, '.csv');
-				const fullPath = path.join(outputDir, `${baseName}.geojson`);
-				const minimalPath = path.join(outputDir, `${baseName}-minimal.geojson`);
-
-				await writeCompressedJSON(fullPath, fullGeoJSON);
-				await writeCompressedJSON(minimalPath, strippedGeoJSON);
-
+				const outputPath = path.join(outputDir, `${baseName}.geojson`);
+				
+				await writeCompressedJSON(outputPath, addressGeoJSON);
+				console.log(`Processed ${rows.length} addresses`);
 				resolve();
 			})
 			.on('error', reject);
 	});
 }
 
-function createFullGeoJSON(rows: CSVRow[]): FeatureCollection {
+function createAddressGeoJSON(rows: AddressRow[]): FeatureCollection {
 	return {
 		type: 'FeatureCollection',
 		features: rows.map((row) => ({
 			type: 'Feature',
 			geometry: {
 				type: 'Point',
-				coordinates: [row.Longitude, row.Latitude]
-			},
-			properties: Object.fromEntries(
-				Object.entries(row)
-					.filter(([key]) => !['Latitude', 'Longitude', 'UID'].includes(key))
-					.map(([key, value]) => [cleanFieldName(key), value])
-			)
-		}))
-	};
-}
-
-function createStrippedGeoJSON(rows: CSVRow[]): FeatureCollection {
-	return {
-		type: 'FeatureCollection',
-		features: rows.map((row) => ({
-			type: 'Feature',
-			geometry: {
-				type: 'Point',
-				coordinates: [Number(row.Longitude.toFixed(5)), Number(row.Latitude.toFixed(5))]
+				coordinates: [row.long, row.lat]
 			},
 			properties: {
-				UID: row.UID
+				row: row.row,
+				fullAddress: row.full_address,
+				isIntersection: row.is_intersection,
+				stnum1: row.stnum1,
+				stnum2: row.stnum2,
+				stdir: row.stdir,
+				stname: row.stname,
+				sttype: row.sttype,
+				zip: row.zip,
+				geocoder: row.geocoder,
+				geoid: row.geoid,
+				mIsIntersection: row.m_is_intersection,
+				mStnum1: row.m_stnum1,
+				mStnum2: row.m_stnum2,
+				mStdir: row.m_stdir,
+				mStname: row.m_stname,
+				mZip: row.m_zip
 			}
 		}))
 	};
 }
 
-const inputPath = path.join(__dirname, '../../scripts/data/raw/projects.csv');
+// Main execution
 const outputDir = path.join(__dirname, '../../scripts/data/processed');
 
-console.log(`Processing ${path.basename(inputPath)}...`);
-processCSV(inputPath, outputDir)
-	.then(() => console.log('CSV processing complete'))
+// Ensure output directory exists
+if (!fs.existsSync(outputDir)) {
+	fs.mkdirSync(outputDir, { recursive: true });
+}
+
+const addressPath = path.join(__dirname, '../../scripts/data/raw/geocoded-addresses.csv');
+console.log(`Processing Chicago addresses: ${path.basename(addressPath)}...`);
+processAddressCSV(addressPath, outputDir)
+	.then(() => console.log('Address CSV processing complete'))
 	.catch((err: Error) => console.error('Error:', err.message));

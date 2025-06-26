@@ -1,11 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as url from 'node:url';
+import 'dotenv/config';
 
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-const PMTILES_PATH = 'ira-bil/data/pmtiles';
+const PMTILES_PATH = 'chi-pb/data/pmtiles';
 
 /**
  * Store PMTiles archives in the Grist DigitalOcean Spaces bucket.

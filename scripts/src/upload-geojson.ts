@@ -1,11 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as url from 'node:url';
+import 'dotenv/config';
 
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-const GEOJSON_PATH = 'ira-bil/data/geojson';
+const GEOJSON_PATH = 'chi-pb/data/geojson';
 
 /**
  * Store GeoJSON files (both compressed and uncompressed) in the DigitalOcean Spaces bucket.

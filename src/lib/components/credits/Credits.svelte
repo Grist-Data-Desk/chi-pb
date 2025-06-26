@@ -79,7 +79,7 @@
 		const link = document.createElement('a');
 		const url = URL.createObjectURL(blob);
 		link.setAttribute('href', url);
-		link.setAttribute('download', 'ira-bil-projects.csv');
+		link.setAttribute('download', 'chi-pb-addresses.csv');
 		link.style.visibility = 'hidden';
 		document.body.appendChild(link);
 		link.click();

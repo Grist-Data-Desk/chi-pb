@@ -4,6 +4,8 @@ import { COLORS } from '$lib/utils/constants';
 export const DO_SPACES_URL = 'https://grist.nyc3.cdn.digitaloceanspaces.com';
 export const PMTILES_PATH = 'chi-pb/data/pmtiles';
 export const GEOJSON_PATH = 'chi-pb/data/geojson';
+export const CSV_PATH = 'chi-pb/data/csv';
+export const SEARCH_INDEX_PATH = 'chi-pb/data/search';
 export const STYLES_PATH = 'chi-pb/styles';
 
 const colorOrder = [
@@ -37,8 +39,13 @@ const LEGACY_CATEGORIES = {
 	fundingSource: ['IRA', 'BIL']
 };
 
-// Chicago water service line categories
-export const LEAD_STATUS_CATEGORIES = ['LEAD', 'NON_LEAD', 'UNKNOWN'];
+// Chicago water service line categories based on OverallSL Code values
+export const LEAD_STATUS_CATEGORIES = {
+	'L': 'Lead',
+	'GRR': 'Galvanized Requiring Replacement',
+	'U': 'Unknown',
+	'NL': 'Non-Lead'
+};
 export const CHOROPLETH_CATEGORIES = {
 	median_household_income: 'Median Household Income',
 	pct_black: 'Percent Black',
@@ -61,29 +68,11 @@ export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecifica
 			type: 'vector',
 			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/geocoded-addresses.pmtiles?v=${Date.now()}`
 		}
-	},
-	// Legacy sources (to be removed after refactoring)
-	projects: {
-		id: 'projects',
-		config: {
-			type: 'vector',
-			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/projects.pmtiles?v=${Date.now()}`
-		}
-	},
-	reservations: {
-		id: 'reservations',
-		config: {
-			type: 'vector',
-			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/reservations.pmtiles?v=${Date.now()}`
-		}
-	},
-	reservationLabels: {
-		id: 'reservation-labels',
-		config: {
-			type: 'vector',
-			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/reservation-labels.pmtiles?v=${Date.now()}`
-		}
 	}
+	// Legacy sources removed to prevent 403 errors - these files don't exist in chi-pb bucket
+	// projects: { ... }
+	// reservations: { ... } 
+	// reservationLabels: { ... }
 };
 
 // Legacy color expression function
@@ -101,58 +90,79 @@ export function getChoroplethColorExpression(mode: string) {
 	switch (mode) {
 		case 'median_household_income':
 			return [
-				'interpolate',
-				['linear'],
-				['get', 'median_household_income'],
-				0, COLORS.RED,
-				50000, COLORS.GOLD,
-				100000, COLORS.TURQUOISE,
-				150000, COLORS.COBALT
+				'case',
+				['!=', ['get', 'median_household_income'], null],
+				[
+					'interpolate',
+					['linear'],
+					['coalesce', ['get', 'median_household_income'], 0],
+					0, COLORS.RED,
+					50000, COLORS.GOLD,
+					100000, COLORS.TURQUOISE,
+					150000, COLORS.COBALT
+				],
+				COLORS.EARTH // fallback for null values
 			] as any;
 		case 'pct_black':
 			return [
-				'interpolate',
-				['linear'],
-				['get', 'pct_black'],
-				0, COLORS.EARTH,
-				25, COLORS.ORANGE,
-				50, COLORS.RED,
-				100, COLORS.FUCHSIA
+				'case',
+				['!=', ['get', 'pct_black'], null],
+				[
+					'interpolate',
+					['linear'],
+					['coalesce', ['get', 'pct_black'], 0],
+					0, COLORS.EARTH,
+					25, COLORS.ORANGE,
+					50, COLORS.RED,
+					100, COLORS.FUCHSIA
+				],
+				COLORS.EARTH // fallback for null values
 			] as any;
 		case 'pct_minority':
 			return [
-				'interpolate',
-				['linear'],
-				['get', 'pct_minority'],
-				0, COLORS.EARTH,
-				25, COLORS.GOLD,
-				50, COLORS.ORANGE,
-				100, COLORS.RED
+				'case',
+				['!=', ['get', 'pct_minority'], null],
+				[
+					'interpolate',
+					['linear'],
+					['coalesce', ['get', 'pct_minority'], 0],
+					0, COLORS.EARTH,
+					25, COLORS.GOLD,
+					50, COLORS.ORANGE,
+					100, COLORS.RED
+				],
+				COLORS.EARTH // fallback for null values
 			] as any;
 		case 'pct_poverty':
 			return [
-				'interpolate',
-				['linear'],
-				['get', 'pct_poverty'],
-				0, COLORS.TURQUOISE,
-				10, COLORS.GOLD,
-				20, COLORS.ORANGE,
-				40, COLORS.RED
+				'case',
+				['!=', ['get', 'pct_poverty'], null],
+				[
+					'interpolate',
+					['linear'],
+					['coalesce', ['get', 'pct_poverty'], 0],
+					0, COLORS.TURQUOISE,
+					10, COLORS.GOLD,
+					20, COLORS.ORANGE,
+					40, COLORS.RED
+				],
+				COLORS.EARTH // fallback for null values
 			] as any;
 		default:
 			return COLORS.EARTH;
 	}
 }
 
-// Address point color expression based on lead status
+// Address point color expression based on OverallSL Code from inventory data
 export function getAddressColorExpression() {
 	return [
 		'match',
-		['get', 'leadStatus'],
-		'LEAD', COLORS.RED,
-		'NON_LEAD', COLORS.TURQUOISE,
-		'UNKNOWN', COLORS.GOLD,
-		COLORS.EARTH
+		['get', 'overallSLCode'],
+		'L', COLORS.RED,        // Lead service line
+		'GRR', COLORS.ORANGE,   // Galvanized Requiring Replacement
+		'U', COLORS.GOLD,       // Unknown status
+		'NL', COLORS.TURQUOISE, // Non-lead service line
+		COLORS.EARTH            // Default for null/missing values
 	] as any;
 }
 
@@ -178,7 +188,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 			visibility: 'visible'
 		},
 		paint: {
-			'fill-color': getChoroplethColorExpression('median_household_income'),
+			'fill-color': COLORS.EARTH, // Default color, will be updated reactively
 			'fill-opacity': 0.7
 		}
 	},
@@ -215,59 +225,9 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 			'circle-stroke-color': '#ffffff',
 			'circle-opacity': 0.8
 		}
-	},
-	// Legacy layers (to be removed after refactoring)
-	projectsPoints: {
-		id: 'projects-points',
-		source: 'projects',
-		type: 'circle',
-		'source-layer': 'projects',
-		minzoom: 0,
-		maxzoom: 22,
-		layout: {
-			visibility: 'visible'
-		},
-		paint: {
-			'circle-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 22, 12],
-			'circle-color': createColorExpression('Funding Source', LEGACY_CATEGORIES.fundingSource),
-			'circle-stroke-width': 2,
-			'circle-stroke-color': '#ffffff',
-			'circle-opacity': 0.7
-		}
-	},
-	reservationsPolygons: {
-		id: 'reservations-polygons',
-		source: 'reservations',
-		type: 'fill',
-		'source-layer': 'reservations',
-		minzoom: 0,
-		maxzoom: 22,
-		layout: {
-			visibility: 'visible'
-		},
-		paint: {
-			'fill-color': COLORS.GREEN,
-			'fill-opacity': 0.2
-		}
-	},
-	reservationLabels: {
-		id: 'reservation-labels',
-		source: 'reservation-labels',
-		type: 'symbol',
-		'source-layer': 'reservation-labels',
-		minzoom: 6,
-		maxzoom: 22,
-		layout: {
-			'text-field': ['concat', ['get', 'reservation_name'], ' Reservation'],
-			'text-font': ['Basis Grotesque Pro Italic'],
-			'text-size': ['interpolate', ['linear'], ['zoom'], 6, 12, 12, 16],
-			'text-max-width': 7,
-			'text-letter-spacing': 0.1
-		},
-		paint: {
-			'text-color': COLORS.GREEN,
-			'text-halo-color': 'hsla(0, 0%, 100%, 0.85)',
-			'text-halo-width': 1.5
-		}
 	}
+	// Legacy layers removed to prevent errors - sources don't exist in chi-pb bucket
+	// projectsPoints: { ... }
+	// reservationsPolygons: { ... }
+	// reservationLabels: { ... }
 };

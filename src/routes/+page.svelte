@@ -8,7 +8,7 @@
 		currentCount,
 		isDataLoading
 	} from '$lib/stores';
-	import { TABLET_BREAKPOINT, CATEGORIES, STATE_BOUNDS } from '$lib/utils/constants';
+	import { TABLET_BREAKPOINT, STATE_BOUNDS } from '$lib/utils/constants';
 	import maplibregl from 'maplibre-gl';
 	import * as pmtiles from 'pmtiles';
 	import 'maplibre-gl/dist/maplibre-gl.css';
@@ -26,7 +26,9 @@
 		PMTILES_PATH,
 		GEOJSON_PATH,
 		STYLES_PATH,
-		getCurrentColorExpressions
+		getCurrentColorExpressions,
+		getChoroplethColorExpression,
+		getAddressColorExpression
 	} from '$lib/utils/config';
 	import type { ProjectFeatureCollection, Project } from '$lib/types';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
@@ -75,10 +77,11 @@
 
 				cleanupSearchLayers();
 
-				if (map?.getLayer('projects-points')) {
-					map.setFilter('projects-points', null);
-					map.setLayoutProperty('projects-points', 'visibility', 'visible');
-				}
+				// Legacy layer cleanup - no longer needed for Chicago
+				// if (map?.getLayer('projects-points')) {
+				// 	map.setFilter('projects-points', null);
+				// 	map.setLayoutProperty('projects-points', 'visibility', 'visible');
+				// }
 
 				if (currentPopup) {
 					currentPopup.remove();
@@ -115,9 +118,10 @@
 			map.removeSource('search-radius');
 		}
 
-		if (map.getLayer(LAYER_CONFIG.projectsPoints.id)) {
-			map.setLayoutProperty(LAYER_CONFIG.projectsPoints.id, 'visibility', 'visible');
-		}
+		// Legacy layer cleanup - no longer needed for Chicago
+		// if (map.getLayer(LAYER_CONFIG.projectsPoints.id)) {
+		// 	map.setLayoutProperty(LAYER_CONFIG.projectsPoints.id, 'visibility', 'visible');
+		// }
 	}
 
 	function handleSearchResultClick(e: maplibregl.MapMouseEvent & { features?: any[] }) {
@@ -237,65 +241,79 @@
 	function updateMapFilters() {
 		if (!map) return;
 
-		const currentMode = $visualState.colorMode;
-		const currentFilters = $visualState.filters;
-
-		const expressions = getCurrentColorExpressions();
-		
-		map.setPaintProperty('projects-points', 'circle-color', expressions[currentMode]);
-		if (map.getLayer(searchResultsLayer)) {
-			map.setPaintProperty(searchResultsLayer, 'circle-color', expressions[currentMode]);
+		// Update Chicago choropleth colors
+		const currentChoroplethMode = $visualState.choroplethMode;
+		if (currentChoroplethMode && map.getLayer('census-tracts-fill')) {
+			const choroplethExpression = getChoroplethColorExpression(currentChoroplethMode);
+			map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
 		}
 
-		const filters: any[] = [];
-		if (currentFilters.size > 0) {
-			let filterField;
-			let mainCategories: string[];
-			
-			switch (currentMode) {
-				case 'agency':
-					filterField = 'Agency Name';
-					mainCategories = CATEGORIES.agency;
-					break;
-				case 'category':
-					filterField = 'Category';
-					mainCategories = CATEGORIES.category;
-					break;
-				case 'fundingSource':
-					filterField = 'Funding Source';
-					mainCategories = CATEGORIES.fundingSource;
-					break;
-			}
-
-			const hasOther = currentFilters.has('Other');
-			const mainCategoryFilters = Array.from(currentFilters).filter(f => mainCategories.includes(f));
-			
-			if (hasOther) {
-				if (mainCategoryFilters.length > 0) {
-					filters.push([
-						'any',
-						['!in', filterField, ...mainCategories], // Other
-						['in', filterField, ...mainCategoryFilters] // Selected main categories
-					]);
-				} else {
-					filters.push(['!in', filterField, ...mainCategories]);
-				}
-			} else if (mainCategoryFilters.length > 0) {
-				filters.push(['in', filterField, ...mainCategoryFilters]);
-			}
+		// Update Chicago address point colors
+		if (map.getLayer('addresses-points')) {
+			const addressColorExpression = getAddressColorExpression();
+			map.setPaintProperty('addresses-points', 'circle-color', addressColorExpression);
 		}
 
-		const finalFilter = filters.length > 0 
-			? (filters.length > 1 ? ['all', ...filters] : filters[0]) 
-			: null;
+		// Legacy code (temporarily disabled)
+		// const currentMode = $visualState.colorMode;
+		// const currentFilters = $visualState.filters;
+		// const expressions = getCurrentColorExpressions();
+		// map.setPaintProperty('projects-points', 'circle-color', expressions[currentMode]);
+		// if (map.getLayer(searchResultsLayer)) {
+		// 	map.setPaintProperty(searchResultsLayer, 'circle-color', expressions[currentMode]);
+		// }
 
-		if (map.getLayoutProperty('projects-points', 'visibility') === 'visible') {
-			map.setFilter('projects-points', finalFilter);
-		}
+		// Legacy filter code (temporarily disabled for Chicago)
+		// const filters: any[] = [];
+		// if (currentFilters.size > 0) {
+		// 	let filterField;
+		// 	let mainCategories: string[];
+		// 	
+		// 	switch (currentMode) {
+		// 		case 'agency':
+		// 			filterField = 'Agency Name';
+		// 			mainCategories = CATEGORIES.agency;
+		// 			break;
+		// 		case 'category':
+		// 			filterField = 'Category';
+		// 			mainCategories = CATEGORIES.category;
+		// 			break;
+		// 		case 'fundingSource':
+		// 			filterField = 'Funding Source';
+		// 			mainCategories = CATEGORIES.fundingSource;
+		// 			break;
+		// 	}
+		// 
+		// 	const hasOther = currentFilters.has('Other');
+		// 	const mainCategoryFilters = Array.from(currentFilters).filter(f => mainCategories.includes(f));
+		// 	
+		// 	if (hasOther) {
+		// 		if (mainCategoryFilters.length > 0) {
+		// 			filters.push([
+		// 				'any',
+		// 				['!in', filterField, ...mainCategories], // Other
+		// 				['in', filterField, ...mainCategoryFilters] // Selected main categories
+		// 			]);
+		// 		} else {
+		// 			filters.push(['!in', filterField, ...mainCategories]);
+		// 		}
+		// 	} else if (mainCategoryFilters.length > 0) {
+		// 		filters.push(['in', filterField, ...mainCategoryFilters]);
+		// 	}
+		// }
+		// 
+		// const finalFilter = filters.length > 0 
+		// 	? (filters.length > 1 ? ['all', ...filters] : filters[0]) 
+		// 	: null;
 
-		if (map.getLayer(searchResultsLayer)) {
-			map.setFilter(searchResultsLayer, finalFilter);
-		}
+		// Legacy filter application (temporarily disabled for Chicago)
+		// if (map.getLayoutProperty('projects-points', 'visibility') === 'visible') {
+		// 	map.setFilter('projects-points', finalFilter);
+		// }
+		// 
+		// if (map.getLayer(searchResultsLayer)) {
+		// 	map.setFilter(searchResultsLayer, finalFilter);
+		// }
 	}
 
 	$: if (browser && map && $visualState) {
@@ -313,12 +331,12 @@
 			geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-background-error');
 			if (window.navigator.geolocation && typeof window.navigator.geolocation.clearWatch === 'function') {
 				try {
-					geolocateControl._clearWatch();
+					if (geolocateControl._clearWatch && typeof geolocateControl._clearWatch === 'function') {
+						geolocateControl._clearWatch();
+					}
 				} catch (e) {
 					console.warn('Failed to clear geolocation watch:', e);
 				}
-			} else {
-				console.warn('Geolocation clearWatch not available');
 			}
 		}
 
@@ -335,18 +353,12 @@
 				if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
 					throw new Error('Invalid coordinates');
 				}
+			} else if ($searchState.selectedAddress && $searchState.selectedAddress.lat && $searchState.selectedAddress.long) {
+				// Use coordinates from selected address
+				lat = $searchState.selectedAddress.lat;
+				lon = $searchState.selectedAddress.long;
 			} else {
-				const response = await fetch(
-					`https://nominatim.openstreetmap.org/search?format=geojson&q=${encodeURIComponent($searchState.query)}&addressdetails=1&limit=1&countrycodes=us`
-				);
-				const data = await response.json();
-
-				if (!data.features || data.features.length === 0) {
-					throw new Error('Location not found');
-				}
-
-				const feature = data.features[0];
-				[lon, lat] = feature.geometry.coordinates;
+				throw new Error('No coordinates available for search');
 			}
 
 			if (currentPopup) {
@@ -416,9 +428,10 @@
 
 				searchState.update(state => ({ ...state, results: projects }));
 
-				if (map?.getLayer(LAYER_CONFIG.projectsPoints.id)) {
-					map.setLayoutProperty(LAYER_CONFIG.projectsPoints.id, 'visibility', 'none');
-				}
+				// Legacy layer visibility control - no longer needed for Chicago
+				// if (map?.getLayer(LAYER_CONFIG.projectsPoints.id)) {
+				// 	map.setLayoutProperty(LAYER_CONFIG.projectsPoints.id, 'visibility', 'none');
+				// }
 
 				const searchResultsGeoJSON: GeoJSON.FeatureCollection<Point> = {
 					type: 'FeatureCollection',
@@ -531,9 +544,11 @@
 			map = new maplibregl.Map({
 				container: 'map-container',
 				style: `${DO_SPACES_URL}/${STYLES_PATH}/map-style.json`,
-				center: stateConfig?.center ?? [-98.5795, isTabletOrAbove ? 39.8283 : 49],
-				zoom: stateConfig?.zoom ?? (isTabletOrAbove ? 4 : 3),
-				minZoom: 2,
+				// Chicago-focused bounds - adjusted for search panel on desktop
+				center: isTabletOrAbove ? [-87.7298, 41.82] : [-87.6298, 41.8781], // Chicago center, shifted right and up on desktop
+				zoom: 10, // Zoomed in on Chicago
+				minZoom: 8, // Prevent zooming out too far
+				maxZoom: 18,
 				attributionControl: false
 			});
 
@@ -600,12 +615,18 @@
 					// Add Chicago layers
 					if (!map.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
 						map.addLayer(LAYER_CONFIG.censusTractsFill);
+						// Immediately apply the correct choropleth color expression
+						const choroplethExpression = getChoroplethColorExpression($visualState.choroplethMode);
+						map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
 					}
 					if (!map.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
 						map.addLayer(LAYER_CONFIG.censusTractsStroke);
 					}
 					if (!map.getLayer(LAYER_CONFIG.addressesPoints.id)) {
 						map.addLayer(LAYER_CONFIG.addressesPoints);
+						// Immediately apply the correct address color expression
+						const addressColorExpression = getAddressColorExpression();
+						map.setPaintProperty('addresses-points', 'circle-color', addressColorExpression);
 					}
 					
 					// Legacy layers temporarily disabled for Chicago testing
@@ -622,61 +643,55 @@
 					console.error('Error adding layers:', error);
 				}
 
-				map.on('click', LAYER_CONFIG.projectsPoints.id, (e) => {
-					if (!e.features?.length) return;
+				// Legacy project click handler - disabled for Chicago
+				// map.on('click', LAYER_CONFIG.projectsPoints.id, (e) => {
+				// 	if (!e.features?.length) return;
+				// 	console.log('Raw feature from PMTiles:', e.features[0]);
+				// 	console.log('Raw feature properties:', e.features[0].properties);
+				// 	const featuresByLocation = e.features.reduce(
+				// 		(acc: { [key: string]: any[] }, feature: any) => {
+				// 			if (!feature.geometry || feature.geometry.type !== 'Point') return acc;
+				// 			const coords = (feature.geometry as { type: 'Point'; coordinates: [number, number] })
+				// 				.coordinates;
+				// 			const key = `${coords[0]},${coords[1]}`;
+				// 			if (!acc[key]) acc[key] = [];
+				// 			acc[key].push(feature);
+				// 			return acc;
+				// 		},
+				// 		{}
+				// 	);
+				// 	const coordinates = (
+				// 		e.features[0].geometry as { type: 'Point'; coordinates: [number, number] }
+				// 	).coordinates;
+				// 	const key = `${coordinates[0]},${coordinates[1]}`;
+				// 	const locationFeatures = featuresByLocation[key];
+				// 	const projects: Project[] = locationFeatures.map(featureToProject);
+				// 	if (currentPopup) {
+				// 		currentPopup.remove();
+				// 	}
+				// 	const projectPopup = new ProjectPopup(map, projects);
+				// 	currentPopup = projectPopup.showPopup(
+				// 		new maplibregl.LngLat(coordinates[0], coordinates[1]),
+				// 		projects
+				// 	);
+				// });
 
-					console.log('Raw feature from PMTiles:', e.features[0]);
-					console.log('Raw feature properties:', e.features[0].properties);
-
-					const featuresByLocation = e.features.reduce(
-						(acc: { [key: string]: any[] }, feature: any) => {
-							if (!feature.geometry || feature.geometry.type !== 'Point') return acc;
-							const coords = (feature.geometry as { type: 'Point'; coordinates: [number, number] })
-								.coordinates;
-							const key = `${coords[0]},${coords[1]}`;
-							if (!acc[key]) acc[key] = [];
-							acc[key].push(feature);
-							return acc;
-						},
-						{}
-					);
-
-					const coordinates = (
-						e.features[0].geometry as { type: 'Point'; coordinates: [number, number] }
-					).coordinates;
-					const key = `${coordinates[0]},${coordinates[1]}`;
-					const locationFeatures = featuresByLocation[key];
-
-					const projects: Project[] = locationFeatures.map(featureToProject);
-
-					if (currentPopup) {
-						currentPopup.remove();
-					}
-
-					const projectPopup = new ProjectPopup(map, projects);
-					currentPopup = projectPopup.showPopup(
-						new maplibregl.LngLat(coordinates[0], coordinates[1]),
-						projects
-					);
-				});
-
-				map.setPaintProperty(LAYER_CONFIG.projectsPoints.id, 'circle-radius', [
-					'interpolate',
-					['linear'],
-					['zoom'],
-					2,
-					3,
-					8,
-					5
-				]);
-
-				map.on('mouseenter', LAYER_CONFIG.projectsPoints.id, () => {
-					map.getCanvas().style.cursor = 'pointer';
-				});
-
-				map.on('mouseleave', LAYER_CONFIG.projectsPoints.id, () => {
-					map.getCanvas().style.cursor = '';
-				});
+				// Legacy paint property and mouse handlers - disabled for Chicago
+				// map.setPaintProperty(LAYER_CONFIG.projectsPoints.id, 'circle-radius', [
+				// 	'interpolate',
+				// 	['linear'],
+				// 	['zoom'],
+				// 	2,
+				// 	3,
+				// 	8,
+				// 	5
+				// ]);
+				// map.on('mouseenter', LAYER_CONFIG.projectsPoints.id, () => {
+				// 	map.getCanvas().style.cursor = 'pointer';
+				// });
+				// map.on('mouseleave', LAYER_CONFIG.projectsPoints.id, () => {
+				// 	map.getCanvas().style.cursor = '';
+				// });
 
 				if (!isTabletOrAbove) {
 					map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
@@ -704,7 +719,7 @@
 			<ExpandLegend />
 			<Legend />
 			<div class="floating-panel absolute left-[3%] top-4 z-10 w-[94%] p-4 md:left-4 md:w-[400px]">
-				<SearchPanel onSearch={searchProjects} />
+				<SearchPanel onSearch={searchProjects} {map} />
 				<Credits />
 			</div>
 		</div>

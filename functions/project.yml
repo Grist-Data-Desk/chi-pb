@@ -1,0 +1,6 @@
+packages:
+  - name: inventory
+    functions:
+      - name: lookup
+        runtime: nodejs:18
+        web: true

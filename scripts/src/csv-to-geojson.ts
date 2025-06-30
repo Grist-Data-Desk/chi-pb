@@ -31,6 +31,26 @@ interface AddressRow {
 	m_stdir: string;
 	m_stname: string;
 	m_zip: string;
+	// Inventory data fields
+	overallSLCode?: string;
+	highRisk?: string;
+	publSrvLnMatEPA?: string;
+	privateSrvLnMatEPA?: string;
+	gooseneck?: string;
+	combinedSourceDescription?: string;
+}
+
+interface InventoryRow {
+	idx: number;
+	fullAddress: string;
+	lcrSiteID: string;
+	highRisk: string;
+	serviceNewlyIdentified: string;
+	gooseneck: string;
+	publSrvLnMatEPA: string;
+	privateSrvLnMatEPA: string;
+	overallSLCode: string;
+	combinedSourceDescription: string;
 }
 
 function cleanFieldName(key: string): string {
@@ -62,8 +82,51 @@ async function writeCompressedJSON(filePath: string, data: any): Promise<void> {
 	fs.writeFileSync(`${filePath}.br.meta`, JSON.stringify(metadata, null, 2));
 }
 
-async function processAddressCSV(inputPath: string, outputDir: string): Promise<void> {
+async function loadInventoryData(inventoryPath: string): Promise<Map<number, InventoryRow>> {
+	const inventoryMap = new Map<number, InventoryRow>();
+
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(inventoryPath)
+			.pipe(
+				parse({
+					columns: true,
+					skip_empty_lines: true
+				})
+			)
+			.on('data', (row: any) => {
+				const normalizedRow = Object.fromEntries(
+					Object.entries(row).map(([key, value]) => [cleanFieldName(key), value])
+				);
+
+				const inventoryRow: InventoryRow = {
+					idx: parseInt(normalizedRow.Idx as string) || 0,
+					fullAddress: String(normalizedRow.FullAddress || ''),
+					lcrSiteID: String(normalizedRow.LCRSiteID || ''),
+					highRisk: String(normalizedRow['High Risk'] || ''),
+					serviceNewlyIdentified: String(normalizedRow.ServiceNewlyIdentified || ''),
+					gooseneck: String(normalizedRow.Gooseneck || ''),
+					publSrvLnMatEPA: String(normalizedRow.PublSrvLnMatEPA || ''),
+					privateSrvLnMatEPA: String(normalizedRow.PrivateSrvLnMatEPA || ''),
+					overallSLCode: String(normalizedRow['OverallSL Code'] || ''),
+					combinedSourceDescription: String(normalizedRow.CombinedSourceDescription || '')
+				};
+
+				inventoryMap.set(inventoryRow.idx, inventoryRow);
+			})
+			.on('end', () => {
+				console.log(`Loaded ${inventoryMap.size} inventory records`);
+				resolve(inventoryMap);
+			})
+			.on('error', reject);
+	});
+}
+
+async function processAddressCSV(inputPath: string, outputDir: string, inventoryPath: string): Promise<void> {
 	const rows: AddressRow[] = [];
+
+	// Load inventory data first
+	console.log('Loading inventory data...');
+	const inventoryMap = await loadInventoryData(inventoryPath);
 
 	return new Promise((resolve, reject) => {
 		fs.createReadStream(inputPath)
@@ -78,8 +141,11 @@ async function processAddressCSV(inputPath: string, outputDir: string): Promise<
 					Object.entries(row).map(([key, value]) => [cleanFieldName(key), value])
 				);
 
+				const rowId = parseInt(normalizedRow.row as string) || 0;
+				const inventoryData = inventoryMap.get(rowId);
+
 				const addressRow: AddressRow = {
-					row: parseInt(normalizedRow.row as string) || 0,
+					row: rowId,
 					full_address: String(normalizedRow.full_address || ''),
 					is_intersection: String(normalizedRow.is_intersection).toLowerCase() === 'true',
 					stnum1: parseInt(normalizedRow.stnum1 as string) || 0,
@@ -97,7 +163,14 @@ async function processAddressCSV(inputPath: string, outputDir: string): Promise<
 					m_stnum2: parseInt(normalizedRow.m_stnum2 as string) || 0,
 					m_stdir: String(normalizedRow.m_stdir || ''),
 					m_stname: String(normalizedRow.m_stname || ''),
-					m_zip: String(normalizedRow.m_zip || '')
+					m_zip: String(normalizedRow.m_zip || ''),
+					// Join inventory data if available
+					overallSLCode: inventoryData?.overallSLCode,
+					highRisk: inventoryData?.highRisk,
+					publSrvLnMatEPA: inventoryData?.publSrvLnMatEPA,
+					privateSrvLnMatEPA: inventoryData?.privateSrvLnMatEPA,
+					gooseneck: inventoryData?.gooseneck,
+					combinedSourceDescription: inventoryData?.combinedSourceDescription
 				};
 
 				rows.push(addressRow);
@@ -109,6 +182,8 @@ async function processAddressCSV(inputPath: string, outputDir: string): Promise<
 				
 				await writeCompressedJSON(outputPath, addressGeoJSON);
 				console.log(`Processed ${rows.length} addresses`);
+				const withInventory = rows.filter(r => r.overallSLCode).length;
+				console.log(`${withInventory} addresses matched with inventory data`);
 				resolve();
 			})
 			.on('error', reject);
@@ -141,7 +216,14 @@ function createAddressGeoJSON(rows: AddressRow[]): FeatureCollection {
 				mStnum2: row.m_stnum2,
 				mStdir: row.m_stdir,
 				mStname: row.m_stname,
-				mZip: row.m_zip
+				mZip: row.m_zip,
+				// Inventory data
+				overallSLCode: row.overallSLCode || null,
+				highRisk: row.highRisk || null,
+				publSrvLnMatEPA: row.publSrvLnMatEPA || null,
+				privateSrvLnMatEPA: row.privateSrvLnMatEPA || null,
+				gooseneck: row.gooseneck || null,
+				combinedSourceDescription: row.combinedSourceDescription || null
 			}
 		}))
 	};
@@ -156,7 +238,8 @@ if (!fs.existsSync(outputDir)) {
 }
 
 const addressPath = path.join(__dirname, '../../scripts/data/raw/geocoded-addresses.csv');
+const inventoryPath = path.join(__dirname, '../../scripts/data/processed/inventory.csv');
 console.log(`Processing Chicago addresses: ${path.basename(addressPath)}...`);
-processAddressCSV(addressPath, outputDir)
+processAddressCSV(addressPath, outputDir, inventoryPath)
 	.then(() => console.log('Address CSV processing complete'))
 	.catch((err: Error) => console.error('Error:', err.message));

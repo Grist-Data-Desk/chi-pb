@@ -1,0 +1,207 @@
+<script lang="ts">
+	import { searchState } from '$lib/stores';
+	import type { AddressWithServiceLine } from '$lib/types';
+	import ServiceLineDiagram from './ServiceLineDiagram.svelte';
+
+	export let selectedAddress: AddressWithServiceLine | null = null;
+	export let inventoryData: any = null;
+	export let isLoading = false;
+	export let error: string | null = null;
+
+	$: address = selectedAddress || $searchState.selectedAddress;
+	
+	// Get lead status from inventory data's overallCode field, or default to UNKNOWN
+	$: leadStatus = inventoryData?.overallCode ? mapOverallCodeToStatus(inventoryData.overallCode) : 'UNKNOWN';
+
+	function mapOverallCodeToStatus(code: string): string {
+		switch (code) {
+			case 'L':
+				return 'LEAD';
+			case 'GRR':
+				return 'GALVANIZED_REQUIRING_REPLACEMENT';
+			case 'NL':
+				return 'NON_LEAD';
+			case 'U':
+				return 'UNKNOWN';
+			default:
+				return 'UNKNOWN';
+		}
+	}
+
+	function getLeadStatusColor(status: string): string {
+		switch (status) {
+			case 'LEAD':
+				return 'text-red-600 bg-red-50 border-red-200';
+			case 'GALVANIZED_REQUIRING_REPLACEMENT':
+				return 'text-orange-600 bg-orange-50 border-orange-200';
+			case 'NON_LEAD':
+				return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+			case 'UNKNOWN':
+				return 'text-amber-600 bg-amber-50 border-amber-200';
+			default:
+				return 'text-slate-600 bg-slate-50 border-slate-200';
+		}
+	}
+
+	function formatLeadStatus(status: string): string {
+		switch (status) {
+			case 'LEAD':
+				return 'Lead';
+			case 'GALVANIZED_REQUIRING_REPLACEMENT':
+				return 'Galvanized Requiring Replacement';
+			case 'NON_LEAD':
+				return 'Non-Lead';
+			case 'UNKNOWN':
+				return 'Unknown';
+			default:
+				return status.replace('_', ' ');
+		}
+	}
+</script>
+
+{#if address}
+	<div class="mt-4 max-h-[400px] overflow-y-auto space-y-3 sm:space-y-4 pr-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+		<!-- Address Information -->
+		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+			<h3 class="mb-2 sm:mb-3 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
+				Selected Address
+			</h3>
+			<div class="space-y-2 font-['Basis_Grotesque']">
+				<div>
+					<p class="text-sm sm:text-base font-medium text-slate-800 break-words">{address.fullAddress}</p>
+				</div>
+				
+				<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+					<span class="text-xs sm:text-sm text-slate-600">Lead Status:</span>
+					<span 
+						class="inline-flex items-center self-start rounded-full border px-2 sm:px-2.5 py-0.5 text-xs sm:text-sm font-medium {getLeadStatusColor(leadStatus)}"
+					>
+						{formatLeadStatus(leadStatus)}
+					</span>
+				</div>
+
+				{#if address.lat && address.lng}
+					<div class="text-xs sm:text-sm text-slate-500 break-all">
+						Coordinates: {address.lat.toFixed(6)}, {address.lng.toFixed(6)}
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Service Line Details -->
+		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+			<h3 class="mb-2 sm:mb-3 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
+				Service Line Information
+			</h3>
+			
+			{#if isLoading}
+				<div class="flex items-center gap-2 sm:gap-3 py-6 sm:py-8">
+					<div class="h-4 w-4 sm:h-5 sm:w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
+					<p class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500">Loading detailed service line information...</p>
+				</div>
+			{:else if error}
+				<div class="rounded-md border border-orange-200 bg-orange-50 p-2 sm:p-3">
+					<div class="flex items-start gap-2">
+						<svg class="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+						</svg>
+						<p class="font-['Basis_Grotesque'] text-xs sm:text-sm text-orange-700 break-words">{error}</p>
+					</div>
+				</div>
+			{:else if inventoryData}
+				<!-- Visual Service Line Diagram -->
+				<div class="mb-4">
+					<ServiceLineDiagram 
+						utilitySideMaterial={inventoryData.utilitySideMaterial || inventoryData.publSrvLnMatEPA || 'U'}
+						gooseneckMaterial={inventoryData.gooseneck || 'U'}
+						customerSideMaterial={inventoryData.customerSideMaterial || inventoryData.privateSrvLnMatEPA || 'U'}
+						overallCode={inventoryData.overallCode || 'U'}
+					/>
+				</div>
+				
+				<!-- Additional inventory details if needed -->
+				{#if inventoryData.confidence || inventoryData.lastUpdated || inventoryData.additionalNotes}
+					<div class="space-y-2 font-['Basis_Grotesque'] text-xs sm:text-sm">
+						{#if inventoryData.confidence}
+							<div class="flex items-start gap-2">
+								<span class="font-medium text-slate-700">Confidence:</span>
+								<span class="text-slate-600">{inventoryData.confidence}</span>
+							</div>
+						{/if}
+						
+						{#if inventoryData.highRisk === 'Y'}
+							<div class="flex items-start gap-2">
+								<span class="font-medium text-red-700">⚠️ High Risk</span>
+							</div>
+						{/if}
+						
+						{#if inventoryData.lastUpdated}
+							<div class="flex items-start gap-2">
+								<span class="font-medium text-slate-700">Updated:</span>
+								<span class="text-slate-600">{inventoryData.lastUpdated}</span>
+							</div>
+						{/if}
+
+						{#if inventoryData.additionalNotes}
+							<div class="pt-2 border-t border-slate-100">
+								<p class="text-slate-600 italic">{inventoryData.additionalNotes}</p>
+							</div>
+						{/if}
+					</div>
+				{/if}
+			{:else}
+				<div class="rounded-md border border-slate-200 bg-slate-50 p-2 sm:p-3">
+					<div class="flex items-start gap-2">
+						<svg class="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+							<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+						</svg>
+						<div>
+							<p class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500">
+								Detailed inventory information is not available for this address.
+							</p>
+							<p class="mt-1 font-['Basis_Grotesque'] text-xs text-slate-400">
+								The basic lead status shown above is based on available data from the geocoded address database.
+							</p>
+						</div>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Census Tract Information -->
+		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+			<h3 class="mb-2 sm:mb-3 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
+				Census Tract Context
+			</h3>
+			<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500 space-y-1">
+				<p>View the map to see demographic and service line statistics for the Census tract containing this address.</p>
+				<p>Tract-level information will be available when hovering over tract areas on the map.</p>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	/* Custom scrollbar styling */
+	.scrollbar-thin {
+		scrollbar-width: thin;
+	}
+	
+	.scrollbar-thin::-webkit-scrollbar {
+		width: 6px;
+	}
+	
+	.scrollbar-thin::-webkit-scrollbar-track {
+		background: #f1f5f9;
+		border-radius: 3px;
+	}
+	
+	.scrollbar-thin::-webkit-scrollbar-thumb {
+		background: #cbd5e1;
+		border-radius: 3px;
+	}
+	
+	.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+		background: #94a3b8;
+	}
+</style>

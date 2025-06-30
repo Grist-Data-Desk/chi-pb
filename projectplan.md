@@ -83,13 +83,44 @@ Refactor the existing IRA/BIL project mapping application into a Chicago-focused
 - `LEAD_STATUS_CATEGORIES` - Lead service line status categories
 
 **Testing Requirements:**
-- [ ] Verify map loads with Chicago tract PMTiles data
-- [ ] Test choropleth color expressions render correctly
+- [x] Verify map loads with Chicago tract PMTiles data
+- [x] Test choropleth color expressions render correctly
 - [ ] Confirm address points display with proper lead status colors
-- [ ] Check layer visibility toggles work
-- [ ] Test map bounds focus on Chicago area
+- [x] Check layer visibility toggles work
+- [x] Test map bounds focus on Chicago area
 
-### Phase 4: UI Component Refactoring ✅ **COMPLETE**
+### Phase 4A: Search & Results Panel (Address-Inventory Integration) ⚠️ **IN PROGRESS**
+- [ ] **Create results panel component**
+  - [ ] Design results panel UI for displaying service line information
+  - [ ] Implement responsive design for mobile/desktop
+  - [ ] Add loading states and error handling
+
+- [ ] **Implement address-inventory data linking**
+  - [ ] Create data linking strategy between geocoded addresses and inventory data
+  - [ ] Add inventory data lookup functionality to address store
+  - [ ] Implement address matching logic (exact match vs fuzzy matching for inventory lookup)
+  - [ ] Handle cases where address exists in geocoded data but not in inventory
+
+- [ ] **Update address search workflow**
+  - [ ] Modify search to trigger inventory lookup on address selection
+  - [ ] Add detailed service line information display
+  - [ ] Show service line composition, material types, and confidence levels
+  - [ ] Display property details and any additional inventory metadata
+
+**Data Linking Strategy:**
+- Address PMTiles provide spatial points for map visualization
+- Inventory data queried client-side for detailed service line information
+- Fallback handling when addresses don't have inventory matches
+- Clear indication of data availability and confidence
+
+**Results Panel Features:**
+- Service line material composition (lead, copper, unknown, etc.)
+- Property metadata from inventory
+- Confidence indicators for service line data
+- Links back to Census tract information
+- Clear visual hierarchy and responsive design
+
+### Phase 4B: UI Component Refactoring ⚠️ **NEEDS TESTING**
 - [x] **Refactor SearchPanel component**
   - [x] Replace location geocoding with address matching from CSV
   - [x] Implement enhanced fuzzy matching for Chicago addresses with range support
@@ -130,6 +161,7 @@ Refactor the existing IRA/BIL project mapping application into a Chicago-focused
 - [ ] Verify continuous color scale legends show proper value ranges
 - [ ] Test mobile responsiveness of search and legend components
 
+### Phase 4C: Popup Functionality Updates
 - [ ] **Refactor popup functionality** ⚠️ **UPDATED REQUIREMENTS**
   - [ ] Update `src/lib/utils/popup.ts` to handle Census tract data instead of project data
   - [ ] Create `generateTractPopupContent()` function for tract demographics and service line stats

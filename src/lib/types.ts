@@ -123,6 +123,7 @@ export interface ProjectFeatureCollection extends FeatureCollection<Point> {
 export interface IndexedAddressCollection {
 	collection: AddressFeatureCollection;
 	index: KDBush | null;
+	addresses?: AddressWithServiceLine[]; // Simple array for search functionality
 }
 
 export interface IndexedTractCollection {
@@ -137,3 +138,77 @@ export interface IndexedFeatureCollection {
 
 // Choropleth visualization modes
 export type ChoroplethMode = 'median_household_income' | 'pct_black' | 'pct_minority' | 'pct_poverty';
+
+// Search index types for optimized address search
+export interface CompactAddress {
+	id: number;
+	display: string;    // "1234 N State St"
+	street: string;     // normalized street name
+	num1: number;       // start house number
+	num2: number;       // end house number
+	zip: string;
+	leadStatus: string;
+}
+
+export interface SearchIndex {
+	// Maps for fast lookups
+	streetNames: Record<string, number[]>;  // normalized street -> address IDs
+	numbers: Record<string, number[]>;      // house number ranges -> address IDs  
+	zips: Record<string, number[]>;         // ZIP -> address IDs
+	addresses: CompactAddress[];            // compact address data by ID
+	metadata: {
+		totalAddresses: number;
+		uniqueStreets: number;
+		generatedAt: string;
+		version: string;
+	};
+}
+
+// Minimal search index types (no lead status, smaller file size)
+export interface MinimalAddress {
+	id: number;
+	display: string;    // "1234 N State St"
+	street: string;     // normalized street name for search
+	num1: number;       // start house number
+	num2: number;       // end house number
+	zip: string;
+	row: number;        // row number from source data for inventory lookup
+	lat: number;        // Latitude for map zoom
+	long: number;       // Longitude for map zoom
+	// NO leadStatus - fetched on-demand via API
+}
+
+export interface MinimalSearchIndex {
+	streetNames: Record<string, number[]>;  // normalized street -> address IDs
+	addresses: MinimalAddress[];            // minimal address data by ID
+	metadata: {
+		totalAddresses: number;
+		uniqueStreets: number;
+		generatedAt: string;
+		version: string;
+	};
+}
+
+// Inventory API response types
+export interface InventoryData {
+	fullAddress: string;
+	serviceLineMaterial: string;
+	customerSideMaterial: string;
+	utilitySideMaterial: string;
+	overallCode: string;
+	gooseneck: string;
+	confidence: string;
+	highRisk: string;
+	lastUpdated: string;
+	additionalNotes: string;
+}
+
+export interface InventoryApiResponse {
+	success: boolean;
+	address: string;
+	inventory: InventoryData;
+	metadata: {
+		timestamp: string;
+		source: string;
+	};
+}

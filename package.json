@@ -1,5 +1,5 @@
 {
-	"name": "@grist/ira-tracker",
+	"name": "@grist/chi-pb",
 	"private": true,
 	"version": "0.1.0",
 	"type": "module",
@@ -24,8 +24,6 @@
 		"upload:csv": "tsx scripts/src/upload-csv.ts",
 		"upload:search": "tsx scripts/src/upload-search-index.ts",
 		"upload:styles": "tsx scripts/src/upload-styles.ts",
-		"process-all": "pnpm gen:geojson && pnpm gen:pmtiles && pnpm upload:geojson && pnpm upload:pmtiles && pnpm upload:styles",
-		"process-chicago": "pnpm gen:addresses && pnpm gen:inventory && pnpm gen:search && pnpm gen:pmtiles",
 		"publish:app": "tsx scripts/src/deploy.ts",
 		"build-and-publish": "pnpm build:cdn && pnpm publish:app"
 	},

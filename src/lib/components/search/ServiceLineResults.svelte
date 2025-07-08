@@ -1,17 +1,48 @@
 <script lang="ts">
-	import { searchState } from '$lib/stores';
-	import type { AddressWithServiceLine } from '$lib/types';
+	import { searchState, multiServiceLineStore, currentServiceLine, serviceLineCount, nextServiceLine, previousServiceLine } from '$lib/stores';
+	import type { AddressWithServiceLine, CensusTract } from '$lib/types';
 	import ServiceLineDiagram from './ServiceLineDiagram.svelte';
+	import type { Map } from 'maplibre-gl';
 
 	export let selectedAddress: AddressWithServiceLine | null = null;
 	export let inventoryData: any = null;
 	export let isLoading = false;
 	export let error: string | null = null;
+	export let map: Map | null = null;
 
 	$: address = selectedAddress || $searchState.selectedAddress;
 	
-	// Get lead status from inventory data's overallCode field, or default to UNKNOWN
-	$: leadStatus = inventoryData?.overallCode ? mapOverallCodeToStatus(inventoryData.overallCode) : 'UNKNOWN';
+	// Get tract data for the selected address by querying which tract contains the address point
+	let tractData: CensusTract | null = null;
+	$: if (map && address && address.lat && address.long) {
+		getTractDataAtPoint(address.long, address.lat);
+	}
+
+	async function getTractDataAtPoint(lng: number, lat: number) {
+		if (!map) return;
+		
+		try {
+			// Query the census tract layer at the specific point
+			const point = map.project([lng, lat]);
+			const features = map.queryRenderedFeatures(point, {
+				layers: ['census-tracts-fill']
+			});
+			
+			if (features.length > 0) {
+				tractData = features[0].properties as CensusTract;
+			} else {
+				tractData = null;
+			}
+		} catch (error) {
+			console.error('Error getting tract data at point:', error);
+			tractData = null;
+		}
+	}
+	
+	// Get lead status from current service line or inventory data
+	$: currentInventoryData = $currentServiceLine || inventoryData;
+	$: leadStatus = currentInventoryData?.OverallSL_Code ? mapOverallCodeToStatus(currentInventoryData.OverallSL_Code) : 
+	               currentInventoryData?.overallCode ? mapOverallCodeToStatus(currentInventoryData.overallCode) : 'UNKNOWN';
 
 	function mapOverallCodeToStatus(code: string): string {
 		switch (code) {
@@ -26,6 +57,22 @@
 			default:
 				return 'UNKNOWN';
 		}
+	}
+
+	// Formatting utilities for Census tract data (from popup.ts)
+	function formatCurrency(value: number): string {
+		if (!value || value === null) return 'N/A';
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: 'USD',
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0
+		}).format(value);
+	}
+
+	function formatPercent(value: number): string {
+		if (value === null || value === undefined) return 'N/A';
+		return `${value.toFixed(1)}%`;
 	}
 
 	function getLeadStatusColor(status: string): string {
@@ -63,8 +110,8 @@
 	<div class="mt-4 max-h-[400px] overflow-y-auto space-y-3 sm:space-y-4 pr-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
 		<!-- Address Information -->
 		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
-			<h3 class="mb-2 sm:mb-3 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
-				Selected Address
+			<h3 class="mt-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
+				Selected address
 			</h3>
 			<div class="space-y-2 font-['Basis_Grotesque']">
 				<div>
@@ -80,18 +127,16 @@
 					</span>
 				</div>
 
-				{#if address.lat && address.lng}
-					<div class="text-xs sm:text-sm text-slate-500 break-all">
-						Coordinates: {address.lat.toFixed(6)}, {address.lng.toFixed(6)}
-					</div>
-				{/if}
 			</div>
 		</div>
 
 		<!-- Service Line Details -->
 		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
-			<h3 class="mb-2 sm:mb-3 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
-				Service Line Information
+			<h3 class="mt-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
+				Service line information
+				{#if $serviceLineCount > 1}
+					<span class="ml-2 text-sm font-normal text-slate-600">({$serviceLineCount} service lines found)</span>
+				{/if}
 			</h3>
 			
 			{#if isLoading}
@@ -108,43 +153,74 @@
 						<p class="font-['Basis_Grotesque'] text-xs sm:text-sm text-orange-700 break-words">{error}</p>
 					</div>
 				</div>
-			{:else if inventoryData}
+			{:else if currentInventoryData}
+				<!-- Navigation controls for multiple service lines -->
+				{#if $serviceLineCount > 1}
+					<div class="mb-3 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2">
+						<button 
+							on:click={previousServiceLine}
+							disabled={$multiServiceLineStore.currentIndex === 0}
+							class="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex === 0 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-200'}"
+						>
+							<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+							</svg>
+							Previous
+						</button>
+						
+						<span class="text-xs font-medium text-slate-700">
+							Service Line {$multiServiceLineStore.currentIndex + 1} of {$serviceLineCount}
+						</span>
+						
+						<button 
+							on:click={nextServiceLine}
+							disabled={$multiServiceLineStore.currentIndex === $serviceLineCount - 1}
+							class="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex === $serviceLineCount - 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-200'}"
+						>
+							Next
+							<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+						</button>
+					</div>
+				{/if}
+				
 				<!-- Visual Service Line Diagram -->
 				<div class="mb-4">
 					<ServiceLineDiagram 
-						utilitySideMaterial={inventoryData.utilitySideMaterial || inventoryData.publSrvLnMatEPA || 'U'}
-						gooseneckMaterial={inventoryData.gooseneck || 'U'}
-						customerSideMaterial={inventoryData.customerSideMaterial || inventoryData.privateSrvLnMatEPA || 'U'}
-						overallCode={inventoryData.overallCode || 'U'}
+						utilitySideMaterial={currentInventoryData.PublSrvLnMatEPA || currentInventoryData.utilitySideMaterial || 'U'}
+						gooseneckMaterial={currentInventoryData.Gooseneck || currentInventoryData.gooseneck || 'U'}
+						customerSideMaterial={currentInventoryData.PrivateSrvLnMatEPA || currentInventoryData.customerSideMaterial || 'U'}
+						overallCode={currentInventoryData.OverallSL_Code || currentInventoryData.overallCode || 'U'}
 					/>
 				</div>
 				
 				<!-- Additional inventory details if needed -->
-				{#if inventoryData.confidence || inventoryData.lastUpdated || inventoryData.additionalNotes}
+				{#if currentInventoryData.confidence || currentInventoryData.lastUpdated || currentInventoryData.additionalNotes}
 					<div class="space-y-2 font-['Basis_Grotesque'] text-xs sm:text-sm">
-						{#if inventoryData.confidence}
+						{#if currentInventoryData.confidence}
 							<div class="flex items-start gap-2">
 								<span class="font-medium text-slate-700">Confidence:</span>
-								<span class="text-slate-600">{inventoryData.confidence}</span>
+								<span class="text-slate-600">{currentInventoryData.confidence}</span>
 							</div>
 						{/if}
 						
-						{#if inventoryData.highRisk === 'Y'}
+						{#if currentInventoryData.highRisk === 'Y'}
 							<div class="flex items-start gap-2">
 								<span class="font-medium text-red-700">⚠️ High Risk</span>
 							</div>
 						{/if}
 						
-						{#if inventoryData.lastUpdated}
+						{#if currentInventoryData.lastUpdated}
 							<div class="flex items-start gap-2">
 								<span class="font-medium text-slate-700">Updated:</span>
-								<span class="text-slate-600">{inventoryData.lastUpdated}</span>
+								<span class="text-slate-600">{currentInventoryData.lastUpdated}</span>
 							</div>
 						{/if}
 
-						{#if inventoryData.additionalNotes}
+						{#if currentInventoryData.additionalNotes}
 							<div class="pt-2 border-t border-slate-100">
-								<p class="text-slate-600 italic">{inventoryData.additionalNotes}</p>
+								<p class="text-slate-600 italic">{currentInventoryData.additionalNotes}</p>
 							</div>
 						{/if}
 					</div>
@@ -170,13 +246,22 @@
 
 		<!-- Census Tract Information -->
 		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
-			<h3 class="mb-2 sm:mb-3 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
-				Census Tract Context
+			<h3 class="mt-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
+				Census tract context
 			</h3>
-			<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500 space-y-1">
-				<p>View the map to see demographic and service line statistics for the Census tract containing this address.</p>
-				<p>Tract-level information will be available when hovering over tract areas on the map.</p>
-			</div>
+			{#if tractData}
+				<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-700">
+					<p class="italic mb-1">You live in Census tract {tractData.geoid}. Statistics on your tract appear below.</p>
+					<p class="mb-0"><strong>Median Household Income:</strong> {formatCurrency(tractData.median_household_income)}</p>
+					<p class="mb-0"><strong>Black Population:</strong> {formatPercent(tractData.pct_black)}</p>
+					<p class="mb-0"><strong>Minority Population:</strong> {formatPercent(tractData.pct_minority)}</p>
+					<p class="mb-0"><strong>Poverty Rate:</strong> {formatPercent(tractData.pct_poverty)}</p>
+				</div>
+			{:else}
+				<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500">
+					<p>Census tract demographic information will be displayed here when available.</p>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -192,16 +277,16 @@
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar-track {
-		background: #f1f5f9;
+		background: transparent;
 		border-radius: 3px;
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar-thumb {
-		background: #cbd5e1;
+		background: rgba(0, 0, 0, 0.2);
 		border-radius: 3px;
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-		background: #94a3b8;
+		background: rgba(0, 0, 0, 0.4);
 	}
 </style>

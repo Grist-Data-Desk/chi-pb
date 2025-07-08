@@ -159,8 +159,11 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 
 					// Index individual words for partial matching
 					const words = normalizedStreet.split(' ');
+					const directions = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+					
 					words.forEach(word => {
-						if (word.length > 2) { // Skip very short words
+						// Index important short words (directions) and longer words
+						if (word.length > 2 || directions.includes(word)) {
 							if (!streetNameIndex[word]) {
 								streetNameIndex[word] = [];
 							}
@@ -178,6 +181,21 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 							streetNameIndex[partial].push(id);
 						}
 					}
+					
+					// Index partial word matching for street names (for cases like "fr" matching "front")
+					words.forEach(word => {
+						if (word.length > 3) { // Only for longer words
+							// Create prefix indexes for partial matching
+							for (let len = 2; len <= word.length - 1; len++) {
+								const prefix = word.substring(0, len);
+								const indexKey = `${prefix}*`; // Use * to mark as prefix
+								if (!streetNameIndex[indexKey]) {
+									streetNameIndex[indexKey] = [];
+								}
+								streetNameIndex[indexKey].push(id);
+							}
+						}
+					});
 				}
 			})
 			.on('end', async () => {

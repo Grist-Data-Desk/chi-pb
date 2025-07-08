@@ -23,8 +23,8 @@ For details about our data collection and processing methodology, see our [metho
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Grist-Data-Desk/ira-tracker
-   cd ira-tracker
+   git clone https://github.com/Grist-Data-Desk/chi-pb
+   cd chi-pb
    ```
 
 2. Install dependencies:

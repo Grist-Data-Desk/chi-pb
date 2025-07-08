@@ -1,5 +1,5 @@
 import type { SourceSpecification, AddLayerObject } from 'maplibre-gl';
-import { COLORS } from '$lib/utils/constants';
+import { COLORS, VIRIDIS } from '$lib/utils/constants';
 
 export const DO_SPACES_URL = 'https://grist.nyc3.cdn.digitaloceanspaces.com';
 export const PMTILES_PATH = 'chi-pb/data/pmtiles';
@@ -17,27 +17,6 @@ const colorOrder = [
 	COLORS.RED,
 	COLORS.GOLD
 ];
-
-// Legacy categories (to be removed after refactoring)
-const LEGACY_CATEGORIES = {
-	agency: [
-		'Department of Transportation',
-		'Department of Agriculture',
-		'Environmental Protection Agency',
-		'Department of Energy',
-		'Department of Homeland Security',
-		'Department of the Interior'
-	],
-	category: [
-		'Transportation',
-		'Clean Energy, Buildings, and Manufacturing',
-		'Resilience',
-		'Clean Water',
-		'Environmental Remediation',
-		'Broadband'
-	],
-	fundingSource: ['IRA', 'BIL']
-};
 
 // Chicago water service line categories based on OverallSL Code values
 export const LEAD_STATUS_CATEGORIES = {
@@ -96,10 +75,10 @@ export function getChoroplethColorExpression(mode: string) {
 					'interpolate',
 					['linear'],
 					['coalesce', ['get', 'median_household_income'], 0],
-					0, COLORS.RED,
-					50000, COLORS.GOLD,
-					100000, COLORS.TURQUOISE,
-					150000, COLORS.COBALT
+					0, VIRIDIS.DARK_PURPLE,
+					50000, VIRIDIS.BLUE,
+					100000, VIRIDIS.TEAL,
+					150000, VIRIDIS.YELLOW
 				],
 				COLORS.EARTH // fallback for null values
 			] as any;
@@ -111,10 +90,10 @@ export function getChoroplethColorExpression(mode: string) {
 					'interpolate',
 					['linear'],
 					['coalesce', ['get', 'pct_black'], 0],
-					0, COLORS.EARTH,
-					25, COLORS.ORANGE,
-					50, COLORS.RED,
-					100, COLORS.FUCHSIA
+					0, VIRIDIS.DARK_PURPLE,
+					25, VIRIDIS.BLUE,
+					50, VIRIDIS.TEAL,
+					100, VIRIDIS.YELLOW
 				],
 				COLORS.EARTH // fallback for null values
 			] as any;
@@ -126,10 +105,10 @@ export function getChoroplethColorExpression(mode: string) {
 					'interpolate',
 					['linear'],
 					['coalesce', ['get', 'pct_minority'], 0],
-					0, COLORS.EARTH,
-					25, COLORS.GOLD,
-					50, COLORS.ORANGE,
-					100, COLORS.RED
+					0, VIRIDIS.DARK_PURPLE,
+					25, VIRIDIS.BLUE,
+					50, VIRIDIS.TEAL,
+					100, VIRIDIS.YELLOW
 				],
 				COLORS.EARTH // fallback for null values
 			] as any;
@@ -141,10 +120,10 @@ export function getChoroplethColorExpression(mode: string) {
 					'interpolate',
 					['linear'],
 					['coalesce', ['get', 'pct_poverty'], 0],
-					0, COLORS.TURQUOISE,
-					10, COLORS.GOLD,
-					20, COLORS.ORANGE,
-					40, COLORS.RED
+					0, VIRIDIS.DARK_PURPLE,
+					10, VIRIDIS.BLUE,
+					20, VIRIDIS.TEAL,
+					40, VIRIDIS.YELLOW
 				],
 				COLORS.EARTH // fallback for null values
 			] as any;
@@ -165,6 +144,8 @@ export function getAddressColorExpression() {
 		COLORS.EARTH            // Default for null/missing values
 	] as any;
 }
+
+
 
 // Legacy color expressions (to be removed after refactoring)
 export function getCurrentColorExpressions() {
@@ -221,7 +202,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		paint: {
 			'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 3, 18, 8],
 			'circle-color': getAddressColorExpression(),
-			'circle-stroke-width': 1,
+			'circle-stroke-width': 0,
 			'circle-stroke-color': '#ffffff',
 			'circle-opacity': 0.8
 		}

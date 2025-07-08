@@ -12,7 +12,6 @@ import type {
 	InventoryData,
 	InventoryApiResponse
 } from './types';
-import { CATEGORIES } from './utils/constants';
 
 // Core data stores for Chicago water service line app
 export const tractStore = writable<{
@@ -177,6 +176,12 @@ export const isSearching = derived(
 export const selectedAddress = derived(
 	searchState,
 	$state => $state.selectedAddress
+);
+
+// Derived store for the tract ID of the selected address
+export const selectedAddressTractId = derived(
+	searchState,
+	$state => $state.selectedAddress?.geoid || null
 );
 
 export const isAddressDataLoading = derived(
@@ -361,6 +366,33 @@ export async function loadMinimalSearchIndex(): Promise<void> {
 	}
 }
 
+// Multi-service line inventory store
+export const multiServiceLineStore = writable<{
+	isLoading: boolean;
+	inventoryList: InventoryData[];
+	currentIndex: number;
+	error: string | null;
+	address: string | null;
+}>({
+	isLoading: false,
+	inventoryList: [],
+	currentIndex: 0,
+	error: null,
+	address: null
+});
+
+// Derived store for current service line
+export const currentServiceLine = derived(
+	multiServiceLineStore,
+	$store => $store.inventoryList[$store.currentIndex] || null
+);
+
+// Derived store for total service line count
+export const serviceLineCount = derived(
+	multiServiceLineStore,
+	$store => $store.inventoryList.length
+);
+
 // Load inventory data for a specific address via API using row ID
 export async function loadInventoryForAddress(address: string, rowId?: number): Promise<void> {
 	inventoryDataStore.update(store => ({ 
@@ -370,15 +402,20 @@ export async function loadInventoryForAddress(address: string, rowId?: number): 
 		address 
 	}));
 	
+	multiServiceLineStore.update(store => ({
+		...store,
+		isLoading: true,
+		error: null,
+		address,
+		currentIndex: 0
+	}));
+	
 	try {
 		console.log(`Loading inventory data for address: ${address}${rowId ? ` (row ID: ${rowId})` : ''}`);
 		
-		if (!rowId) {
-			throw new Error('Row ID is required for inventory lookup');
-		}
-		
-		// Use the live DigitalOcean Function with row ID
-		const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup?id=${rowId}`;
+		// Use the live DigitalOcean Function with address parameter for multiple service lines
+		const encodedAddress = encodeURIComponent(address);
+		const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup?address=${encodedAddress}`;
 		
 		try {
 			const response = await fetch(apiUrl);
@@ -393,12 +430,21 @@ export async function loadInventoryForAddress(address: string, rowId?: number): 
 				throw new Error(data.error || 'API returned unsuccessful response');
 			}
 			
-			console.log(`✓ Inventory data loaded for row ID ${rowId}:`, data);
+			console.log(`✓ Inventory data loaded for address ${address}:`, data);
 			
+			// Update multi-service line store
+			multiServiceLineStore.update(store => ({
+				...store,
+				isLoading: false,
+				inventoryList: data.inventoryList || [],
+				error: null
+			}));
+			
+			// Update legacy store for backward compatibility
 			inventoryDataStore.update(store => ({
 				...store,
 				isLoading: false,
-				data: data.inventory,
+				data: data.inventory || (data.inventoryList && data.inventoryList[0]) || null,
 				error: null
 			}));
 			
@@ -419,6 +465,13 @@ export async function loadInventoryForAddress(address: string, rowId?: number): 
 				additionalNotes: 'API temporarily unavailable, showing placeholder data'
 			};
 		
+			multiServiceLineStore.update(store => ({
+				...store,
+				isLoading: false,
+				inventoryList: [mockInventoryData],
+				error: null
+			}));
+			
 			inventoryDataStore.update(store => ({
 				...store,
 				isLoading: false,
@@ -430,12 +483,43 @@ export async function loadInventoryForAddress(address: string, rowId?: number): 
 	} catch (error) {
 		console.error('Error loading inventory data:', error);
 		const errorMessage = error instanceof Error ? error.message : 'Failed to load inventory data';
+		
+		multiServiceLineStore.update(store => ({ 
+			...store, 
+			isLoading: false, 
+			error: errorMessage 
+		}));
+		
 		inventoryDataStore.update(store => ({ 
 			...store, 
 			isLoading: false, 
 			error: errorMessage 
 		}));
 	}
+}
+
+// Navigate to next service line
+export function nextServiceLine(): void {
+	multiServiceLineStore.update(store => ({
+		...store,
+		currentIndex: Math.min(store.currentIndex + 1, store.inventoryList.length - 1)
+	}));
+}
+
+// Navigate to previous service line
+export function previousServiceLine(): void {
+	multiServiceLineStore.update(store => ({
+		...store,
+		currentIndex: Math.max(store.currentIndex - 1, 0)
+	}));
+}
+
+// Set specific service line index
+export function setServiceLineIndex(index: number): void {
+	multiServiceLineStore.update(store => ({
+		...store,
+		currentIndex: Math.max(0, Math.min(index, store.inventoryList.length - 1))
+	}));
 }
 
 // Legacy function for backward compatibility

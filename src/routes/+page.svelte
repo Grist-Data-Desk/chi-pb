@@ -6,30 +6,32 @@
 		visualState,
 		uiState,
 		currentCount,
-		isDataLoading
+		isDataLoading,
+		selectedAddressTractId,
+		tractStore
 	} from '$lib/stores';
-	import { TABLET_BREAKPOINT, STATE_BOUNDS } from '$lib/utils/constants';
+	import { TABLET_BREAKPOINT } from '$lib/utils/constants';
 	import maplibregl from 'maplibre-gl';
 	import * as pmtiles from 'pmtiles';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import * as turf from '@turf/turf';
 	import type { Point, Feature } from 'geojson';
 	import '../app.css';
-	import { ProjectPopup } from '$lib/utils/popup';
+	import { ProjectPopup, TractPopup } from '$lib/utils/popup';
 	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
 	import ResultsTable from '$lib/components/search/ResultsTable.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
 	import {
-		SOURCE_CONFIG,
-		LAYER_CONFIG,
-		DO_SPACES_URL,
-		PMTILES_PATH,
-		GEOJSON_PATH,
-		STYLES_PATH,
-		getCurrentColorExpressions,
-		getChoroplethColorExpression,
-		getAddressColorExpression
-	} from '$lib/utils/config';
+	SOURCE_CONFIG,
+	LAYER_CONFIG,
+	DO_SPACES_URL,
+	PMTILES_PATH,
+	GEOJSON_PATH,
+	STYLES_PATH,
+	getCurrentColorExpressions,
+	getChoroplethColorExpression,
+	getAddressColorExpression
+} from '$lib/utils/config';
 	import type { ProjectFeatureCollection, Project } from '$lib/types';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Credits from '$lib/components/credits/Credits.svelte';
@@ -38,11 +40,17 @@
 	let innerWidth: number;
 	let browser = false;
 	let currentPopup: maplibregl.Popup | null = null;
+	let tractPopup: TractPopup | null = null;
 	let pmtilesInstance: pmtiles.PMTiles;
 	let geolocateControl: maplibregl.GeolocateControl | null = null;
 	let searchResultsLayer = 'search-results-points';
 
 	$: isTabletOrAbove = innerWidth > TABLET_BREAKPOINT;
+
+	// Close tract popup when an address is selected
+	$: if ($selectedAddressTractId && tractPopup) {
+		tractPopup.removePopup();
+	}
 
 	class ResetViewControl {
 		onAdd(map: maplibregl.Map) {
@@ -55,27 +63,36 @@
 					geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-active');
 					geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-background');
 					geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-background-error');
-					geolocateControl._clearWatch();
+					if (geolocateControl._watchId !== undefined) {
+						geolocateControl._clearWatch();
+					}
 				}
 
 				map.flyTo({
-					center: [-98.5795, isTabletOrAbove ? 39.8283 : 49],
-					zoom: isTabletOrAbove ? 4 : 3
+					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.6298, 41.8781],
+					zoom: 10
 				});
 
 				searchState.set({
 					query: '',
 					radius: 50,
 					isSearching: false,
-					results: []
+					results: [],
+					selectedAddress: null
 				});
 
-				visualState.set({
-					colorMode: 'fundingSource',
-					filters: new Set()
-				});
+				// Don't reset the visualState for the legend - let users keep their choropleth mode selection
+				// visualState should only be reset if explicitly needed for other functionality
 
 				cleanupSearchLayers();
+
+				// Clear address highlight layer
+				if (map.getLayer('selected-address-highlight')) {
+					map.removeLayer('selected-address-highlight');
+				}
+				if (map.getSource('selected-address')) {
+					map.removeSource('selected-address');
+				}
 
 				// Legacy layer cleanup - no longer needed for Chicago
 				// if (map?.getLayer('projects-points')) {
@@ -523,15 +540,8 @@
 
 	onMount(async () => {
 		browser = true;
-		
-		const urlParams = new URLSearchParams(window.location.search);
-		const stateParam = urlParams.get('state')?.toLowerCase();
-		const stateConfig = stateParam ? STATE_BOUNDS[stateParam] : undefined;
 
 		try {
-			// Temporarily disable legacy GeoJSON loading for Chicago testing
-			// await loadGeoJSONData();
-
 			const protocol = new pmtiles.Protocol();
 			maplibregl.addProtocol('pmtiles', protocol.tile);
 
@@ -544,31 +554,12 @@
 			map = new maplibregl.Map({
 				container: 'map-container',
 				style: `${DO_SPACES_URL}/${STYLES_PATH}/map-style.json`,
-				// Chicago-focused bounds - adjusted for search panel on desktop
-				center: isTabletOrAbove ? [-87.7298, 41.82] : [-87.6298, 41.8781], // Chicago center, shifted right and up on desktop
-				zoom: 10, // Zoomed in on Chicago
-				minZoom: 8, // Prevent zooming out too far
+				center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.6298, 41.8781],
+				zoom: 10, 
+				minZoom: 8, 
 				maxZoom: 18,
 				attributionControl: false
 			});
-
-			// If there's a state parameter, adjust the view with proper padding
-			if (stateConfig) {
-				const bounds = new maplibregl.LngLatBounds(
-					[stateConfig.center[0] - 2, stateConfig.center[1] - 2],
-					[stateConfig.center[0] + 2, stateConfig.center[1] + 2]
-				);
-				
-				map.fitBounds(bounds, {
-					padding: {
-						top: isTabletOrAbove ? 50 : 425,
-						bottom: 50,
-						left: isTabletOrAbove ? 450 : 50,
-						right: 50
-					},
-					maxZoom: stateConfig.zoom
-				});
-			}
 
 			map.scrollZoom.disable();
 			map.scrollZoom.setWheelZoomRate(0);
@@ -628,70 +619,51 @@
 						const addressColorExpression = getAddressColorExpression();
 						map.setPaintProperty('addresses-points', 'circle-color', addressColorExpression);
 					}
-					
-					// Legacy layers temporarily disabled for Chicago testing
-					// if (!map.getLayer(LAYER_CONFIG.reservationsPolygons.id)) {
-					// 	map.addLayer(LAYER_CONFIG.reservationsPolygons);
-					// }
-					// if (!map.getLayer(LAYER_CONFIG.reservationLabels.id)) {
-					// 	map.addLayer(LAYER_CONFIG.reservationLabels);
-					// }
-					// if (!map.getLayer(LAYER_CONFIG.projectsPoints.id)) {
-					// 	map.addLayer(LAYER_CONFIG.projectsPoints);
-					// }
 				} catch (error) {
 					console.error('Error adding layers:', error);
 				}
 
-				// Legacy project click handler - disabled for Chicago
-				// map.on('click', LAYER_CONFIG.projectsPoints.id, (e) => {
-				// 	if (!e.features?.length) return;
-				// 	console.log('Raw feature from PMTiles:', e.features[0]);
-				// 	console.log('Raw feature properties:', e.features[0].properties);
-				// 	const featuresByLocation = e.features.reduce(
-				// 		(acc: { [key: string]: any[] }, feature: any) => {
-				// 			if (!feature.geometry || feature.geometry.type !== 'Point') return acc;
-				// 			const coords = (feature.geometry as { type: 'Point'; coordinates: [number, number] })
-				// 				.coordinates;
-				// 			const key = `${coords[0]},${coords[1]}`;
-				// 			if (!acc[key]) acc[key] = [];
-				// 			acc[key].push(feature);
-				// 			return acc;
-				// 		},
-				// 		{}
-				// 	);
-				// 	const coordinates = (
-				// 		e.features[0].geometry as { type: 'Point'; coordinates: [number, number] }
-				// 	).coordinates;
-				// 	const key = `${coordinates[0]},${coordinates[1]}`;
-				// 	const locationFeatures = featuresByLocation[key];
-				// 	const projects: Project[] = locationFeatures.map(featureToProject);
-				// 	if (currentPopup) {
-				// 		currentPopup.remove();
-				// 	}
-				// 	const projectPopup = new ProjectPopup(map, projects);
-				// 	currentPopup = projectPopup.showPopup(
-				// 		new maplibregl.LngLat(coordinates[0], coordinates[1]),
-				// 		projects
-				// 	);
-				// });
+				// Add census tract event handlers
+				tractPopup = new TractPopup(map);
 
-				// Legacy paint property and mouse handlers - disabled for Chicago
-				// map.setPaintProperty(LAYER_CONFIG.projectsPoints.id, 'circle-radius', [
-				// 	'interpolate',
-				// 	['linear'],
-				// 	['zoom'],
-				// 	2,
-				// 	3,
-				// 	8,
-				// 	5
-				// ]);
-				// map.on('mouseenter', LAYER_CONFIG.projectsPoints.id, () => {
-				// 	map.getCanvas().style.cursor = 'pointer';
-				// });
-				// map.on('mouseleave', LAYER_CONFIG.projectsPoints.id, () => {
-				// 	map.getCanvas().style.cursor = '';
-				// });
+				// Handle tract clicks
+				map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
+					if (!e.features?.length) return;
+					
+					const feature = e.features[0];
+					const tractGeoid = feature.properties?.geoid;
+					const selectedTractId = $selectedAddressTractId;
+					
+					// Don't show popup if this is the selected address's tract
+					if (selectedTractId && tractGeoid === selectedTractId) {
+						return;
+					}
+					
+					// Use tract data directly from the map feature
+					// The PMTiles layer should have all the census tract properties
+					const tractProperties = feature.properties;
+					
+					if (tractProperties && tractProperties.geoid) {
+						const lngLat = e.lngLat;
+						tractPopup.showPopup(lngLat, tractProperties as any);
+					}
+				});
+
+				// Handle tract hover
+				map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
+					const feature = e.features?.[0];
+					const tractGeoid = feature?.properties?.geoid;
+					const selectedTractId = $selectedAddressTractId;
+					
+					// Change cursor only if not the selected tract
+					if (!selectedTractId || tractGeoid !== selectedTractId) {
+						map.getCanvas().style.cursor = 'pointer';
+					}
+				});
+
+				map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, () => {
+					map.getCanvas().style.cursor = '';
+				});
 
 				if (!isTabletOrAbove) {
 					map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
@@ -741,6 +713,8 @@
 		></div>
 	{/if}
 
+	<!-- Data table temporarily hidden -->
+	<!--
 	<div
 		class="absolute bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white shadow-lg transition-all duration-300"
 		style="height: {$uiState.resultsExpanded ? '66vh' : '40px'}"
@@ -825,6 +799,7 @@
 			</div>
 		{/if}
 	</div>
+	-->
 </main>
 
 <div class="logo-container">

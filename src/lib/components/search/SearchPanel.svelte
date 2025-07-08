@@ -13,11 +13,13 @@
 		loadMinimalSearchIndex,
 		minimalSearchIndexStore
 	} from '$lib/stores';
-	import type { AddressWithServiceLine } from '$lib/types';
+	import type { AddressWithServiceLine, MinimalAddress } from '$lib/types';
 	import { debounce } from 'lodash-es';
 	import ServiceLineResults from './ServiceLineResults.svelte';
 	import { onMount } from 'svelte';
 	import type maplibregl from 'maplibre-gl';
+	import { COLORS } from '$lib/utils/constants';
+
 
 	export let onSearch: () => void;
 	export let map: maplibregl.Map | null = null;
@@ -120,21 +122,72 @@
 		
 		const normalizedQuery = normalizeAddress(query);
 		const queryNumber = extractNumberFromQuery(query.trim());
-		const resultIds = new Set<number>();
 		
-		// Search by street name (most common)
-		const queryWords = normalizedQuery.split(/\s+/);
-		if (searchIndex.streetNames) {
-			queryWords.forEach(word => {
-				if (word.length > 2) {
-					// Exact word match
-					if (searchIndex.streetNames[word]) {
-						searchIndex.streetNames[word].forEach(id => resultIds.add(id));
-					}
+		// Extract street part from query (everything after the number)
+		const streetPart = queryNumber !== null ? query.trim().replace(/^\d+\s*/, '') : query.trim();
+		const normalizedStreetPart = normalizeAddress(streetPart);
+		
+		console.log('Search query analysis:', {
+			originalQuery: query,
+			normalizedQuery: normalizedQuery,
+			queryNumber: queryNumber,
+			streetPart: streetPart,
+			normalizedStreetPart: normalizedStreetPart,
+			streetWords: normalizedStreetPart.split(/\s+/).filter(w => w.length > 0)
+		});
+		
+		// For queries with both number and street, we need to find addresses that match BOTH
+		const matchingAddresses: MinimalAddress[] = [];
+		
+		if (queryNumber !== null && normalizedStreetPart.length > 0) {
+			// Find addresses where the number is in range AND the street matches
+			searchIndex.addresses.forEach((addr) => {
+				// Check if query number falls within the address range
+				if (addr.num1 > 0 && addr.num2 > 0 && queryNumber >= addr.num1 && queryNumber <= addr.num2) {
+					// Now check if the street part matches
+					const normalizedAddr = normalizeAddress(addr.display);
+					const addressWords = normalizedAddr.split(/\s+/);
+					const streetWords = normalizedStreetPart.split(/\s+/).filter(w => w.length > 0);
 					
-					// Partial word matching
+					// All query street words must match (using prefix matching)
+					const allStreetWordsMatch = streetWords.every(queryWord => {
+						if (queryWord.length < 2) return true; // Skip very short words
+						
+						// Check if any address word starts with the query word (prefix match)
+						return addressWords.some(addrWord => 
+							addrWord.startsWith(queryWord) || 
+							(queryWord.length > 2 && addrWord.includes(queryWord))
+						);
+					});
+					
+					if (allStreetWordsMatch) {
+						matchingAddresses.push(addr);
+						console.log('Found match:', {
+							address: addr.display,
+							queryNumber: queryNumber,
+							streetWords: streetWords,
+							addressWords: addressWords
+						});
+					}
+				}
+			});
+		} else if (queryNumber !== null) {
+			// Just number search - find all addresses in that range
+			searchIndex.addresses.forEach((addr) => {
+				if (addr.num1 > 0 && addr.num2 > 0 && queryNumber >= addr.num1 && queryNumber <= addr.num2) {
+					matchingAddresses.push(addr);
+				}
+			});
+		} else if (normalizedStreetPart.length > 0) {
+			// Just street search - use the street index
+			const resultIds = new Set<number>();
+			const streetWords = normalizedStreetPart.split(/\s+/);
+			
+			streetWords.forEach(word => {
+				if (word.length >= 2) {
+					// Check all street index keys for matches
 					Object.keys(searchIndex.streetNames).forEach(streetKey => {
-						if (streetKey.includes(word) || word.includes(streetKey)) {
+						if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
 							const ids = searchIndex.streetNames[streetKey];
 							if (Array.isArray(ids)) {
 								ids.forEach(id => resultIds.add(id));
@@ -143,118 +196,123 @@
 					});
 				}
 			});
-		}
-		
-		// Search by house number if query starts with a number
-		// Since minimal index doesn't have pre-built number index, we search through addresses directly
-		if (queryNumber !== null) {
-			searchIndex.addresses.forEach((addr, id) => {
-				if (addr.num1 > 0 && addr.num2 > 0) {
-					// Check if query number falls within the address range
-					if (queryNumber >= addr.num1 && queryNumber <= addr.num2) {
-						resultIds.add(id);
-					}
-					// Also check nearby ranges (±100 for broader matching)
-					const addrMidpoint = (addr.num1 + addr.num2) / 2;
-					if (Math.abs(queryNumber - addrMidpoint) <= 100) {
-						resultIds.add(id);
-					}
+			
+			// Convert IDs to addresses
+			resultIds.forEach(id => {
+				if (id >= 0 && id < searchIndex.addresses.length) {
+					matchingAddresses.push(searchIndex.addresses[id]);
 				}
 			});
 		}
 		
-		// Convert result IDs to addresses and filter/sort
-		const results = Array.from(resultIds)
-			.map(id => {
-				// Ensure the ID is valid and within bounds
-				if (id >= 0 && id < searchIndex.addresses.length) {
-					return searchIndex.addresses[id];
-				}
-				return null;
-			})
-			.filter(addr => {
-				if (!addr) return false;
+		console.log(`Found ${matchingAddresses.length} matches for query "${query}"`);
+		
+		// Sort results by relevance
+		matchingAddresses.sort((a, b) => {
+			// Prioritize exact number matches
+			if (queryNumber !== null) {
+				const aExactNumber = (queryNumber >= a.num1 && queryNumber <= a.num2) ? 0 : 1;
+				const bExactNumber = (queryNumber >= b.num1 && queryNumber <= b.num2) ? 0 : 1;
+				if (aExactNumber !== bExactNumber) return aExactNumber - bExactNumber;
 				
-				// Secondary filtering for better matches
-				const normalizedAddr = normalizeAddress(addr.display);
-				
-				// Check if address contains query words
-				const addressWords = normalizedAddr.split(/\s+/);
-				const matchCount = queryWords.filter(qWord => 
-					addressWords.some(aWord => aWord.includes(qWord) || qWord.includes(aWord))
-				).length;
-				
-				// Require at least half the query words to match
-				if (matchCount < Math.ceil(queryWords.length / 2)) return false;
-				
-				// If query has a number, check if it's in range
-				if (queryNumber !== null && addr.num1 > 0 && addr.num2 > 0) {
-					const streetPart = normalizedQuery.replace(/^\d+\s*/, '');
-					if (streetPart.length > 0) {
-						const inRange = queryNumber >= addr.num1 && queryNumber <= addr.num2;
-						const streetMatch = normalizedAddr.includes(streetPart);
-						return inRange && streetMatch;
-					}
-				}
-				
-				return true;
-			})
-			.sort((a, b) => {
-				// Sort by relevance - both a and b are guaranteed to be non-null by the filter above
-				if (!a || !b) return 0; // Extra safety check
-				
+				// Then by number proximity
+				const aMidpoint = (a.num1 + a.num2) / 2;
+				const bMidpoint = (b.num1 + b.num2) / 2;
+				const aDistance = Math.abs(queryNumber - aMidpoint);
+				const bDistance = Math.abs(queryNumber - bMidpoint);
+				if (aDistance !== bDistance) return aDistance - bDistance;
+			}
+			
+			// Then by street matching quality
+			if (normalizedStreetPart.length > 0) {
 				const aNormalized = normalizeAddress(a.display);
 				const bNormalized = normalizeAddress(b.display);
-				
-				// Exact matches first
-				const aExact = aNormalized.includes(normalizedQuery) ? 0 : 1;
-				const bExact = bNormalized.includes(normalizedQuery) ? 0 : 1;
-				if (aExact !== bExact) return aExact - bExact;
-				
-				// Then by number proximity if applicable
-				if (queryNumber !== null) {
-					const aMidpoint = (a.num1 + a.num2) / 2;
-					const bMidpoint = (b.num1 + b.num2) / 2;
-					const aDistance = Math.abs(queryNumber - aMidpoint);
-					const bDistance = Math.abs(queryNumber - bMidpoint);
-					return aDistance - bDistance;
-				}
-				
-				return 0;
-			})
-			.slice(0, 5) // Limit to top 5 results
-			.map(minimalAddr => {
-				// minimalAddr is guaranteed to be non-null by the filter above
-				if (!minimalAddr) throw new Error('Unexpected null address');
-				
-				
-				return {
-					// Convert MinimalAddress to AddressWithServiceLine
-					row: minimalAddr.row, // Use the actual row ID from CSV
-					fullAddress: minimalAddr.display,
-					isIntersection: false,
-					stnum1: minimalAddr.num1,
-					stnum2: minimalAddr.num2,
-					stdir: '',
-					stname: minimalAddr.street,
-					sttype: '',
-					zip: minimalAddr.zip,
-					geocoder: 'minimal-search-index',
-					lat: minimalAddr.lat,
-					long: minimalAddr.long,
-					geoid: '',
-					leadStatus: 'UNKNOWN' as 'LEAD' | 'NON_LEAD' | 'UNKNOWN', // Will be fetched on-demand
-					hasLead: false, // Will be updated after API call
-					mIsIntersection: false,
-					mStnum1: minimalAddr.num1,
-					mStnum2: minimalAddr.num2,
-					mStdir: '',
-					mStname: minimalAddr.street,
-					mZip: minimalAddr.zip
-				} as AddressWithServiceLine;
-			});
+				const aStreetMatch = aNormalized.includes(normalizedStreetPart) ? 0 : 1;
+				const bStreetMatch = bNormalized.includes(normalizedStreetPart) ? 0 : 1;
+				if (aStreetMatch !== bStreetMatch) return aStreetMatch - bStreetMatch;
+			}
+			
+			return 0;
+		});
 		
-		return results;
+		// Limit to 5 results
+		const topResults = matchingAddresses.slice(0, 5);
+		
+		// Convert to AddressWithServiceLine format
+		return topResults.map(minimalAddr => {
+			// Extract street components from the display address to preserve original street names
+			// The display field contains the full formatted address like "12100-14 S Front St"
+			const addressParts = minimalAddr.display.split(' ');
+			let stname = '';
+			let stdir = '';
+			let sttype = '';
+			
+			// Parse address to extract street name components
+			// Skip house numbers and find street components
+			let startIndex = 0;
+			// Skip house number(s) - could be "1234" or "1234-56"
+			if (addressParts[0] && /^\d+(-\d+)?$/.test(addressParts[0])) {
+				startIndex = 1;
+			}
+			
+			// Check for direction (N, S, E, W, etc.)
+			if (addressParts[startIndex] && /^[NSEW]$|^(NE|NW|SE|SW)$/i.test(addressParts[startIndex])) {
+				stdir = addressParts[startIndex];
+				startIndex++;
+			}
+			
+			// Remaining parts are street name and type
+			const remainingParts = addressParts.slice(startIndex);
+			if (remainingParts.length > 0) {
+				// Last part might be street type (St, Ave, Dr, etc.)
+				const lastPart = remainingParts[remainingParts.length - 1];
+				const streetTypes = ['ST', 'AVE', 'DR', 'RD', 'LN', 'CT', 'PL', 'BLVD', 'WAY', 'PKWY', 'CIR', 'TER'];
+				if (streetTypes.includes(lastPart.toUpperCase())) {
+					sttype = lastPart;
+					stname = remainingParts.slice(0, -1).join(' ');
+				} else {
+					// Check if second to last is a street type (for addresses ending in city/state)
+					const beforeCommaIndex = remainingParts.findIndex((part: string) => part.includes(','));
+					if (beforeCommaIndex > 0) {
+						const streetNameParts = remainingParts.slice(0, beforeCommaIndex);
+						const possibleType = streetNameParts[streetNameParts.length - 1];
+						if (streetTypes.includes(possibleType.toUpperCase())) {
+							sttype = possibleType;
+							stname = streetNameParts.slice(0, -1).join(' ');
+						} else {
+							stname = streetNameParts.join(' ');
+						}
+					} else {
+						stname = remainingParts.join(' ');
+					}
+				}
+			}
+			
+			return {
+				// Convert MinimalAddress to AddressWithServiceLine
+				row: minimalAddr.row, // Use the actual row ID from CSV
+				fullAddress: minimalAddr.display,
+				isIntersection: false,
+				stnum1: minimalAddr.num1,
+				stnum2: minimalAddr.num2,
+				stdir: stdir,
+				stname: stname,
+				sttype: sttype,
+				zip: minimalAddr.zip,
+				geocoder: 'minimal-search-index',
+				lat: minimalAddr.lat,
+				long: minimalAddr.long,
+				geoid: '',
+				leadStatus: 'UNKNOWN' as 'LEAD' | 'NON_LEAD' | 'UNKNOWN', // Will be fetched on-demand
+				hasLead: false, // Will be updated after API call
+				mIsIntersection: false,
+				mStnum1: minimalAddr.num1,
+				mStnum2: minimalAddr.num2,
+				mStdir: stdir,
+				mStname: stname,
+				mZip: minimalAddr.zip
+			} as AddressWithServiceLine;
+		});
 	}
 	
 	// Legacy search function as fallback
@@ -265,7 +323,7 @@
 		const queryNumber = extractNumberFromQuery(query.trim());
 		const allAddresses = $addressStore.collection.addresses || [];
 		
-		return allAddresses
+		const filteredAndSorted = allAddresses
 			.filter(addr => {
 				const normalizedAddr = normalizeAddress(addr.fullAddress);
 				const searchVariants = [normalizedQuery];
@@ -317,8 +375,21 @@
 				}
 				
 				return 0;
-			})
-			.slice(0, 5);
+			});
+		
+		// Deduplicate by full address and limit to 5
+		const uniqueResults = [];
+		const seenAddresses = new Set();
+		
+		for (const addr of filteredAndSorted) {
+			if (!seenAddresses.has(addr.fullAddress)) {
+				seenAddresses.add(addr.fullAddress);
+				uniqueResults.push(addr);
+				if (uniqueResults.length >= 5) break;
+			}
+		}
+		
+		return uniqueResults;
 	}
 
 	const fetchSuggestions = debounce((query: string) => {
@@ -414,13 +485,27 @@
 				}
 			});
 			
+			// Get the appropriate color based on lead status (same logic as getAddressColorExpression)
+			const leadStatusColor = (() => {
+				switch (suggestion.leadStatus) {
+					case 'LEAD':
+						return COLORS.RED;        // Lead service line
+					case 'NON_LEAD':
+						return COLORS.TURQUOISE;  // Non-lead service line
+					case 'UNKNOWN':
+						return COLORS.GOLD;       // Unknown status
+					default:
+						return COLORS.EARTH;      // Default for null/missing values
+				}
+			})();
+			
 			map.addLayer({
 				id: highlightLayer,
 				type: 'circle',
 				source: highlightSource,
 				paint: {
 					'circle-radius': 12,
-					'circle-color': '#ff6b35',
+					'circle-color': leadStatusColor,
 					'circle-stroke-width': 3,
 					'circle-stroke-color': '#ffffff',
 					'circle-opacity': 0.9
@@ -457,36 +542,21 @@
 </script>
 
 <div class="relative col-span-1 space-y-4 overflow-visible rounded-lg border border-slate-200">
-	<div class="absolute -right-[22px] -top-12 h-40 w-40 text-gold/30">
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 100 100"
-			fill="currentColor"
-		>
-			<circle cx="50" cy="50" r="15" />
-			<g>
-				{#each Array(12) as _, i}
-					<rect x="49" y="14" width="2" height="16" transform="rotate({i * 30} 50 50)" />
-				{/each}
-			</g>
-		</svg>
-	</div>
 
 	<div class="relative z-10">
-		<h1 class="font-['PolySans'] text-3xl font-medium text-slate-800">
-			Chicago Water Service Line Lookup
+		<h1 class="mt-0 font-['PolySans'] text-3xl font-medium text-slate-800">
+			Chicago: Is your water service line made of lead?
 		</h1>
 		<p class="m-0 font-['Basis_Grotesque'] text-sm text-slate-600">
-			Enter your Chicago address to find information about your water service line composition and 
-			<span class="text-orange">lead status</span>. The map will show your address location and 
-			<span class="text-cobalt">Census tract</span> demographic data.
+			Enter your address to find information about your Chicago water service line composition and 
+			lead status. The map will show your service line location and Census tract demographic data.
 		</p>
 	</div>
 	<div class="relative flex items-stretch gap-2">
 		<div class="flex-[5]">
 			<label
 				class="mb-0.5 block font-['Basis_Grotesque'] text-sm font-medium text-slate-700"
-				for="search">Chicago Address</label
+				for="search">Address</label
 			>
 			<div class="relative">
 				<input
@@ -517,11 +587,11 @@
 								on:mousedown={() => onSuggestionClick(suggestion)}
 								on:keydown={(e) => onSuggestionKeyDown(e, suggestion)}
 							>
-								<div class="suggestion-main">{suggestion.fullAddress}</div>
-								<div class="suggestion-secondary">
-									Lead Status: <span class="font-medium" class:text-red-600={suggestion.leadStatus === 'LEAD'} class:text-emerald-600={suggestion.leadStatus === 'NON_LEAD'} class:text-amber-600={suggestion.leadStatus === 'UNKNOWN'}>
-										{suggestion.leadStatus.replace('_', ' ')}
-									</span>
+								<div class="suggestion-main">
+									{suggestion.fullAddress}
+									{#if suggestion.serviceLineCount && suggestion.serviceLineCount > 1}
+										<span class="ml-2 text-xs text-slate-500">({suggestion.serviceLineCount} service lines)</span>
+									{/if}
 								</div>
 							</div>
 						{/each}
@@ -587,6 +657,7 @@
 		inventoryData={$selectedAddressInventory}
 		isLoading={$isInventoryLoading}
 		error={$inventoryError}
+		{map}
 	/>
 </div>
 
@@ -605,12 +676,9 @@
 	}
 
 	.suggestion-main {
-		@apply truncate font-medium text-slate-800;
+		@apply font-medium text-slate-800 break-words;
 	}
 
-	.suggestion-secondary {
-		@apply mt-0.5 line-clamp-1 text-xs text-slate-500;
-	}
 
 	.loader {
 		@apply h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500;

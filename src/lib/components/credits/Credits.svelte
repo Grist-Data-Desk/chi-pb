@@ -91,14 +91,13 @@
 	{#if $uiState.creditsExpanded}
 		<div class="text-[11px] leading-tight text-slate-500">
 			<p class="mb-0.5">
-				<strong>Note</strong> Project locations are approximate. Some projects are mapped to agency headquarters
-				or county/city centroids, which may result in overlapping points on the map. Others may be jittered in source data.
+				<strong>Note</strong> TKTK.
 			</p>
 			<p class="mb-0.5">
-				<strong>Sources</strong> Biden White House / USAspending / EPA / DOI / DOE / BIA / NOAA / USBR / Grist analysis
+				<strong>Sources</strong> City of Chicago / Census Bureau
 			</p>
 			<p class="mb-0">
-				<strong>Development</strong> Clayton Aldern / Parker Ziegler / Grist. See our <a href="https://github.com/Grist-Data-Desk/ira-tracker" target="_blank" class="text-emerald-600 hover:text-emerald-700 no-underline hover:underline">methods</a> and download our <button type="button" class="inline p-0 m-0 border-0 bg-transparent font-inherit text-[11px] leading-tight text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer" on:click={() => downloadData()}>data</button>. Last refreshed: {BUILD_DATE}.
+				<strong>Development</strong> Clayton Aldern / Parker Ziegler / Grist. See our <a href="https://github.com/Grist-Data-Desk/chi-pb" target="_blank" class="text-emerald-600 hover:text-emerald-700 no-underline hover:underline">methods</a> and download our <button type="button" class="inline p-0 m-0 border-0 bg-transparent font-inherit text-[11px] leading-tight text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer" on:click={() => downloadData()}>data</button>. Last refreshed: {BUILD_DATE}.
 			</p>
 		</div>
 	{/if}

@@ -88,6 +88,7 @@ export interface AddressWithServiceLine extends Address {
 	serviceLine?: ServiceLine;
 	hasLead: boolean;
 	leadStatus: 'LEAD' | 'NON_LEAD' | 'UNKNOWN';
+	serviceLineCount?: number;
 }
 
 // GeoJSON feature types
@@ -175,6 +176,7 @@ export interface MinimalAddress {
 	row: number;        // row number from source data for inventory lookup
 	lat: number;        // Latitude for map zoom
 	long: number;       // Longitude for map zoom
+	serviceLineCount?: number; // Number of service lines at this address
 	// NO leadStatus - fetched on-demand via API
 }
 
@@ -201,14 +203,23 @@ export interface InventoryData {
 	highRisk: string;
 	lastUpdated: string;
 	additionalNotes: string;
+	rowId?: number;
+	PublSrvLnMatEPA?: string;
+	PrivateSrvLnMatEPA?: string;
+	Gooseneck?: string;
+	OverallSL_Code?: string;
 }
 
 export interface InventoryApiResponse {
 	success: boolean;
-	address: string;
-	inventory: InventoryData;
-	metadata: {
+	address?: string;
+	rowId?: number;
+	count?: number;
+	inventory?: InventoryData;
+	inventoryList?: InventoryData[];
+	metadata?: {
 		timestamp: string;
 		source: string;
 	};
+	error?: string;
 }

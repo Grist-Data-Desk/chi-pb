@@ -1,4 +1,4 @@
-import type { Project } from '../types';
+import type { Project, CensusTract } from '../types';
 import type { Popup } from 'maplibre-gl';
 import maplibregl from 'maplibre-gl';
 import { isValidUrl } from './url';
@@ -177,5 +177,72 @@ export class ProjectPopup {
         ${paginationControls}
       </div>
     `;
+	}
+}
+
+export class TractPopup {
+	private map: maplibregl.Map;
+	private popup: Popup | null = null;
+
+	constructor(map: maplibregl.Map) {
+		this.map = map;
+	}
+
+	showPopup(lngLat: maplibregl.LngLat, tract: CensusTract): maplibregl.Popup {
+		if (this.popup) {
+			this.popup.remove();
+		}
+
+		const clickPoint = this.map.project(lngLat);
+		const mapHeight = this.map.getContainer().offsetHeight;
+		const anchor = clickPoint.y < mapHeight / 2 ? 'top' : 'bottom';
+
+		this.popup = new maplibregl.Popup({
+			closeButton: true,
+			closeOnClick: true,
+			maxWidth: '300px',
+			anchor
+		})
+			.setLngLat(lngLat)
+			.setHTML(this.generateTractPopupContent(tract))
+			.addTo(this.map);
+
+		return this.popup;
+	}
+
+	removePopup() {
+		if (this.popup) {
+			this.popup.remove();
+			this.popup = null;
+		}
+	}
+
+	private generateTractPopupContent(tract: CensusTract): string {
+		const formatCurrency = (value: number) => {
+			if (!value || value === null) return 'N/A';
+			return new Intl.NumberFormat('en-US', {
+				style: 'currency',
+				currency: 'USD',
+				minimumFractionDigits: 0,
+				maximumFractionDigits: 0
+			}).format(value);
+		};
+
+		const formatPercent = (value: number) => {
+			if (value === null || value === undefined) return 'N/A';
+			return `${value.toFixed(1)}%`;
+		};
+
+		return `
+			<div class="pt-1 px-3 pb-3">
+				<h3 class="font-bold mb-1.5 text-sm">Census Tract ${tract.geoid}</h3>
+				<div class="text-[11px] space-y-1">
+					<p class="mb-1"><strong>Median Household Income:</strong> ${formatCurrency(tract.median_household_income)}</p>
+					<p class="mb-1"><strong>Black Population:</strong> ${formatPercent(tract.pct_black)}</p>
+					<p class="mb-1"><strong>Minority Population:</strong> ${formatPercent(tract.pct_minority)}</p>
+					<p class="mb-1"><strong>Poverty Rate:</strong> ${formatPercent(tract.pct_poverty)}</p>
+				</div>
+			</div>
+		`;
 	}
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { visualState, uiState } from '$lib/stores';
-	import { COLORS } from '$lib/utils/constants';
+	import { COLORS, VIRIDIS } from '$lib/utils/constants';
 	import { CHOROPLETH_CATEGORIES, LEAD_STATUS_CATEGORIES } from '$lib/utils/config';
 
 	const colorOrder = [
@@ -13,31 +13,31 @@
 		COLORS.GOLD
 	];
 
-	// Chicago choropleth legend items - continuous scales
+	// Chicago choropleth legend items - continuous scales with viridis colors
 	const choroplethLegendItems = {
 		median_household_income: [
-			{ color: COLORS.RED, label: 'Low', range: '$0 - $50K' },
-			{ color: COLORS.GOLD, label: 'Medium', range: '$50K - $100K' },
-			{ color: COLORS.TURQUOISE, label: 'High', range: '$100K - $150K' },
-			{ color: COLORS.COBALT, label: 'Very High', range: '$150K+' }
+			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '$0 - $50K' },
+			{ color: VIRIDIS.BLUE, label: 'Medium', range: '$50K - $100K' },
+			{ color: VIRIDIS.TEAL, label: 'High', range: '$100K - $150K' },
+			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '$150K+' }
 		],
 		pct_black: [
-			{ color: COLORS.EARTH, label: 'Low', range: '0% - 25%' },
-			{ color: COLORS.ORANGE, label: 'Medium', range: '25% - 50%' },
-			{ color: COLORS.RED, label: 'High', range: '50% - 75%' },
-			{ color: COLORS.FUCHSIA, label: 'Very High', range: '75% - 100%' }
+			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '0% - 25%' },
+			{ color: VIRIDIS.BLUE, label: 'Medium', range: '25% - 50%' },
+			{ color: VIRIDIS.TEAL, label: 'High', range: '50% - 75%' },
+			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '75% - 100%' }
 		],
 		pct_minority: [
-			{ color: COLORS.EARTH, label: 'Low', range: '0% - 25%' },
-			{ color: COLORS.GOLD, label: 'Medium', range: '25% - 50%' },
-			{ color: COLORS.ORANGE, label: 'High', range: '50% - 75%' },
-			{ color: COLORS.RED, label: 'Very High', range: '75% - 100%' }
+			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '0% - 25%' },
+			{ color: VIRIDIS.BLUE, label: 'Medium', range: '25% - 50%' },
+			{ color: VIRIDIS.TEAL, label: 'High', range: '50% - 75%' },
+			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '75% - 100%' }
 		],
 		pct_poverty: [
-			{ color: COLORS.TURQUOISE, label: 'Low', range: '0% - 10%' },
-			{ color: COLORS.GOLD, label: 'Medium', range: '10% - 20%' },
-			{ color: COLORS.ORANGE, label: 'High', range: '20% - 30%' },
-			{ color: COLORS.RED, label: 'Very High', range: '30%+' }
+			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '0% - 10%' },
+			{ color: VIRIDIS.BLUE, label: 'Medium', range: '10% - 20%' },
+			{ color: VIRIDIS.TEAL, label: 'High', range: '20% - 30%' },
+			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '30%+' }
 		]
 	};
 
@@ -109,7 +109,7 @@
 				/>
 				<label
 					for="{mode.value}-radio"
-					class="mode-selector__radio-label relative z-10 block cursor-pointer py-1.5 text-center font-['PolySans'] text-xs"
+					class="mode-selector__radio-label relative z-10 block cursor-pointer py-1.5 px-2 text-center font-['PolySans'] text-xs"
 					class:active={$visualState.choroplethMode === mode.value}
 				>
 					{mode.label}

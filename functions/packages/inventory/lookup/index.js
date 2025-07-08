@@ -118,8 +118,86 @@ async function loadInventoryByRowId(rowId) {
 			confidence: getConfidenceLevel(targetRecord),
 			highRisk: targetRecord['High Risk'] || 'N',
 			lastUpdated: 'Data provided by City of Chicago',
-			additionalNotes: buildAdditionalNotes(targetRecord)
+			additionalNotes: buildAdditionalNotes(targetRecord),
+			rowId: recordIdx,
+			PublSrvLnMatEPA: targetRecord.PublSrvLnMatEPA,
+			PrivateSrvLnMatEPA: targetRecord.PrivateSrvLnMatEPA,
+			Gooseneck: targetRecord.Gooseneck,
+			OverallSL_Code: targetRecord['OverallSL Code']
 		};
+		
+	} catch (error) {
+		console.error('Error loading inventory data:', error);
+		throw error;
+	}
+}
+
+// Load all inventory records for a specific address
+async function loadInventoryByAddress(address) {
+	const inventoryUrl = 'https://grist.nyc3.cdn.digitaloceanspaces.com/chi-pb/data/csv/inventory.csv';
+	
+	try {
+		const response = await fetch(inventoryUrl);
+		if (!response.ok) {
+			throw new Error(`Failed to load inventory data: ${response.statusText}`);
+		}
+		
+		const csvText = await response.text();
+		const lines = csvText.split('\n');
+		const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').replace(/^\uFEFF/, ''));
+		
+		// Normalize the search address
+		const normalizedSearchAddress = address.toLowerCase()
+			.replace(/[^\w\s]/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+		
+		// Find all matching records
+		const matchingRecords = [];
+		
+		for (let i = 1; i < lines.length; i++) {
+			const line = lines[i].trim();
+			if (!line) continue;
+			
+			const values = parseCSVLine(line);
+			if (values.length < headers.length) continue;
+			
+			const record = {};
+			headers.forEach((header, index) => {
+				record[header] = values[index] || '';
+			});
+			
+			// Normalize the record address
+			const recordAddress = record.FullAddress || '';
+			const normalizedRecordAddress = recordAddress.toLowerCase()
+				.replace(/[^\w\s]/g, ' ')
+				.replace(/\s+/g, ' ')
+				.trim();
+			
+			// Check if addresses match
+			if (normalizedRecordAddress === normalizedSearchAddress) {
+				const recordIdx = parseInt(record['Idx']);
+				matchingRecords.push({
+					fullAddress: record.FullAddress,
+					serviceLineMaterial: record.PublSrvLnMatEPA || 'Unknown',
+					customerSideMaterial: record.PrivateSrvLnMatEPA || 'Unknown',
+					utilitySideMaterial: record.PublSrvLnMatEPA || 'Unknown',
+					overallCode: record['OverallSL Code'] || 'Unknown',
+					gooseneck: record.Gooseneck || 'Unknown',
+					confidence: getConfidenceLevel(record),
+					highRisk: record['High Risk'] || 'N',
+					lastUpdated: 'Data provided by City of Chicago',
+					additionalNotes: buildAdditionalNotes(record),
+					rowId: recordIdx,
+					PublSrvLnMatEPA: record.PublSrvLnMatEPA,
+					PrivateSrvLnMatEPA: record.PrivateSrvLnMatEPA,
+					Gooseneck: record.Gooseneck,
+					OverallSL_Code: record['OverallSL Code']
+				});
+			}
+		}
+		
+		return matchingRecords;
 		
 	} catch (error) {
 		console.error('Error loading inventory data:', error);
@@ -170,13 +248,57 @@ function main(args) {
 	
 	// Handle async inventory lookup
 	const rowId = params.id;
+	const address = params.address;
 	
+	// If address is provided, get all service lines for that address
+	if (address) {
+		return loadInventoryByAddress(address)
+			.then(inventoryDataArray => {
+				if (!inventoryDataArray || inventoryDataArray.length === 0) {
+					return {
+						headers: responseHeaders,
+						body: {
+							error: 'Address not found in inventory',
+							address: address,
+							suggestion: 'Please verify the address format and try again'
+						}
+					};
+				}
+				
+				return {
+					headers: responseHeaders,
+					body: {
+						success: true,
+						address: address,
+						count: inventoryDataArray.length,
+						inventory: inventoryDataArray.length === 1 ? inventoryDataArray[0] : null,
+						inventoryList: inventoryDataArray,
+						metadata: {
+							timestamp: new Date().toISOString(),
+							source: 'City of Chicago Water Service Line Inventory'
+						}
+					}
+				};
+			})
+			.catch(error => {
+				console.error('Function error:', error);
+				return {
+					headers: responseHeaders,
+					body: {
+						error: 'Internal server error',
+						message: error.message
+					}
+				};
+			});
+	}
+	
+	// If rowId is provided, get single service line by ID (legacy support)
 	if (!rowId) {
 		return {
 			headers: responseHeaders,
 			body: { 
-				error: 'Row ID parameter is required',
-				usage: 'GET /api/inventory-lookup?id=12345'
+				error: 'Row ID or address parameter is required',
+				usage: 'GET /api/inventory-lookup?id=12345 OR GET /api/inventory-lookup?address=123%20Main%20St'
 			}
 		};
 	}
@@ -212,6 +334,8 @@ function main(args) {
 					success: true,
 					rowId: rowIndex,
 					inventory: inventoryData,
+					count: 1,
+					inventoryList: [inventoryData],
 					metadata: {
 						timestamp: new Date().toISOString(),
 						source: 'City of Chicago Water Service Line Inventory'

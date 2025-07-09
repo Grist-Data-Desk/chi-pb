@@ -4,3 +4,9 @@ packages:
       - name: lookup
         runtime: nodejs:18
         web: true
+      - name: lookup-v2
+        runtime: nodejs:18
+        web: true
+        limits:
+          timeout: 60000
+          memory: 512

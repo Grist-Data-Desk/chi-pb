@@ -12,20 +12,10 @@ export const COLORS = {
 	GREEN: '#00c04b',
 	PALE_GREEN: '#e8f5e9',
 	BLUE: '#0077cc',
-	PURPLE: '#9c27b0'
-} as const;
-
-// Viridis color palette for choropleth visualizations
-export const VIRIDIS = {
-	DARK_PURPLE: '#440154',
-	PURPLE: '#482777',
-	DARK_BLUE: '#3f4a8a',
-	BLUE: '#31678e',
-	TEAL: '#26838f',
-	GREEN: '#6cce5a',
-	YELLOW_GREEN: '#b6de2b',
-	YELLOW: '#fee825'
+	PURPLE: '#9c27b0',
+	SMOG: '#f0f0f0'
 } as const;
 
 // The breakpoint for switching between mobile and desktop views
 export const TABLET_BREAKPOINT = 640;
+

@@ -255,7 +255,7 @@ if (!fs.existsSync(outputDir)) {
 	fs.mkdirSync(outputDir, { recursive: true });
 }
 
-const addressPath = path.join(__dirname, '../data/raw/geocoded-addresses.csv');
+const addressPath = path.join(__dirname, '../data/raw/service-lines.csv');
 const outputPath = path.join(outputDir, 'minimal-search-index.json');
 
 console.log('Generating minimal search index...');

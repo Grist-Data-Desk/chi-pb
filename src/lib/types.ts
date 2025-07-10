@@ -1,35 +1,6 @@
 import type { Feature, Point, Polygon, FeatureCollection } from 'geojson';
 import type KDBush from 'kdbush';
 
-// Legacy Project interface (to be removed after refactoring)
-export interface Project {
-	uid: string;
-	dataSource: string;
-	fundingSource: string;
-	programId: string;
-	programName: string;
-	projectName: string;
-	projectDescription: string;
-	projectLocationType: string;
-	city: string;
-	county: string;
-	tribe: string;
-	state: string;
-	congressionalDistrict: string;
-	fundingAmount: string;
-	outlayedAmountFromIIJASupplemental: string;
-	obligatedAmountFromIIJASupplemental: string;
-	percentIIJAOutlayed: string;
-	link: string;
-	agencyName: string;
-	bureauName: string;
-	category: string;
-	subcategory: string;
-	programType: string;
-	latitude: number;
-	longitude: number;
-}
-
 // Chicago water service line types
 export interface Address {
 	row: number;
@@ -100,10 +71,6 @@ export interface TractFeature extends Feature<Polygon> {
 	properties: CensusTract;
 }
 
-export interface ProjectFeature extends Feature<Point> {
-	coordinates: [number, number];
-}
-
 // Collection types
 export interface AddressFeatureCollection extends FeatureCollection<Point> {
 	type: 'FeatureCollection';
@@ -113,11 +80,6 @@ export interface AddressFeatureCollection extends FeatureCollection<Point> {
 export interface TractFeatureCollection extends FeatureCollection<Polygon> {
 	type: 'FeatureCollection';
 	features: TractFeature[];
-}
-
-export interface ProjectFeatureCollection extends FeatureCollection<Point> {
-	type: 'FeatureCollection';
-	features: Feature<Point>[];
 }
 
 // Indexed collections for spatial search
@@ -132,13 +94,8 @@ export interface IndexedTractCollection {
 	index: KDBush | null;
 }
 
-export interface IndexedFeatureCollection {
-	collection: ProjectFeatureCollection;
-	index: KDBush | null;
-}
-
 // Choropleth visualization modes
-export type ChoroplethMode = 'median_household_income' | 'pct_black' | 'pct_minority' | 'pct_poverty';
+export type ChoroplethMode = 'pct_requires_replacement' | 'pct_poverty' | 'pct_minority';
 
 // Search index types for optimized address search
 export interface CompactAddress {

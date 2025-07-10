@@ -1,17 +1,16 @@
-# IRA/BIL Project Map
+# Chicago Water Service Line Map
 
-Grist's interactive web application for visualizing Inflation Reduction Act (IRA) and bipartisan infrastructure law (BIL) projects across the United States. Built with SvelteKit and MapLibre GL. [View the live map here.](https://grist.org/accountability/climate-infrastructure-ira-bil-map-tool/)
-
-For details about our data collection and processing methodology, see our [methods doc](METHODOLOGY.md).
+Interactive web application for Chicago residents to check if their water service line contains lead. This tool helps identify properties with lead service lines and visualizes demographic data across Chicago census tracts. Built with SvelteKit and MapLibre GL.
 
 ## Features
 
-- 🗺️ Interactive map visualization of IRA/BIL projects
-- 🔍 Location-based search with customizable radius
-- 📊 Project details with multi-project popup support
+- 🗺️ Interactive map of Chicago showing water service line status by address
+- 🔍 Address search with autocomplete for Chicago addresses
+- 🏠 Individual property lead status lookup
+- 📊 Census tract demographic overlays (income, race, poverty rates)
 - 📱 Responsive design for both desktop and mobile
-- 🎨 Multiple visualization modes (funding source, agency, category)
 - 💨 Fast vector tile rendering using PMTiles
+- ⚡ Real-time inventory data via serverless functions
 
 ## Prerequisites
 
@@ -60,17 +59,24 @@ For details about our data collection and processing methodology, see our [metho
 
 ### Data Processing Pipeline
 
-- `pnpm gen:geojson` - Generate GeoJSON from CSV data
+- `pnpm gen:addresses` - Convert geocoded addresses CSV to GeoJSON
+- `pnpm gen:inventory` - Process water service line inventory data
+- `pnpm gen:search` - Generate minimal search index for address autocomplete
+- `pnpm gen:inventory-lookup` - Create inventory lookup data for serverless function
 - `pnpm gen:pmtiles` - Convert GeoJSON to PMTiles format
-- `pnpm upload:geojson` - Upload processed GeoJSON to storage
+- `pnpm process:data` - Run all generation scripts in sequence
 - `pnpm upload:pmtiles` - Upload PMTiles to storage
+- `pnpm upload:csv` - Upload inventory CSV for serverless function
+- `pnpm upload:search` - Upload search index
+- `pnpm upload:inventory-lookup` - Upload inventory lookup data
 - `pnpm upload:styles` - Upload map styles
-- `pnpm process-all` - Run full data processing pipeline
+- `pnpm upload:all` - Upload all generated data to CDN
 
 ### Deployment
 
 - `pnpm publish:app` - Deploy the application
-- `pnpm build-and-publish` - Build with CDN configuration and deploy in one step
+- `pnpm deploy:functions` - Deploy serverless functions
+- `pnpm build-and-publish` - Build with CDN configuration and deploy everything
 
 ## Technology Stack
 
@@ -80,8 +86,7 @@ For details about our data collection and processing methodology, see our [metho
 - [TailwindCSS](https://tailwindcss.com/) - Styling
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Digital Ocean Spaces](https://www.digitalocean.com/products/spaces) - Data storage and CDN
-- [Turf.js](https://turfjs.org/) - Geospatial analysis
-- [KDBush](https://github.com/mourner/kdbush) - Spatial indexing
+- [Digital Ocean Functions](https://www.digitalocean.com/products/functions) - Serverless backend
 
 ## Project Structure
 
@@ -90,17 +95,33 @@ For details about our data collection and processing methodology, see our [metho
   - `/lib` - Shared components and utilities
     - `/components` - Reusable UI components
       - `/credits` - Credit and note components
-      - `/search` - Search-related components
-      - `/legend` - Map legend components
+      - `/search` - Address search and service line results
+      - `/legend` - Map legend for choropleth modes
     - `/types` - TypeScript type definitions
     - `/utils` - Utility functions, constants, and configuration
 - `/scripts` - Data processing and deployment scripts
   - `/src` - TypeScript source code for data processing
   - `/data` - Data files
-    - `/raw` - Input data files (CSV, raw GeoJSON)
-    - `/processed` - Generated files (PMTiles, compressed GeoJSON)
-  - `/styles` - Map style configuration
+    - `/raw` - Input data files (addresses CSV, inventory CSV, census GeoJSON)
+    - `/processed` - Generated files (PMTiles, search index, inventory lookup)
+- `/styles` - Map style configuration
+- `/functions` - Serverless functions
+  - `/packages/inventory` - Water service line inventory lookup API
 - `/static` - Static assets (favicon, etc.)
+
+## Data Sources
+
+- **Water Service Line Inventory**: City of Chicago water service line inventory data
+- **Geocoded Addresses**: Chicago address points with geographic coordinates
+- **Census Data**: American Community Survey (ACS) demographic data for Chicago census tracts
+
+## Lead Status Categories
+
+The map displays water service lines in four categories:
+- 🔴 **Lead (L)**: Confirmed lead service line
+- 🟠 **Galvanized Requiring Replacement (GRR)**: Galvanized pipes that need replacement
+- 🟡 **Unknown (U)**: Service line material is unknown
+- 🟢 **Non-Lead (NL)**: Confirmed non-lead service line
 
 ## Embedding the Map
 
@@ -108,22 +129,11 @@ The map can be embedded in other websites using an `iframe`. Here's an example:
 
 ```html
 <iframe 
-  src="https://grist.org/project/updates/interactive-ira-bil-project-map/" 
+  src="https://grist.org/project/chi-water-service-lines/" 
   style="margin-left: calc(50% - 50vw); width: 100vw; height: calc(100vh - 66px); border: 0; margin-bottom: 10px;"
 ></iframe>
 ```
-
-You can also embed state-specific views by adding URL parameters. For example, to embed a view focused on Michigan:
-
-```html
-<iframe 
-  src="https://grist.org/project/updates/interactive-ira-bil-project-map/?state=MI" 
-  style="margin-left: calc(50% - 50vw); width: 100vw; height: calc(100vh - 66px); border: 0; margin-bottom: 10px;"
-></iframe>
-```
-
-Such a view will not filter the database and is only for localization purposes for a given embed.
 
 ## Credits
 
-Development by [Clayton Aldern](https://github.com/clayton-aldern) for [Grist](https://grist.org). Project structure and additional development by [Parker Ziegler](https://github.com/parkerziegler). Results table component adapted from [cartokit](https://github.com/parkerziegler/cartokit).
+Development by [Clayton Aldern](https://github.com/clayton-aldern) for [Grist](https://grist.org). Project structure and additional development by [Parker Ziegler](https://github.com/parkerziegler).

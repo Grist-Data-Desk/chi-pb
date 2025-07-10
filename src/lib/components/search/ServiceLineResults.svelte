@@ -3,6 +3,8 @@
 	import type { AddressWithServiceLine, CensusTract } from '$lib/types';
 	import ServiceLineDiagram from './ServiceLineDiagram.svelte';
 	import type { Map } from 'maplibre-gl';
+	import { COLORS } from '$lib/utils/constants';
+	import { onMount, onDestroy } from 'svelte';
 
 	export let selectedAddress: AddressWithServiceLine | null = null;
 	export let inventoryData: any = null;
@@ -14,54 +16,176 @@
 	
 	// Get tract data for the selected address by querying which tract contains the address point
 	let tractData: CensusTract | null = null;
+	let isTractDataLoading = false;
+	let pendingTractQuery: { lng: number; lat: number } | null = null;
+	
+	// Reset tract data when address is cleared
+	$: if (!address) {
+		tractData = null;
+		isTractDataLoading = false;
+		pendingTractQuery = null;
+	}
+	
+	// Update tract data when address changes
 	$: if (map && address && address.lat && address.long) {
-		getTractDataAtPoint(address.long, address.lat);
+		// Set loading state and clear previous data
+		isTractDataLoading = true;
+		tractData = null;
+		pendingTractQuery = { lng: address.long, lat: address.lat };
+		// Wait for map to move to the new location before querying
+		queryTractDataWithRetry(address.long, address.lat);
+	}
+	
+	// Set up map event listeners
+	let mapMoveEndHandler: (() => void) | null = null;
+	
+	$: if (map && !mapMoveEndHandler) {
+		mapMoveEndHandler = () => {
+			// If we have a pending query, execute it now that the map has stopped moving
+			if (pendingTractQuery && isTractDataLoading) {
+				console.log('Map finished moving, querying tract data...');
+				getTractDataAtPoint(pendingTractQuery.lng, pendingTractQuery.lat);
+			}
+		};
+		map.on('moveend', mapMoveEndHandler);
+	}
+	
+	onDestroy(() => {
+		if (map && mapMoveEndHandler) {
+			map.off('moveend', mapMoveEndHandler);
+		}
+	});
+
+	async function queryTractDataWithRetry(lng: number, lat: number) {
+		// Simply wait a bit for the map to start moving, then we'll query on moveend
+		setTimeout(() => {
+			if (!map?.isMoving()) {
+				// If map isn't moving, query immediately
+				getTractDataAtPoint(lng, lat);
+			}
+			// Otherwise, the moveend handler will take care of it
+		}, 100);
 	}
 
-	async function getTractDataAtPoint(lng: number, lat: number) {
-		if (!map) return;
+	async function getTractDataAtPoint(lng: number, lat: number, retryCount = 0) {
+		if (!map || !pendingTractQuery) {
+			isTractDataLoading = false;
+			return;
+		}
+		
+		// Only process if this is still the pending query
+		if (pendingTractQuery.lng !== lng || pendingTractQuery.lat !== lat) {
+			return;
+		}
+		
+		const maxRetries = 10;
 		
 		try {
-			// Query the census tract layer at the specific point
+			// Ensure the layer exists before querying
+			if (!map.getLayer('census-tracts-fill')) {
+				console.log('Census tract layer not yet loaded');
+				if (retryCount < maxRetries) {
+					setTimeout(() => {
+						getTractDataAtPoint(lng, lat, retryCount + 1);
+					}, 200);
+				} else {
+					isTractDataLoading = false;
+					pendingTractQuery = null;
+				}
+				return;
+			}
+			
+			// First, ensure we're at the right zoom level and location
+			const currentCenter = map.getCenter();
+			const currentZoom = map.getZoom();
+			const distance = Math.sqrt(
+				Math.pow(currentCenter.lng - lng, 2) + 
+				Math.pow(currentCenter.lat - lat, 2)
+			);
+			
+			// If we're too far from the point or zoom is too low, the features might not be rendered
+			if (distance > 0.1 || currentZoom < 10) {
+				console.log(`Map not positioned correctly. Distance: ${distance}, Zoom: ${currentZoom}`);
+				if (retryCount < maxRetries) {
+					setTimeout(() => {
+						getTractDataAtPoint(lng, lat, retryCount + 1);
+					}, 500);
+					return;
+				}
+			}
+			
+			// Query with a small buffer around the point to account for any precision issues
 			const point = map.project([lng, lat]);
-			const features = map.queryRenderedFeatures(point, {
+			const buffer = 5; // pixels
+			const features = map.queryRenderedFeatures([
+				[point.x - buffer, point.y - buffer],
+				[point.x + buffer, point.y + buffer]
+			], {
 				layers: ['census-tracts-fill']
 			});
 			
+			console.log(`Query attempt ${retryCount + 1}: Found ${features.length} features at [${lng}, ${lat}]`);
+			
 			if (features.length > 0) {
-				tractData = features[0].properties as CensusTract;
+				// If multiple features, find the closest one
+				let closestFeature = features[0];
+				if (features.length > 1) {
+					// Simple distance check - in production you'd use proper point-in-polygon
+					closestFeature = features[0];
+				}
+				
+				tractData = closestFeature.properties as CensusTract;
+				isTractDataLoading = false;
+				pendingTractQuery = null;
+				console.log('Tract data loaded:', tractData.geoid);
+			} else if (retryCount < maxRetries) {
+				// Retry - the tiles might not be loaded yet
+				console.log(`No features found, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
+				setTimeout(() => {
+					getTractDataAtPoint(lng, lat, retryCount + 1);
+				}, 300);
 			} else {
+				console.log('Max retries reached, no tract data found');
 				tractData = null;
+				isTractDataLoading = false;
+				pendingTractQuery = null;
 			}
 		} catch (error) {
 			console.error('Error getting tract data at point:', error);
-			tractData = null;
+			if (retryCount < maxRetries) {
+				setTimeout(() => {
+					getTractDataAtPoint(lng, lat, retryCount + 1);
+				}, 300);
+			} else {
+				tractData = null;
+				isTractDataLoading = false;
+				pendingTractQuery = null;
+			}
 		}
 	}
 	
 	// Get lead status from current service line or inventory data
 	$: currentInventoryData = $currentServiceLine || inventoryData;
-	$: leadStatus = currentInventoryData?.OverallSL_Code ? mapOverallCodeToStatus(currentInventoryData.OverallSL_Code) : 
-	               currentInventoryData?.overallCode ? mapOverallCodeToStatus(currentInventoryData.overallCode) : 'UNKNOWN';
-
-	function mapOverallCodeToStatus(code: string): string {
-		switch (code) {
-			case 'L':
-				return 'LEAD';
-			case 'GRR':
-				return 'GALVANIZED_REQUIRING_REPLACEMENT';
-			case 'NL':
-				return 'NON_LEAD';
-			case 'U':
-				return 'UNKNOWN';
-			default:
-				return 'UNKNOWN';
-		}
+	
+	// Get the worst code when multiple service lines exist
+	function getWorstCode(inventoryList: any[]): string {
+		// Priority: L > GRR > U > NL
+		const codes = inventoryList.map(item => item.OverallSL_Code || item.overallCode || 'U');
+		
+		if (codes.includes('L')) return 'L';
+		if (codes.includes('GRR')) return 'GRR';
+		if (codes.includes('U')) return 'U';
+		return 'NL';
 	}
+	
+	// Get the overall code to display
+	$: displayCode = $multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1
+		? getWorstCode($multiServiceLineStore.inventoryList)
+		: currentInventoryData?.OverallSL_Code || currentInventoryData?.overallCode || 'U';
 
 	// Formatting utilities for Census tract data (from popup.ts)
-	function formatCurrency(value: number): string {
-		if (!value || value === null) return 'N/A';
+	function formatCurrency(value: number | null | undefined): string {
+		if (!value || value === null || value === undefined) return 'N/A';
 		return new Intl.NumberFormat('en-US', {
 			style: 'currency',
 			currency: 'USD',
@@ -70,44 +194,19 @@
 		}).format(value);
 	}
 
-	function formatPercent(value: number): string {
+	function formatPercent(value: number | null | undefined): string {
 		if (value === null || value === undefined) return 'N/A';
 		return `${value.toFixed(1)}%`;
 	}
 
-	function getLeadStatusColor(status: string): string {
-		switch (status) {
-			case 'LEAD':
-				return 'text-red-600 bg-red-50 border-red-200';
-			case 'GALVANIZED_REQUIRING_REPLACEMENT':
-				return 'text-orange-600 bg-orange-50 border-orange-200';
-			case 'NON_LEAD':
-				return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-			case 'UNKNOWN':
-				return 'text-amber-600 bg-amber-50 border-amber-200';
-			default:
-				return 'text-slate-600 bg-slate-50 border-slate-200';
-		}
-	}
-
-	function formatLeadStatus(status: string): string {
-		switch (status) {
-			case 'LEAD':
-				return 'Lead';
-			case 'GALVANIZED_REQUIRING_REPLACEMENT':
-				return 'Galvanized Requiring Replacement';
-			case 'NON_LEAD':
-				return 'Non-Lead';
-			case 'UNKNOWN':
-				return 'Unknown';
-			default:
-				return status.replace('_', ' ');
-		}
+	function formatCount(value: number | null | undefined): string {
+		if (value === null || value === undefined) return 'N/A';
+		return value.toLocaleString();
 	}
 </script>
 
 {#if address}
-	<div class="mt-4 max-h-[400px] overflow-y-auto space-y-3 sm:space-y-4 pr-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+	<div class="mt-4 max-h-[400px] overflow-y-auto space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
 		<!-- Address Information -->
 		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
 			<h3 class="mt-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
@@ -120,12 +219,38 @@
 				
 				<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
 					<span class="text-xs sm:text-sm text-slate-600">Lead Status:</span>
-					<span 
-						class="inline-flex items-center self-start rounded-full border px-2 sm:px-2.5 py-0.5 text-xs sm:text-sm font-medium {getLeadStatusColor(leadStatus)}"
-					>
-						{formatLeadStatus(leadStatus)}
-					</span>
+					{#if isLoading}
+						<span class="inline-flex items-center self-start rounded-full border px-2 sm:px-2.5 py-0.5 text-xs sm:text-sm font-medium text-slate-500 bg-slate-50 border-slate-200">
+							<svg class="h-3 w-3 animate-spin mr-1" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+							Loading...
+						</span>
+					{:else if displayCode === 'L'}
+						<span class="inline-flex items-center self-start rounded-full px-2 sm:px-2.5 py-0.5 text-xs sm:text-sm font-medium text-white" style="background-color: {COLORS.RED}">
+							Lead
+						</span>
+					{:else if displayCode === 'GRR'}
+						<span class="inline-flex items-center self-start rounded-full px-2 sm:px-2.5 py-0.5 text-xs sm:text-sm font-medium text-white" style="background-color: {COLORS.ORANGE}">
+							Galvanized (Replace)
+						</span>
+					{:else if displayCode === 'NL'}
+						<span class="inline-flex items-center self-start rounded-full px-2 sm:px-2.5 py-0.5 text-xs sm:text-sm font-medium text-white" style="background-color: {COLORS.TURQUOISE}">
+							Non-Lead
+						</span>
+					{:else}
+						<span class="inline-flex items-center self-start rounded-full px-2 sm:px-2.5 py-0.5 text-xs sm:text-sm font-medium text-white" style="background-color: {COLORS.GOLD}">
+							Unknown (Suspected Lead)
+						</span>
+					{/if}
 				</div>
+				
+				{#if $serviceLineCount > 1}
+					<p class="mt-1 text-xs text-slate-500 italic">
+						This address is associated with {$serviceLineCount} service line records. The status shown above represents the 'worst-case' scenario across all lines: If lead appears in any of the service lines, it'll be noted here. See individual line details below.
+					</p>
+				{/if}
 
 			</div>
 		</div>
@@ -135,7 +260,7 @@
 			<h3 class="mt-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
 				Service line information
 				{#if $serviceLineCount > 1}
-					<span class="ml-2 text-sm font-normal text-slate-600">({$serviceLineCount} service lines found)</span>
+					<br><span class="text-sm font-normal text-slate-600">↳ {$serviceLineCount} lines found at this address</span>
 				{/if}
 			</h3>
 			
@@ -160,7 +285,7 @@
 						<button 
 							on:click={previousServiceLine}
 							disabled={$multiServiceLineStore.currentIndex === 0}
-							class="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex === 0 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-200'}"
+							class="flex items-center justify-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors w-20 {$multiServiceLineStore.currentIndex === 0 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-200'}"
 						>
 							<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -169,13 +294,13 @@
 						</button>
 						
 						<span class="text-xs font-medium text-slate-700">
-							Service Line {$multiServiceLineStore.currentIndex + 1} of {$serviceLineCount}
+							Line {$multiServiceLineStore.currentIndex + 1} of {$serviceLineCount}
 						</span>
 						
 						<button 
 							on:click={nextServiceLine}
 							disabled={$multiServiceLineStore.currentIndex === $serviceLineCount - 1}
-							class="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex === $serviceLineCount - 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-200'}"
+							class="flex items-center justify-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors w-20 {$multiServiceLineStore.currentIndex === $serviceLineCount - 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-slate-200'}"
 						>
 							Next
 							<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,33 +321,11 @@
 				</div>
 				
 				<!-- Additional inventory details if needed -->
-				{#if currentInventoryData.confidence || currentInventoryData.lastUpdated || currentInventoryData.additionalNotes}
-					<div class="space-y-2 font-['Basis_Grotesque'] text-xs sm:text-sm">
-						{#if currentInventoryData.confidence}
+				{#if currentInventoryData.highRisk === 'Y'}
+					<div class="space-y-2 font-['Basis_Grotesque'] text-xs sm:text-sm">						
 							<div class="flex items-start gap-2">
-								<span class="font-medium text-slate-700">Confidence:</span>
-								<span class="text-slate-600">{currentInventoryData.confidence}</span>
+								<span class="font-medium text-red-700">⚠️ This address is considered a high-risk property by the City of Chicago</span>
 							</div>
-						{/if}
-						
-						{#if currentInventoryData.highRisk === 'Y'}
-							<div class="flex items-start gap-2">
-								<span class="font-medium text-red-700">⚠️ High Risk</span>
-							</div>
-						{/if}
-						
-						{#if currentInventoryData.lastUpdated}
-							<div class="flex items-start gap-2">
-								<span class="font-medium text-slate-700">Updated:</span>
-								<span class="text-slate-600">{currentInventoryData.lastUpdated}</span>
-							</div>
-						{/if}
-
-						{#if currentInventoryData.additionalNotes}
-							<div class="pt-2 border-t border-slate-100">
-								<p class="text-slate-600 italic">{currentInventoryData.additionalNotes}</p>
-							</div>
-						{/if}
 					</div>
 				{/if}
 			{:else}
@@ -249,17 +352,128 @@
 			<h3 class="mt-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
 				Census tract context
 			</h3>
-			{#if tractData}
-				<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-700">
-					<p class="italic mb-1">You live in Census tract {tractData.geoid}. Statistics on your tract appear below.</p>
-					<p class="mb-0"><strong>Median Household Income:</strong> {formatCurrency(tractData.median_household_income)}</p>
-					<p class="mb-0"><strong>Black Population:</strong> {formatPercent(tractData.pct_black)}</p>
-					<p class="mb-0"><strong>Minority Population:</strong> {formatPercent(tractData.pct_minority)}</p>
-					<p class="mb-0"><strong>Poverty Rate:</strong> {formatPercent(tractData.pct_poverty)}</p>
+			{#if !address}
+				<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500">
+					<p>Select an address to view census tract information.</p>
+				</div>
+			{:else if tractData}
+				<div class="font-['Basis_Grotesque'] text-xs sm:text-sm">
+					<p class="mt-1 text-xs text-slate-500 italic">This address is located in Census tract {tractData.geoid}. Statistics on this tract appear below.</p>
+					
+					{#if (tractData as any).total !== undefined}
+						<p class="font-semibold text-[10px] uppercase tracking-wider text-gray-500 mb-1">Service Line Inventory</p>
+						
+						<div class="bg-gray-50 rounded p-2 mb-3">
+							<table class="w-full text-xs">
+								<colgroup>
+									<col class="w-3/5">
+									<col class="w-1/5">
+									<col class="w-1/5">
+								</colgroup>
+								<tbody>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">Lead</td>
+										<td class="py-1 px-2 text-right font-medium">{formatCount((tractData as any).L)}</td>
+										<td class="py-1 text-right text-gray-600">{formatPercent((tractData as any).pct_lead)}</td>
+									</tr>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">Galvanized (Replace)</td>
+										<td class="py-1 px-2 text-right font-medium">{formatCount((tractData as any).GRR)}</td>
+										<td class="py-1 text-right text-gray-600">{formatPercent((tractData as any).pct_grr)}</td>
+									</tr>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">Unknown (Suspected Lead)</td>
+										<td class="py-1 px-2 text-right font-medium">{formatCount((tractData as any).U)}</td>
+										<td class="py-1 text-right text-gray-600">{formatPercent((tractData as any).pct_suspected_lead)}</td>
+									</tr>
+									<tr>
+										<td class="py-1 text-gray-600">Non-Lead</td>
+										<td class="py-1 px-2 text-right font-medium">{formatCount((tractData as any).NL)}</td>
+										<td class="py-1 text-right text-gray-600">{formatPercent((tractData as any).pct_not_lead)}</td>
+									</tr>
+								</tbody>
+							</table>
+							
+							<div class="px-2">
+								<table class="w-full text-xs mt-2 pt-2 border-t border-gray-200">
+									<colgroup>
+										<col class="w-3/5">
+										<col class="w-1/5">
+										<col class="w-1/5">
+									</colgroup>
+									<tbody>
+										<tr>
+											<td class="py-1 text-gray-700">Total</td>
+											<td class="py-1 px-2 text-right font-bold">{formatCount((tractData as any).total)}</td>
+											<td class="py-1"></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+							
+							{#if (tractData as any).requires_replacement !== undefined}
+								<div class="mt-2 p-2 bg-purple-50 rounded">
+									<table class="w-full text-xs">
+										<colgroup>
+											<col class="w-3/5">
+											<col class="w-1/5">
+											<col class="w-1/5">
+										</colgroup>
+										<tbody>
+											<tr>
+												<td class="text-purple-700 font-medium">Requires Replacement</td>
+												<td class="px-2 text-right font-bold text-purple-900">{formatCount((tractData as any).requires_replacement)}</td>
+												<td class="text-right font-bold text-purple-900">{formatPercent((tractData as any).pct_requires_replacement)}</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							{/if}
+						</div>
+					{/if}
+					
+					<p class="font-semibold text-[10px] uppercase tracking-wider text-gray-500 mb-1">Demographics</p>
+					<div class="bg-gray-50 rounded p-2">
+						<table class="w-full text-xs">
+							<tbody>
+								<tr class="border-b border-gray-200">
+									<td class="py-1 text-gray-600">Median Income</td>
+									<td class="py-1 text-right font-medium">{formatCurrency(tractData.median_household_income)}</td>
+								</tr>
+								<tr class="border-b border-gray-200">
+									<td class="py-1 text-gray-600">Poverty Rate</td>
+									<td class="py-1 text-right font-medium">{formatPercent(tractData.pct_poverty)}</td>
+								</tr>
+								<tr class="border-b border-gray-200">
+									<td class="py-1 text-gray-600">Black Population</td>
+									<td class="py-1 text-right font-medium">{formatPercent((tractData as any).pct_black_nonhispanic || tractData.pct_black)}</td>
+								</tr>
+								<tr class="border-b border-gray-200">
+									<td class="py-1 text-gray-600">White Population</td>
+									<td class="py-1 text-right font-medium">{formatPercent((tractData as any).pct_white_nonhispanic)}</td>
+								</tr>
+								<tr class="border-b border-gray-200">
+									<td class="py-1 text-gray-600">Asian Population</td>
+									<td class="py-1 text-right font-medium">{formatPercent((tractData as any).pct_asian_nonhispanic)}</td>
+								</tr>
+								<tr>
+									<td class="py-1 text-gray-600">Minority Population</td>
+									<td class="py-1 text-right font-medium">{formatPercent(tractData.pct_minority)}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			{:else if isTractDataLoading}
+				<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500">
+					<div class="flex items-center gap-2">
+						<div class="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"></div>
+						<p>Loading census tract information...</p>
+					</div>
 				</div>
 			{:else}
 				<div class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500">
-					<p>Census tract demographic information will be displayed here when available.</p>
+					<p>Census tract information is not available for this location.</p>
 				</div>
 			{/if}
 		</div>

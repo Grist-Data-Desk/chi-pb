@@ -1,9 +1,6 @@
 <script lang="ts">
 	import {
 		searchState,
-		visualState,
-		filteredAddresses,
-		currentCount,
 		isAddressDataLoading,
 		addressStore,
 		selectedAddressInventory,
@@ -11,7 +8,10 @@
 		inventoryError,
 		loadInventoryForAddress,
 		loadMinimalSearchIndex,
-		minimalSearchIndexStore
+		minimalSearchIndexStore,
+		multiServiceLineStore,
+		currentServiceLine,
+		uiState
 	} from '$lib/stores';
 	import type { AddressWithServiceLine, MinimalAddress } from '$lib/types';
 	import { debounce } from 'lodash-es';
@@ -19,18 +19,18 @@
 	import { onMount } from 'svelte';
 	import type maplibregl from 'maplibre-gl';
 	import { COLORS } from '$lib/utils/constants';
+	import { interpolatePurples } from 'd3-scale-chromatic';
 
 
-	export let onSearch: () => void;
 	export let map: maplibregl.Map | null = null;
-	let searchInput: HTMLInputElement;
 	let suggestions: AddressWithServiceLine[] = [];
 	let isFetchingSuggestions = false;
 	let showSuggestions = false;
 	let suggestionsContainer: HTMLDivElement;
 
 	const handleSearch = () => {
-		onSearch();
+		// This is now just a placeholder for the search button
+		// Address selection handles all the search functionality
 	};
 
 	// Enhanced normalization for Chicago address variants
@@ -235,8 +235,18 @@
 			return 0;
 		});
 		
+		// Deduplicate addresses by display name
+		const seen = new Set<string>();
+		const deduplicatedAddresses = matchingAddresses.filter(addr => {
+			if (seen.has(addr.display)) {
+				return false;
+			}
+			seen.add(addr.display);
+			return true;
+		});
+		
 		// Limit to 5 results
-		const topResults = matchingAddresses.slice(0, 5);
+		const topResults = deduplicatedAddresses.slice(0, 5);
 		
 		// Convert to AddressWithServiceLine format
 		return topResults.map(minimalAddr => {
@@ -392,7 +402,7 @@
 		return uniqueResults;
 	}
 
-	const fetchSuggestions = debounce((query: string) => {
+	const fetchSuggestions = debounce(async (query: string) => {
 		if (!query || query.length < 3) {
 			suggestions = [];
 			showSuggestions = false;
@@ -401,9 +411,10 @@
 
 		isFetchingSuggestions = true;
 		try {
+			// Use optimized search
 			suggestions = searchAddressesOptimized(query);
-			showSuggestions = suggestions.length > 0;
 			console.log(`Search for "${query}" returned ${suggestions.length} results`);
+			showSuggestions = suggestions.length > 0;
 		} catch (error) {
 			console.error('Error searching addresses:', error);
 			console.error('Query was:', query);
@@ -416,7 +427,11 @@
 
 	function onInput(event: Event) {
 		const input = event.target as HTMLInputElement;
-		searchState.update(state => ({ ...state, query: input.value }));
+		searchState.update(state => ({ 
+			...state, 
+			query: input.value,
+			selectedAddress: null // Clear selected address when user types
+		}));
 		fetchSuggestions(input.value);
 	}
 
@@ -442,8 +457,16 @@
 			selectedAddress: suggestion 
 		}));
 		showSuggestions = false;
+		suggestions = []; // Clear suggestions after selection
 		
-		// Load inventory data for the selected address using row ID
+		// Collapse the search header when an address is selected
+		uiState.update(state => ({ 
+			...state, 
+			searchHeaderCollapsed: true,
+			creditsExpanded: false
+		}));
+		
+		// Load inventory data for the selected address
 		if (suggestion.row) {
 			loadInventoryForAddress(suggestion.fullAddress, suggestion.row);
 		} else {
@@ -485,19 +508,8 @@
 				}
 			});
 			
-			// Get the appropriate color based on lead status (same logic as getAddressColorExpression)
-			const leadStatusColor = (() => {
-				switch (suggestion.leadStatus) {
-					case 'LEAD':
-						return COLORS.RED;        // Lead service line
-					case 'NON_LEAD':
-						return COLORS.TURQUOISE;  // Non-lead service line
-					case 'UNKNOWN':
-						return COLORS.GOLD;       // Unknown status
-					default:
-						return COLORS.EARTH;      // Default for null/missing values
-				}
-			})();
+			// Initially use EARTH color while loading
+			const leadStatusColor = COLORS.EARTH;
 			
 			map.addLayer({
 				id: highlightLayer,
@@ -518,7 +530,11 @@
 	}
 
 	function onInputFocus() {
-		if (suggestions.length > 0) {
+		// Only show suggestions if:
+		// 1. There are suggestions available
+		// 2. No address has been selected yet
+		// 3. The current query matches what's in the input (not from a previous search)
+		if (suggestions.length > 0 && !$searchState.selectedAddress && $searchState.query.length >= 3) {
 			showSuggestions = true;
 		}
 	}
@@ -534,7 +550,46 @@
 		}, 200);
 	}
 
-	// Load minimal search index on component mount
+	// Function to get the worst code when multiple service lines exist
+	function getWorstCode(inventoryList: any[]): string {
+		// Priority: L > GRR > U > NL
+		const codes = inventoryList.map(item => item.OverallSL_Code || item.overallCode || 'U');
+		
+		if (codes.includes('L')) return 'L';
+		if (codes.includes('GRR')) return 'GRR';
+		if (codes.includes('U')) return 'U';
+		return 'NL';
+	}
+	
+	// Reactive update of the selected address dot color based on inventory data
+	$: if (map && $searchState.selectedAddress && !$isInventoryLoading) {
+		const highlightLayer = 'selected-address-highlight';
+		
+		if (map.getLayer(highlightLayer)) {
+			// Get the overall code to display
+			const displayCode = $multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1
+				? getWorstCode($multiServiceLineStore.inventoryList)
+				: $currentServiceLine?.OverallSL_Code || $currentServiceLine?.overallCode || 'U';
+			
+			// Determine color based on display code (matching the pill colors exactly)
+			let dotColor: string = COLORS.EARTH; // Default
+			
+			if (displayCode === 'L') {
+				dotColor = COLORS.RED;
+			} else if (displayCode === 'GRR') {
+				dotColor = COLORS.ORANGE;
+			} else if (displayCode === 'NL') {
+				dotColor = COLORS.TURQUOISE;
+			} else {
+				dotColor = COLORS.GOLD; // Unknown
+			}
+			
+			// Update the dot color
+			map.setPaintProperty(highlightLayer, 'circle-color', dotColor);
+		}
+	}
+
+	// Load search index on component mount
 	// Inventory data is loaded on-demand when address is selected
 	onMount(() => {
 		loadMinimalSearchIndex();
@@ -543,15 +598,17 @@
 
 <div class="relative col-span-1 space-y-4 overflow-visible rounded-lg border border-slate-200">
 
-	<div class="relative z-10">
-		<h1 class="mt-0 font-['PolySans'] text-3xl font-medium text-slate-800">
-			Chicago: Is your water service line made of lead?
-		</h1>
-		<p class="m-0 font-['Basis_Grotesque'] text-sm text-slate-600">
-			Enter your address to find information about your Chicago water service line composition and 
-			lead status. The map will show your service line location and Census tract demographic data.
-		</p>
-	</div>
+	{#if !$uiState.searchHeaderCollapsed}
+		<div class="relative z-10">
+			<h1 class="mt-0 font-['PolySans'] text-3xl font-medium text-slate-800">
+				Chicago: Does your water service line contain lead?
+			</h1>
+			<p class="m-0 font-['Basis_Grotesque'] text-sm text-slate-600">
+				Enter your address to find information about your Chicago water service line composition and 
+				lead status. The map will show your service line location and Census tract demographic data.
+			</p>
+		</div>
+	{/if}
 	<div class="relative flex items-stretch gap-2">
 		<div class="flex-[5]">
 			<label
@@ -562,7 +619,6 @@
 				<input
 					type="text"
 					id="search"
-					bind:this={searchInput}
 					value={$searchState.query}
 					on:input={onInput}
 					on:keydown={onKeyDown}
@@ -604,7 +660,8 @@
 		<div class="flex flex-col justify-end">
 			<button
 				on:click={handleSearch}
-				class="flex w-[100px] items-center justify-center gap-2 whitespace-nowrap rounded-md border border-emerald-600 bg-emerald-500 p-1.5 font-['Basis_Grotesque'] text-white shadow-md transition-all hover:bg-emerald-600 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+				style="background-color: {interpolatePurples(0.5)}; border-color: {interpolatePurples(0.6)};"
+				class="flex w-[100px] items-center justify-center gap-2 whitespace-nowrap rounded-md border p-1.5 font-['Basis_Grotesque'] text-white shadow-md transition-all hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-110"
 				disabled={$isAddressDataLoading || $searchState.isSearching}
 			>
 				{#if $isAddressDataLoading || $searchState.isSearching}

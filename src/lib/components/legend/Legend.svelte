@@ -1,45 +1,42 @@
 <script lang="ts">
 	import { visualState, uiState } from '$lib/stores';
-	import { COLORS, VIRIDIS } from '$lib/utils/constants';
-	import { CHOROPLETH_CATEGORIES, LEAD_STATUS_CATEGORIES } from '$lib/utils/config';
+	import { COLORS } from '$lib/utils/constants';
+	import { CHOROPLETH_CATEGORIES } from '$lib/utils/config';
+	import { fetchQuantileData, getColorScheme, formatQuantileValue } from '$lib/utils/quantiles';
+	import { onMount } from 'svelte';
 
-	const colorOrder = [
-		COLORS.ORANGE,
-		COLORS.COBALT,
-		COLORS.TURQUOISE,
-		COLORS.TEAL,
-		COLORS.FUCHSIA,
-		COLORS.RED,
-		COLORS.GOLD
-	];
+	// Store quantile data
+	let quantileData: { quantiles: number[]; colors: readonly string[] } | null = null;
 
-	// Chicago choropleth legend items - continuous scales with viridis colors
-	const choroplethLegendItems = {
-		median_household_income: [
-			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '$0 - $50K' },
-			{ color: VIRIDIS.BLUE, label: 'Medium', range: '$50K - $100K' },
-			{ color: VIRIDIS.TEAL, label: 'High', range: '$100K - $150K' },
-			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '$150K+' }
-		],
-		pct_black: [
-			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '0% - 25%' },
-			{ color: VIRIDIS.BLUE, label: 'Medium', range: '25% - 50%' },
-			{ color: VIRIDIS.TEAL, label: 'High', range: '50% - 75%' },
-			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '75% - 100%' }
-		],
-		pct_minority: [
-			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '0% - 25%' },
-			{ color: VIRIDIS.BLUE, label: 'Medium', range: '25% - 50%' },
-			{ color: VIRIDIS.TEAL, label: 'High', range: '50% - 75%' },
-			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '75% - 100%' }
-		],
-		pct_poverty: [
-			{ color: VIRIDIS.DARK_PURPLE, label: 'Low', range: '0% - 10%' },
-			{ color: VIRIDIS.BLUE, label: 'Medium', range: '10% - 20%' },
-			{ color: VIRIDIS.TEAL, label: 'High', range: '20% - 30%' },
-			{ color: VIRIDIS.YELLOW, label: 'Very High', range: '30%+' }
-		]
-	};
+	// Fetch quantile data when mode or aggregation changes
+	$: if ($visualState.choroplethMode && $visualState.aggregationLevel) {
+		fetchQuantileData($visualState.aggregationLevel, $visualState.choroplethMode)
+			.then((data) => {
+				quantileData = data;
+			})
+			.catch((error) => {
+				console.error('Error fetching quantile data:', error);
+				// Use default data as fallback
+				quantileData = {
+					quantiles: [20, 40, 60, 80],
+					colors: getColorScheme($visualState.choroplethMode)
+				};
+			});
+	}
+
+	// Get variable description
+	function getVariableDescription(mode: string) {
+		switch (mode) {
+			case 'pct_requires_replacement':
+				return 'Percentage of service lines requiring replacement';
+			case 'pct_poverty':
+				return 'Percentage of population below poverty line';
+			case 'pct_minority':
+				return 'Percentage of non-white population';
+			default:
+				return '';
+		}
+	}
 
 	// Choropleth modes
 	const choroplethModes = Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => ({
@@ -49,28 +46,30 @@
 
 	function handleModeChange(event: Event) {
 		const target = event.target as HTMLInputElement;
-		visualState.update(state => ({ 
-			...state, 
+		visualState.update((state) => ({
+			...state,
 			choroplethMode: target.value as typeof state.choroplethMode
 		}));
 	}
 
-	// No filtering for choropleth - it's a continuous visualization
-	// Individual legend items are just informational
+	// Fixed panel width
+	const panelWidth = 340;
 
-	const longestLabel = Math.max(
-		...Object.values(choroplethLegendItems).flatMap((items) => items.map((item) => `${item.label} ${item.range}`.length))
-	);
-
-	const minPanelWidth = longestLabel * 6 + 20;
+	function handleAggregationChange(event: Event) {
+		const target = event.target as HTMLInputElement;
+		visualState.update((state) => ({
+			...state,
+			aggregationLevel: target.value as 'tract' | 'community'
+		}));
+	}
 </script>
 
 <div
 	class={[
-		'floating-panel absolute z-[15] bg-white px-2 pb-2 pt-0.5 shadow-lg md:bottom-auto md:left-auto md:right-[calc(3%+48px)] md:top-4 md:block',
+		'floating-panel absolute z-[15] bg-white px-2 pb-0.5 pt-0.5 shadow-lg md:bottom-auto md:left-auto md:right-[calc(3%+48px)] md:top-4 md:block',
 		$uiState.legendExpanded ? 'bottom-[calc(40px+0.5rem)] left-[calc(3%+5rem)]' : 'hidden'
 	]}
-	style="min-width: {minPanelWidth}px"
+	style="width: {panelWidth}px"
 >
 	<div class="mb-0 flex items-center gap-1">
 		<svg
@@ -86,80 +85,194 @@
 			/>
 		</svg>
 		<p class="font-['Basis_Grotesque'] text-xs leading-tight text-gray-500">
-			Census tract data visualization
+			Select a data layer to visualize
 		</p>
 	</div>
-	<div class="mode-selector relative mb-2 grid grid-cols-4">
-		<div
-			class="mode-selector__background"
-			class:income={$visualState.choroplethMode === 'median_household_income'}
-			class:poverty={$visualState.choroplethMode === 'pct_poverty'}
-			class:black={$visualState.choroplethMode === 'pct_black'}
-			class:minority={$visualState.choroplethMode === 'pct_minority'}
-		></div>
-		{#each choroplethModes as mode}
-			<div class="mode-selector__radio-container relative">
+	<div class="mb-3">
+		<p class="mb-1 font-['Basis_Grotesque'] text-[10px] uppercase tracking-wider text-gray-500">
+			Aggregation Level
+		</p>
+		<div class="aggregation-selector relative grid grid-cols-2">
+			<div
+				class="aggregation-selector__background"
+				class:tract={$visualState.aggregationLevel === 'tract'}
+				class:community={$visualState.aggregationLevel === 'community'}
+			></div>
+			<div class="aggregation-selector__radio-container relative">
 				<input
 					type="radio"
-					bind:group={$visualState.choroplethMode}
-					id="{mode.value}-radio"
-					value={mode.value}
-					class="mode-selector__radio-input absolute opacity-0"
-					on:change={handleModeChange}
+					value="tract"
+					id="tract-radio"
+					checked={$visualState.aggregationLevel === 'tract'}
+					on:change={handleAggregationChange}
+					class="aggregation-selector__radio-input absolute opacity-0"
 				/>
 				<label
-					for="{mode.value}-radio"
-					class="mode-selector__radio-label relative z-10 block cursor-pointer py-1.5 px-2 text-center font-['PolySans'] text-xs"
-					class:active={$visualState.choroplethMode === mode.value}
+					for="tract-radio"
+					class="aggregation-selector__radio-label relative z-10 block cursor-pointer px-2 py-1.5 text-center font-['PolySans'] text-xs"
+					class:active={$visualState.aggregationLevel === 'tract'}
 				>
-					{mode.label}
+					Census Tracts
 				</label>
 			</div>
-		{/each}
-	</div>
-	<div class="space-y-0.5">
-		{#each choroplethLegendItems[$visualState.choroplethMode] as item}
-			<div class="flex w-full items-center gap-2 rounded border border-gray-200 bg-slate-50/90 px-1.5 py-0.5">
-				<div class="h-2 w-2 rounded-full" style="background-color: {item.color}"></div>
-				<div class="flex-1">
-					<span class="font-['Basis_Grotesque'] text-xs font-medium">{item.label}</span>
-					<span class="font-['Basis_Grotesque'] text-xs text-gray-500 ml-1">{item.range}</span>
-				</div>
+			<div class="aggregation-selector__radio-container relative">
+				<input
+					type="radio"
+					value="community"
+					id="community-radio"
+					checked={$visualState.aggregationLevel === 'community'}
+					on:change={handleAggregationChange}
+					class="aggregation-selector__radio-input absolute opacity-0"
+				/>
+				<label
+					for="community-radio"
+					class="aggregation-selector__radio-label relative z-10 block cursor-pointer px-2 py-1.5 text-center font-['PolySans'] text-xs"
+					class:active={$visualState.aggregationLevel === 'community'}
+				>
+					Community Areas
+				</label>
 			</div>
-		{/each}
+		</div>
+	</div>
+	<div class="mb-3">
+		<p class="mb-1 font-['Basis_Grotesque'] text-[10px] uppercase tracking-wider text-gray-500">
+			Data Visualization
+		</p>
+		<div class="mode-selector relative mb-2 grid grid-cols-3">
+			<div
+				class="mode-selector__background"
+				class:replacement={$visualState.choroplethMode === 'pct_requires_replacement'}
+				class:poverty={$visualState.choroplethMode === 'pct_poverty'}
+				class:minority={$visualState.choroplethMode === 'pct_minority'}
+			></div>
+			{#each choroplethModes as mode}
+				<div class="mode-selector__radio-container relative">
+					<input
+						type="radio"
+						bind:group={$visualState.choroplethMode}
+						id="{mode.value}-radio"
+						value={mode.value}
+						class="mode-selector__radio-input absolute opacity-0"
+						on:change={handleModeChange}
+					/>
+					<label
+						for="{mode.value}-radio"
+						class="mode-selector__radio-label relative z-10 block cursor-pointer px-2 py-1.5 text-center font-['PolySans'] text-xs"
+						class:active={$visualState.choroplethMode === mode.value}
+					>
+						{mode.label}
+					</label>
+				</div>
+			{/each}
+		</div>
+	</div>
+	<div class="mt-6">
+		<p class="mb-1 font-['Basis_Grotesque'] text-[10px] uppercase tracking-wider text-gray-500">
+			{getVariableDescription($visualState.choroplethMode)}
+		</p>
+		{#if quantileData}
+			<div class="quantile-legend">
+				<div class="quantile-boxes flex gap-0.5">
+					{#each quantileData.colors as color}
+						<div
+							class="quantile-box h-3 flex-1 rounded-sm"
+							style="background-color: {color};"
+						></div>
+					{/each}
+				</div>
+				<div class="quantile-labels mt-1.5 flex text-[10px] text-gray-600">
+					<span class="flex-1 font-['Basis_Grotesque']">0%</span>
+					{#each quantileData.quantiles as quantile, i}
+						<span class="flex-1 font-['Basis_Grotesque']">
+							{i === quantileData.quantiles.length - 1 ? '≥' : ''}{formatQuantileValue(quantile)}
+						</span>
+					{/each}
+				</div>
+				<p class="mt-1.5 mb-0.5 font-['Basis_Grotesque'] text-xs italic leading-tight text-gray-500">
+					Each color represents 20% of {$visualState.aggregationLevel === 'tract'
+						? 'census tracts'
+						: 'community areas'} (quintiles)
+				</p>
+			</div>
+		{:else}
+			<div class="text-xs text-gray-500">Loading...</div>
+		{/if}
 	</div>
 </div>
 
 <style lang="postcss">
+	.aggregation-selector,
 	.mode-selector {
 		background-color: white;
 	}
 
-	.mode-selector__background {
+	/* Aggregation selector styles */
+	.aggregation-selector__background {
 		position: absolute;
 		top: 0;
 		left: 0;
-		width: 25%;
+		width: 50%;
 		height: 100%;
 		background-color: theme(colors.earth);
 		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		z-index: 1;
 	}
 
-	.mode-selector__background.income {
+	.aggregation-selector__background.tract {
 		transform: translateX(0);
 	}
 
-	.mode-selector__background.black {
+	.aggregation-selector__background.community {
+		transform: translateX(100%);
+	}
+
+	.aggregation-selector__radio-container {
+		position: relative;
+		background-color: white;
+		border: 1px solid theme(colors.gray.200);
+	}
+
+	.aggregation-selector__radio-container:not(:last-child) {
+		border-right: none;
+	}
+
+	.aggregation-selector__radio-label {
+		transition-property: color, background-color;
+		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+		transition-duration: 150ms;
+	}
+
+	.aggregation-selector__radio-label:hover {
+		color: theme(colors.earth);
+		background-color: theme(colors.gray.100);
+	}
+
+	.aggregation-selector__radio-label.active {
+		color: white;
+		background-color: transparent;
+	}
+
+	.mode-selector__background {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 33.333%;
+		height: 100%;
+		background-color: theme(colors.earth);
+		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		z-index: 1;
+	}
+
+	.mode-selector__background.replacement {
+		transform: translateX(0);
+	}
+
+	.mode-selector__background.poverty {
 		transform: translateX(100%);
 	}
 
 	.mode-selector__background.minority {
 		transform: translateX(200%);
-	}
-
-	.mode-selector__background.poverty {
-		transform: translateX(300%);
 	}
 
 	.mode-selector__radio-label {
@@ -186,5 +299,14 @@
 
 	.mode-selector__radio-container:not(:last-child) {
 		border-right: none;
+	}
+
+	/* Quantile legend styles */
+	.quantile-legend {
+		padding: 0.5rem 0;
+	}
+
+	.quantile-box {
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 	}
 </style>

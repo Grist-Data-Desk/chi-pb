@@ -1,38 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		dataStore,
-		searchState,
-		visualState,
-		uiState,
-		currentCount,
-		isDataLoading,
-		selectedAddressTractId,
-		tractStore
-	} from '$lib/stores';
+	import { searchState, visualState, uiState, selectedAddressTractId } from '$lib/stores';
 	import { TABLET_BREAKPOINT } from '$lib/utils/constants';
 	import maplibregl from 'maplibre-gl';
 	import * as pmtiles from 'pmtiles';
 	import 'maplibre-gl/dist/maplibre-gl.css';
-	import * as turf from '@turf/turf';
-	import type { Point, Feature } from 'geojson';
 	import '../app.css';
-	import { ProjectPopup, TractPopup } from '$lib/utils/popup';
+	import { TractPopup } from '$lib/utils/popup';
 	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
-	import ResultsTable from '$lib/components/search/ResultsTable.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
 	import {
-	SOURCE_CONFIG,
-	LAYER_CONFIG,
-	DO_SPACES_URL,
-	PMTILES_PATH,
-	GEOJSON_PATH,
-	STYLES_PATH,
-	getCurrentColorExpressions,
-	getChoroplethColorExpression,
-	getAddressColorExpression
-} from '$lib/utils/config';
-	import type { ProjectFeatureCollection, Project } from '$lib/types';
+		SOURCE_CONFIG,
+		LAYER_CONFIG,
+		DO_SPACES_URL,
+		STYLES_PATH,
+		getChoroplethColorExpression,
+		getQuantileExpression
+	} from '$lib/utils/config';
+	import { fetchQuantileData } from '$lib/utils/quantiles';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Credits from '$lib/components/credits/Credits.svelte';
 
@@ -41,9 +26,7 @@
 	let browser = false;
 	let currentPopup: maplibregl.Popup | null = null;
 	let tractPopup: TractPopup | null = null;
-	let pmtilesInstance: pmtiles.PMTiles;
 	let geolocateControl: maplibregl.GeolocateControl | null = null;
-	let searchResultsLayer = 'search-results-points';
 
 	$: isTabletOrAbove = innerWidth > TABLET_BREAKPOINT;
 
@@ -59,12 +42,19 @@
 			btn.innerHTML = '🔄';
 			btn.addEventListener('click', () => {
 				if (geolocateControl) {
-					geolocateControl._watchState = 'OFF';
-					geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-active');
-					geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-background');
-					geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-background-error');
-					if (geolocateControl._watchId !== undefined) {
-						geolocateControl._clearWatch();
+					// Reset geolocate control state
+					(geolocateControl as any)._watchState = 'OFF';
+					(geolocateControl as any)._geolocateButton.classList.remove(
+						'maplibregl-ctrl-geolocate-active'
+					);
+					(geolocateControl as any)._geolocateButton.classList.remove(
+						'maplibregl-ctrl-geolocate-background'
+					);
+					(geolocateControl as any)._geolocateButton.classList.remove(
+						'maplibregl-ctrl-geolocate-background-error'
+					);
+					if ((geolocateControl as any)._watchId !== undefined) {
+						(geolocateControl as any)._clearWatch();
 					}
 				}
 
@@ -75,16 +65,20 @@
 
 				searchState.set({
 					query: '',
-					radius: 50,
 					isSearching: false,
 					results: [],
 					selectedAddress: null
 				});
 
+				// Reset UI state to show search header and credits
+				uiState.update(state => ({
+					...state,
+					searchHeaderCollapsed: false,
+					creditsExpanded: true
+				}));
+
 				// Don't reset the visualState for the legend - let users keep their choropleth mode selection
 				// visualState should only be reset if explicitly needed for other functionality
-
-				cleanupSearchLayers();
 
 				// Clear address highlight layer
 				if (map.getLayer('selected-address-highlight')) {
@@ -93,12 +87,6 @@
 				if (map.getSource('selected-address')) {
 					map.removeSource('selected-address');
 				}
-
-				// Legacy layer cleanup - no longer needed for Chicago
-				// if (map?.getLayer('projects-points')) {
-				// 	map.setFilter('projects-points', null);
-				// 	map.setLayoutProperty('projects-points', 'visibility', 'visible');
-				// }
 
 				if (currentPopup) {
 					currentPopup.remove();
@@ -113,574 +101,245 @@
 		onRemove() {}
 	}
 
-	function cleanupSearchLayers() {
-		if (!map) return;
-
-		if (map.getLayer(searchResultsLayer)) {
-			map.off('click', searchResultsLayer, handleSearchResultClick);
-			map.off('mouseenter', searchResultsLayer, handleSearchResultMouseEnter);
-			map.off('mouseleave', searchResultsLayer, handleSearchResultMouseLeave);
-			map.removeLayer(searchResultsLayer);
-		}
-		if (map.getSource(searchResultsLayer)) {
-			map.removeSource(searchResultsLayer);
-		}
-		if (map.getLayer('search-radius-outline')) {
-			map.removeLayer('search-radius-outline');
-		}
-		if (map.getLayer('search-radius-layer')) {
-			map.removeLayer('search-radius-layer');
-		}
-		if (map.getSource('search-radius')) {
-			map.removeSource('search-radius');
-		}
-
-		// Legacy layer cleanup - no longer needed for Chicago
-		// if (map.getLayer(LAYER_CONFIG.projectsPoints.id)) {
-		// 	map.setLayoutProperty(LAYER_CONFIG.projectsPoints.id, 'visibility', 'visible');
-		// }
-	}
-
-	function handleSearchResultClick(e: maplibregl.MapMouseEvent & { features?: any[] }) {
-		if (!e.features?.length || !map) return;
-
-		const featuresByLocation = e.features.reduce(
-			(acc: { [key: string]: any[] }, feature: any) => {
-				if (!feature.geometry || feature.geometry.type !== 'Point') return acc;
-				const coords = (feature.geometry as { type: 'Point'; coordinates: [number, number] })
-					.coordinates;
-				const key = `${coords[0]},${coords[1]}`;
-				if (!acc[key]) acc[key] = [];
-				acc[key].push(feature);
-				return acc;
-			},
-			{}
-		);
-
-		const coordinates = (
-			e.features[0].geometry as { type: 'Point'; coordinates: [number, number] }
-		).coordinates;
-		const key = `${coordinates[0]},${coordinates[1]}`;
-		const locationFeatures = featuresByLocation[key];
-
-		const projects: Project[] = locationFeatures.map(featureToProject);
-
-		if (currentPopup) {
-			currentPopup.remove();
-		}
-
-		const projectPopup = new ProjectPopup(map, projects);
-		currentPopup = projectPopup.showPopup(
-			new maplibregl.LngLat(coordinates[0], coordinates[1]),
-			projects
-		);
-	}
-
-	function handleSearchResultMouseEnter() {
-		if (map) map.getCanvas().style.cursor = 'pointer';
-	}
-
-	function handleSearchResultMouseLeave() {
-		if (map) map.getCanvas().style.cursor = '';
-	}
-
-	async function loadGeoJSONData() {
-		try {
-			dataStore.update(state => ({ ...state, isLoading: true }));
-			const response = await fetch(`${DO_SPACES_URL}/${GEOJSON_PATH}/projects.geojson.br?v=${Date.now()}`);
-			if (!response.ok) throw new Error('Failed to load GeoJSON data');
-
-			const buffer = await response.arrayBuffer();
-			const decompressed = await new Response(buffer, {
-				headers: { 'Content-Encoding': 'br' }
-			}).text();
-
-			let data;
-			try {
-				data = JSON.parse(decompressed) as ProjectFeatureCollection;
-				// Log all available property keys from the first feature
-				if (data.features.length > 0) {
-					console.log('Available property keys:', 
-						Object.keys(data.features[0].properties || {})
-					);
-				}
-				// Log a sample of the raw data
-				console.log('Sample GeoJSON feature properties:', 
-					data.features.slice(0, 3).map(f => ({
-						...f.properties,
-						outlayed: f.properties?.['Outlayed Amount From IIJA Supplemental'],
-						obligated: f.properties?.['Obligated Amount From IIJA Supplemental'],
-						percent: f.properties?.['Percent IIJA Outlayed']
-					}))
-				);
-			} catch (e) {
-				console.error('Failed to parse JSON:', e);
-				throw new Error('Failed to parse decompressed data as JSON');
-			}
-
-			const points = data.features.map((f: Feature<Point>) => ({
-				lon: f.geometry.coordinates[0],
-				lat: f.geometry.coordinates[1],
-				idx: data.features.indexOf(f)
-			}));
-
-			type PointType = (typeof points)[0];
-
-			const { default: KDBush } = await import('kdbush');
-			const index = new KDBush(
-				points.length,
-				64,
-				Float64Array,
-				(p: PointType) => p.lon,
-				(p: PointType) => p.lat
-			);
-
-			points.forEach((point) => {
-				index.add(point.lon, point.lat);
-			});
-
-			index.finish();
-
-			dataStore.update(state => ({
-				...state,
-				isLoading: false,
-				collection: {
-					collection: data,
-					index
-				}
-			}));
-		} catch (error) {
-			console.error('Error loading GeoJSON data:', error);
-			dataStore.update(state => ({ ...state, isLoading: false }));
-		}
-	}
-
-	function updateMapFilters() {
+	async function updateMapFilters() {
 		if (!map) return;
 
 		// Update Chicago choropleth colors
 		const currentChoroplethMode = $visualState.choroplethMode;
-		if (currentChoroplethMode && map.getLayer('census-tracts-fill')) {
-			const choroplethExpression = getChoroplethColorExpression(currentChoroplethMode);
-			map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
+		const aggregationLevel = $visualState.aggregationLevel;
+
+		// Handle aggregation level visibility
+		if (aggregationLevel === 'tract') {
+			// Show tract layers, hide community layers
+			map.setLayoutProperty('census-tracts-fill', 'visibility', 'visible');
+			map.setLayoutProperty('census-tracts-stroke', 'visibility', 'visible');
+			if (map.getLayer('community-areas-fill')) {
+				map.setLayoutProperty('community-areas-fill', 'visibility', 'none');
+				map.setLayoutProperty('community-areas-stroke', 'visibility', 'none');
+			}
+		} else {
+			// Show community layers, hide tract layers
+			map.setLayoutProperty('census-tracts-fill', 'visibility', 'none');
+			map.setLayoutProperty('census-tracts-stroke', 'visibility', 'none');
+			if (map.getLayer('community-areas-fill')) {
+				map.setLayoutProperty('community-areas-fill', 'visibility', 'visible');
+				map.setLayoutProperty('community-areas-stroke', 'visibility', 'visible');
+			}
 		}
 
-		// Update Chicago address point colors
-		if (map.getLayer('addresses-points')) {
-			const addressColorExpression = getAddressColorExpression();
-			map.setPaintProperty('addresses-points', 'circle-color', addressColorExpression);
+		// Update choropleth colors for the active aggregation
+		if (currentChoroplethMode) {
+			try {
+				// Fetch quantile data
+				const quantileData = await fetchQuantileData(aggregationLevel, currentChoroplethMode);
+				const choroplethExpression = getQuantileExpression(
+					currentChoroplethMode,
+					quantileData.quantiles,
+					quantileData.colors
+				);
+
+				if (aggregationLevel === 'tract' && map.getLayer('census-tracts-fill')) {
+					map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
+				} else if (aggregationLevel === 'community' && map.getLayer('community-areas-fill')) {
+					map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
+				}
+			} catch (error) {
+				console.error('Error updating map colors:', error);
+				// Fallback to interpolation-based colors
+				const choroplethExpression = getChoroplethColorExpression(currentChoroplethMode);
+
+				if (aggregationLevel === 'tract' && map.getLayer('census-tracts-fill')) {
+					map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
+				} else if (aggregationLevel === 'community' && map.getLayer('community-areas-fill')) {
+					map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
+				}
+			}
 		}
-
-		// Legacy code (temporarily disabled)
-		// const currentMode = $visualState.colorMode;
-		// const currentFilters = $visualState.filters;
-		// const expressions = getCurrentColorExpressions();
-		// map.setPaintProperty('projects-points', 'circle-color', expressions[currentMode]);
-		// if (map.getLayer(searchResultsLayer)) {
-		// 	map.setPaintProperty(searchResultsLayer, 'circle-color', expressions[currentMode]);
-		// }
-
-		// Legacy filter code (temporarily disabled for Chicago)
-		// const filters: any[] = [];
-		// if (currentFilters.size > 0) {
-		// 	let filterField;
-		// 	let mainCategories: string[];
-		// 	
-		// 	switch (currentMode) {
-		// 		case 'agency':
-		// 			filterField = 'Agency Name';
-		// 			mainCategories = CATEGORIES.agency;
-		// 			break;
-		// 		case 'category':
-		// 			filterField = 'Category';
-		// 			mainCategories = CATEGORIES.category;
-		// 			break;
-		// 		case 'fundingSource':
-		// 			filterField = 'Funding Source';
-		// 			mainCategories = CATEGORIES.fundingSource;
-		// 			break;
-		// 	}
-		// 
-		// 	const hasOther = currentFilters.has('Other');
-		// 	const mainCategoryFilters = Array.from(currentFilters).filter(f => mainCategories.includes(f));
-		// 	
-		// 	if (hasOther) {
-		// 		if (mainCategoryFilters.length > 0) {
-		// 			filters.push([
-		// 				'any',
-		// 				['!in', filterField, ...mainCategories], // Other
-		// 				['in', filterField, ...mainCategoryFilters] // Selected main categories
-		// 			]);
-		// 		} else {
-		// 			filters.push(['!in', filterField, ...mainCategories]);
-		// 		}
-		// 	} else if (mainCategoryFilters.length > 0) {
-		// 		filters.push(['in', filterField, ...mainCategoryFilters]);
-		// 	}
-		// }
-		// 
-		// const finalFilter = filters.length > 0 
-		// 	? (filters.length > 1 ? ['all', ...filters] : filters[0]) 
-		// 	: null;
-
-		// Legacy filter application (temporarily disabled for Chicago)
-		// if (map.getLayoutProperty('projects-points', 'visibility') === 'visible') {
-		// 	map.setFilter('projects-points', finalFilter);
-		// }
-		// 
-		// if (map.getLayer(searchResultsLayer)) {
-		// 	map.setFilter(searchResultsLayer, finalFilter);
-		// }
 	}
 
 	$: if (browser && map && $visualState) {
 		updateMapFilters();
 	}
 
-	async function searchProjects() {
-		searchState.update(state => ({ ...state, isSearching: true }));
-		uiState.update(state => ({ ...state, creditsExpanded: false }));
+	onMount(() => {
+		const setupMap = async () => {
+			browser = true;
 
-		if (geolocateControl) {
-			geolocateControl._watchState = 'OFF';
-			geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-active');
-			geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-background');
-			geolocateControl._geolocateButton.classList.remove('maplibregl-ctrl-geolocate-background-error');
-			if (window.navigator.geolocation && typeof window.navigator.geolocation.clearWatch === 'function') {
-				try {
-					if (geolocateControl._clearWatch && typeof geolocateControl._clearWatch === 'function') {
+			try {
+				const protocol = new pmtiles.Protocol();
+				maplibregl.addProtocol('pmtiles', protocol.tile);
+
+				await new Promise((resolve) => setTimeout(resolve, 0));
+
+				map = new maplibregl.Map({
+					container: 'map-container',
+					style: `${DO_SPACES_URL}/${STYLES_PATH}/map-style.json`,
+					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.6298, 41.8781],
+					zoom: 10,
+					minZoom: 8,
+					maxZoom: 18,
+					attributionControl: false
+				});
+
+				map.scrollZoom.disable();
+				map.scrollZoom.setWheelZoomRate(0);
+				map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+				geolocateControl = new maplibregl.GeolocateControl({
+					positionOptions: {
+						enableHighAccuracy: true
+					},
+					trackUserLocation: false
+				});
+
+				geolocateControl.on('geolocate', (position) => {
+					const lat = position.coords.latitude;
+					const lon = position.coords.longitude;
+					searchState.update((state) => ({
+						...state,
+						query: `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+					}));
+				});
+
+				geolocateControl.on('error', () => {
+					if (geolocateControl) {
+						geolocateControl._watchState = 'OFF';
 						geolocateControl._clearWatch();
 					}
-				} catch (e) {
-					console.warn('Failed to clear geolocation watch:', e);
-				}
-			}
-		}
+				});
 
-		try {
-			let lat: number;
-			let lon: number;
+				map.addControl(geolocateControl, 'top-right');
+				map.addControl(new ResetViewControl(), 'top-right');
 
-			const latLonRe = /^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/;
-			if (latLonRe.test($searchState.query)) {
-				[lat, lon] = $searchState.query
-					.split(',')
-					.map((coord: string) => parseFloat(coord.trim()));
-
-				if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-					throw new Error('Invalid coordinates');
-				}
-			} else if ($searchState.selectedAddress && $searchState.selectedAddress.lat && $searchState.selectedAddress.long) {
-				// Use coordinates from selected address
-				lat = $searchState.selectedAddress.lat;
-				lon = $searchState.selectedAddress.long;
-			} else {
-				throw new Error('No coordinates available for search');
-			}
-
-			if (currentPopup) {
-				currentPopup.remove();
-				currentPopup = null;
-			}
-
-			cleanupSearchLayers();
-
-			const searchCenter = turf.point([lon, lat]);
-			const searchArea = turf.circle(searchCenter, $searchState.radius, { steps: 64, units: 'miles' });
-
-			map?.addSource('search-radius', {
-				type: 'geojson',
-				data: searchArea
-			});
-
-			map?.addLayer({
-				id: 'search-radius-layer',
-				type: 'fill',
-				source: 'search-radius',
-				paint: {
-					'fill-color': '#3c3830',
-					'fill-opacity': 0.1
-				}
-			});
-
-			map?.addLayer({
-				id: 'search-radius-outline',
-				type: 'line',
-				source: 'search-radius',
-				paint: {
-					'line-color': '#3c3830',
-					'line-width': 2,
-					'line-dasharray': [4, 2]
-				}
-			});
-
-			const $data = $dataStore;
-			if ($data.collection.index) {
-				const searchRadiusInKm = $searchState.radius * 1.60934;
-				const latKm = 110.574;
-				const lonKm = 111.32 * Math.cos((lat * Math.PI) / 180);
-
-				const latDelta = searchRadiusInKm / latKm;
-				const lonDelta = searchRadiusInKm / lonKm;
-
-				const pointIndices = $data.collection.index.range(
-					lon - lonDelta,
-					lat - latDelta,
-					lon + lonDelta,
-					lat + latDelta
-				);
-
-				const nearbyFeatures = pointIndices
-					.map((i: number) => $data.collection.collection.features[i])
-					.filter((feature: Feature<Point>) => {
-						const distance = turf.distance(
-							turf.point(feature.geometry.coordinates),
-							turf.point([lon, lat]),
-							{ units: 'miles' }
-						);
-						return distance <= $searchState.radius;
-					});
-
-				const projects: Project[] = nearbyFeatures.map(featureToProject);
-
-				searchState.update(state => ({ ...state, results: projects }));
-
-				// Legacy layer visibility control - no longer needed for Chicago
-				// if (map?.getLayer(LAYER_CONFIG.projectsPoints.id)) {
-				// 	map.setLayoutProperty(LAYER_CONFIG.projectsPoints.id, 'visibility', 'none');
-				// }
-
-				const searchResultsGeoJSON: GeoJSON.FeatureCollection<Point> = {
-					type: 'FeatureCollection',
-					features: nearbyFeatures
-				};
-
-				if (map) {
-					map.addSource(searchResultsLayer, {
-						type: 'geojson',
-						data: searchResultsGeoJSON
-					});
-
-					const currentMode = $visualState.colorMode;
-					const expressions = getCurrentColorExpressions();
-
-					map.addLayer({
-						id: searchResultsLayer,
-						type: 'circle',
-						source: searchResultsLayer,
-						paint: {
-							'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 3, 8, 5],
-							'circle-color': expressions[currentMode],
-							'circle-stroke-width': 2,
-							'circle-stroke-color': '#ffffff',
-							'circle-opacity': 0.7
+				map.on('load', () => {
+					Object.values(SOURCE_CONFIG).forEach(({ id, config }) => {
+						try {
+							if (!map.getSource(id)) {
+								map.addSource(id, config);
+							}
+						} catch (error) {
+							console.error(`Error adding source ${id}:`, error);
 						}
 					});
 
-					updateMapFilters();
-
-					map.on('click', searchResultsLayer, handleSearchResultClick);
-					map.on('mouseenter', searchResultsLayer, handleSearchResultMouseEnter);
-					map.on('mouseleave', searchResultsLayer, handleSearchResultMouseLeave);
-
-					const bounds = new maplibregl.LngLatBounds();
-					const coords = searchArea.geometry.coordinates[0] as Array<[number, number]>;
-					coords.forEach((coord) => bounds.extend(coord));
-
-					map?.fitBounds(bounds, {
-						padding: {
-							top: isTabletOrAbove ? 50 : 425,
-							bottom: 50,
-							left: isTabletOrAbove ? 450 : 50,
-							right: 50
-						},
-						duration: 1000
-					});
-				}
-			}
-		} catch (error) {
-			console.error('Search error:', error);
-			searchState.update(state => ({ ...state, results: [] }));
-		} finally {
-			searchState.update(state => ({ ...state, isSearching: false }));
-		}
-	}
-
-	const featureToProject = (feature: Feature<Point>): Project => {
-		const props = feature.properties || {};
-		const coords = feature.geometry.coordinates as [number, number];
-		return {
-			uid: props.UID || '',
-			dataSource: props['Data Source'] || '',
-			fundingSource: props['Funding Source'] || '',
-			programId: props['Program ID'] || '',
-			programName: props['Program Name'] || '',
-			projectName: props['Project Name'] || '',
-			projectDescription: props['Project Description'] || '',
-			projectLocationType: props['Project Location Type'] || '',
-			city: props.City || '',
-			county: props.County || '',
-			tribe: props.Tribe || '',
-			state: props.State || '',
-			congressionalDistrict: props['118th CD'] || '',
-			fundingAmount: props['Funding Amount'] ? String(props['Funding Amount']) : '',
-			outlayedAmountFromIIJASupplemental: props['Outlayed Amount From IIJA Supplemental'] ? String(props['Outlayed Amount From IIJA Supplemental']) : '',
-			obligatedAmountFromIIJASupplemental: props['Obligated Amount From IIJA Supplemental'] ? String(props['Obligated Amount From IIJA Supplemental']) : '',
-			percentIIJAOutlayed: props['Percent IIJA Outlayed'] ? String(props['Percent IIJA Outlayed']) : '',
-			link: props.Link || '',
-			agencyName: props['Agency Name'] || '',
-			bureauName: props['Bureau Name'] || '',
-			category: props.Category || '',
-			subcategory: props.Subcategory || '',
-			programType: props['Program Type'] || '',
-			latitude: coords[1],
-			longitude: coords[0]
-		};
-	};
-
-	onMount(async () => {
-		browser = true;
-
-		try {
-			const protocol = new pmtiles.Protocol();
-			maplibregl.addProtocol('pmtiles', protocol.tile);
-
-			const pmtilesUrl = `${DO_SPACES_URL}/${PMTILES_PATH}/projects.pmtiles?v=${Date.now()}`;
-			pmtilesInstance = new pmtiles.PMTiles(pmtilesUrl);
-			protocol.add(pmtilesInstance);
-
-			await new Promise((resolve) => setTimeout(resolve, 0));
-
-			map = new maplibregl.Map({
-				container: 'map-container',
-				style: `${DO_SPACES_URL}/${STYLES_PATH}/map-style.json`,
-				center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.6298, 41.8781],
-				zoom: 10, 
-				minZoom: 8, 
-				maxZoom: 18,
-				attributionControl: false
-			});
-
-			map.scrollZoom.disable();
-			map.scrollZoom.setWheelZoomRate(0);
-			map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-			geolocateControl = new maplibregl.GeolocateControl({
-				positionOptions: {
-					enableHighAccuracy: true
-				},
-				trackUserLocation: false
-			});
-			
-			geolocateControl.on('geolocate', (position) => {
-				const lat = position.coords.latitude;
-				const lon = position.coords.longitude;
-				searchState.update(state => ({
-					...state,
-					query: `${lat.toFixed(4)}, ${lon.toFixed(4)}`
-				}));
-				searchProjects();
-			});
-
-			geolocateControl.on('error', () => {
-				if (geolocateControl) {
-					geolocateControl._watchState = 'OFF';
-					geolocateControl._clearWatch();
-				}
-			});
-			
-			map.addControl(geolocateControl, 'top-right');
-			map.addControl(new ResetViewControl(), 'top-right');
-
-			map.on('load', () => {
-				Object.values(SOURCE_CONFIG).forEach(({ id, config }) => {
 					try {
-						if (!map.getSource(id)) {
-							map.addSource(id, config);
+						// Add Chicago layers
+						if (!map.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
+							map.addLayer(LAYER_CONFIG.censusTractsFill);
+							// Immediately apply the correct choropleth color expression
+							const choroplethExpression = getChoroplethColorExpression(
+								$visualState.choroplethMode
+							);
+							map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
+						}
+						if (!map.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
+							map.addLayer(LAYER_CONFIG.censusTractsStroke);
+						}
+						// Add community area layers
+						if (!map.getLayer(LAYER_CONFIG.communityAreasFill.id)) {
+							map.addLayer(LAYER_CONFIG.communityAreasFill);
+							// Apply choropleth expression if in community mode
+							if ($visualState.aggregationLevel === 'community') {
+								const choroplethExpression = getChoroplethColorExpression(
+									$visualState.choroplethMode
+								);
+								map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
+							}
+						}
+						if (!map.getLayer(LAYER_CONFIG.communityAreasStroke.id)) {
+							map.addLayer(LAYER_CONFIG.communityAreasStroke);
 						}
 					} catch (error) {
-						console.error(`Error adding source ${id}:`, error);
+						console.error('Error adding layers:', error);
 					}
-				});
 
-				try {
-					// Add Chicago layers
-					if (!map.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
-						map.addLayer(LAYER_CONFIG.censusTractsFill);
-						// Immediately apply the correct choropleth color expression
-						const choroplethExpression = getChoroplethColorExpression($visualState.choroplethMode);
-						map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
-					}
-					if (!map.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
-						map.addLayer(LAYER_CONFIG.censusTractsStroke);
-					}
-					if (!map.getLayer(LAYER_CONFIG.addressesPoints.id)) {
-						map.addLayer(LAYER_CONFIG.addressesPoints);
-						// Immediately apply the correct address color expression
-						const addressColorExpression = getAddressColorExpression();
-						map.setPaintProperty('addresses-points', 'circle-color', addressColorExpression);
-					}
-				} catch (error) {
-					console.error('Error adding layers:', error);
-				}
+					// Add census tract event handlers
+					tractPopup = new TractPopup(map);
 
-				// Add census tract event handlers
-				tractPopup = new TractPopup(map);
+					// Handle tract clicks
+					map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
+						if (!e.features?.length) return;
 
-				// Handle tract clicks
-				map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
-					if (!e.features?.length) return;
-					
-					const feature = e.features[0];
-					const tractGeoid = feature.properties?.geoid;
-					const selectedTractId = $selectedAddressTractId;
-					
-					// Don't show popup if this is the selected address's tract
-					if (selectedTractId && tractGeoid === selectedTractId) {
-						return;
-					}
-					
-					// Use tract data directly from the map feature
-					// The PMTiles layer should have all the census tract properties
-					const tractProperties = feature.properties;
-					
-					if (tractProperties && tractProperties.geoid) {
-						const lngLat = e.lngLat;
-						tractPopup.showPopup(lngLat, tractProperties as any);
-					}
-				});
+						const feature = e.features[0];
+						const tractGeoid = feature.properties?.geoid;
+						const selectedTractId = $selectedAddressTractId;
 
-				// Handle tract hover
-				map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-					const feature = e.features?.[0];
-					const tractGeoid = feature?.properties?.geoid;
-					const selectedTractId = $selectedAddressTractId;
-					
-					// Change cursor only if not the selected tract
-					if (!selectedTractId || tractGeoid !== selectedTractId) {
+						// Don't show popup if this is the selected address's tract
+						if (selectedTractId && tractGeoid === selectedTractId) {
+							return;
+						}
+
+						// Use tract data directly from the map feature
+						// The PMTiles layer should have all the census tract properties
+						const tractProperties = feature.properties;
+
+						if (tractProperties && tractProperties.geoid) {
+							const lngLat = e.lngLat;
+							if (tractPopup) {
+								tractPopup.showPopup(lngLat, tractProperties as any);
+							}
+						}
+					});
+
+					// Handle tract hover
+					map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
+						const feature = e.features?.[0];
+						const tractGeoid = feature?.properties?.geoid;
+						const selectedTractId = $selectedAddressTractId;
+
+						// Change cursor only if not the selected tract
+						if (!selectedTractId || tractGeoid !== selectedTractId) {
+							map.getCanvas().style.cursor = 'pointer';
+						}
+					});
+
+					map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, () => {
+						map.getCanvas().style.cursor = '';
+					});
+
+					// Handle community area clicks
+					map.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
+						if (!e.features?.length) return;
+
+						const feature = e.features[0];
+						const communityProperties = feature.properties;
+
+						if (communityProperties && communityProperties.community) {
+							const lngLat = e.lngLat;
+							// Community areas use same popup as tracts
+							if (tractPopup) {
+								tractPopup.showPopup(lngLat, communityProperties as any);
+							}
+						}
+					});
+
+					// Handle community area hover
+					map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, () => {
 						map.getCanvas().style.cursor = 'pointer';
+					});
+
+					map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, () => {
+						map.getCanvas().style.cursor = '';
+					});
+
+					if (!isTabletOrAbove) {
+						map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+						const attrib = document.querySelector('.maplibregl-ctrl-attrib');
+						attrib?.classList.remove('maplibregl-compact-show');
+						attrib?.removeAttribute('open');
 					}
 				});
+			} catch (error) {
+				console.error('Error initializing map:', error);
+			}
+		};
 
-				map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, () => {
-					map.getCanvas().style.cursor = '';
-				});
+		setupMap();
 
-				if (!isTabletOrAbove) {
-					map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-					const attrib = document.querySelector('.maplibregl-ctrl-attrib');
-					attrib?.classList.remove('maplibregl-compact-show');
-					attrib?.removeAttribute('open');
-				}
-			});
-
-			return () => {
-				if (map) {
-					map.remove();
-				}
-			};
-		} catch (error) {
-			console.error('Error initializing map:', error);
-		}
+		return () => {
+			if (map) {
+				map.remove();
+			}
+		};
 	});
 </script>
 
@@ -691,20 +350,20 @@
 			<ExpandLegend />
 			<Legend />
 			<div class="floating-panel absolute left-[3%] top-4 z-10 w-[94%] p-4 md:left-4 md:w-[400px]">
-				<SearchPanel onSearch={searchProjects} {map} />
+				<SearchPanel {map} />
 				<Credits />
 			</div>
 		</div>
 	</div>
 
 	{#if $uiState.resultsExpanded}
-		<div 
+		<div
 			class="absolute inset-0 z-10 bg-black/5 backdrop-blur-[2px] transition-opacity duration-300"
-			on:click={() => uiState.update(state => ({ ...state, resultsExpanded: false }))}
+			on:click={() => uiState.update((state) => ({ ...state, resultsExpanded: false }))}
 			on:keydown={(e) => {
 				if (e.key === 'Enter' || e.key === 'Space') {
 					e.preventDefault();
-					uiState.update(state => ({ ...state, resultsExpanded: false }));
+					uiState.update((state) => ({ ...state, resultsExpanded: false }));
 				}
 			}}
 			role="button"
@@ -712,98 +371,13 @@
 			aria-label="Close results table"
 		></div>
 	{/if}
-
-	<!-- Data table temporarily hidden -->
-	<!--
-	<div
-		class="absolute bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white shadow-lg transition-all duration-300"
-		style="height: {$uiState.resultsExpanded ? '66vh' : '40px'}"
-	>
-		<div
-			class="absolute inset-x-0 top-0 flex h-10 items-center justify-between border-b border-slate-200 bg-slate-50 px-4"
-		>
-			<button
-				type="button"
-				class="flex w-full cursor-pointer appearance-none items-center gap-2 border-0 bg-transparent p-0 text-left transition-colors hover:text-slate-700"
-				on:click={() => uiState.update(state => ({ ...state, resultsExpanded: !state.resultsExpanded }))}
-				on:keydown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.preventDefault();
-						uiState.update(state => ({ ...state, resultsExpanded: !state.resultsExpanded }));
-					}
-				}}
-				aria-expanded={$uiState.resultsExpanded}
-				aria-controls="results-table-container"
-			>
-				<svg
-					class="h-4 w-4 transition-transform duration-300"
-					style="transform: rotate({$uiState.resultsExpanded ? '0deg' : '180deg'})"
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					aria-hidden="true"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M19 9l-7 7-7-7"
-					/>
-				</svg>
-				<span class="text-sm font-medium">Data table</span>
-				<span class="text-sm text-slate-500">
-					{#if $isDataLoading}
-						(Loading...)
-					{:else if $searchState.isSearching}
-						(Searching...)
-					{:else}
-						({$currentCount} projects)
-					{/if}
-				</span>
-			</button>
-			{#if $uiState.resultsExpanded}
-				<button
-					type="button"
-					on:click|stopPropagation={() => {
-						if ($uiState.resultsExpanded) {
-							const event = new CustomEvent('downloadcsv');
-							window.dispatchEvent(event);
-						}
-					}}
-					class="flex h-8 items-center gap-1.5 whitespace-nowrap rounded border px-2 text-xs text-slate-600 transition-colors hover:bg-slate-200/70 hover:text-slate-900"
-				>
-					<svg
-						class="h-3.5 w-3.5 flex-shrink-0"
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						aria-hidden="true"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-						/>
-					</svg>
-					Download CSV
-				</button>
-			{/if}
-		</div>
-
-		{#if $uiState.resultsExpanded}
-			<div id="results-table-container" class="absolute inset-0 top-10 overflow-hidden">
-				<ResultsTable />
-			</div>
-		{/if}
-	</div>
-	-->
 </main>
 
 <div class="logo-container">
 	<a href="https://grist.org" target="_blank" rel="noopener noreferrer">
-		<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMyIgdmlld0JveD0iMCAwIDEwMCAxMDMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04NS4xMSA2NFY4OC4zQzc5LjMxIDkxLjkgNzIuODEgOTQgNjcuMzEgOTRDMzkuOTEgOTQgMTUuMzEgNjQuMSAxNS4zMSAzM0MxNS4zMSAxOC40IDI0LjkxIDYuOSA0MS42MSA2LjlDNTIuMTEgNi45IDcyLjUxIDEzLjYgODcuNjEgMjkuOEM4OC4wNjg4IDMwLjM4IDg4LjY0MzkgMzAuODU3NiA4OS4yOTg0IDMxLjIwMjFDODkuOTUyOCAzMS41NDY1IDkwLjY3MjEgMzEuNzUwMiA5MS40MSAzMS44QzkzLjQxIDMxLjggOTQuNjEgMzAuNSA5NC42MSAyOC4yVjJIOTAuOTFWM0M5MC45MSA2LjYgODguODEgNy42IDgzLjYxIDZDNzMuMTcyNyAyLjUwNDA4IDYyLjIxNTcgMC44MTMxOTMgNTEuMjEgMUMxOC4zMSAxIDAuMjEwMDIyIDI2LjggMC4yMTAwMjIgNTJDMC4yMTAwMjIgODAuOCAyMi4xMSAxMDMgNTEuMjEgMTAzQzYzLjM1OCAxMDIuOTE0IDc1LjE4ODMgOTkuMTEgODUuMTEgOTIuMVYxMDJIOTkuNjFWNTBINDYuNjFWNjRIODUuMTFaIiBmaWxsPSIjM0MzODMwIi8+Cjwvc3ZnPg==" alt="Grist G logo" />
+		<img
+			src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMyIgdmlld0JveD0iMCAwIDEwMCAxMDMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04NS4xMSA2NFY4OC4zQzc5LjMxIDkxLjkgNzIuODEgOTQgNjcuMzEgOTRDMzkuOTEgOTQgMTUuMzEgNjQuMSAxNS4zMSAzM0MxNS4zMSAxOC40IDI0LjkxIDYuOSA0MS42MSA2LjlDNTIuMTEgNi45IDcyLjUxIDEzLjYgODcuNjEgMjkuOEM4OC4wNjg4IDMwLjM4IDg4LjY0MzkgMzAuODU3NiA4OS4yOTg0IDMxLjIwMjFDODkuOTUyOCAzMS41NDY1IDkwLjY3MjEgMzEuNzUwMiA5MS40MSAzMS44QzkzLjQxIDMxLjggOTQuNjEgMzAuNSA5NC42MSAyOC4yVjJIOTAuOTFWM0M5MC45MSA2LjYgODguODEgNy42IDgzLjYxIDZDNzMuMTcyNyAyLjUwNDA4IDYyLjIxNTcgMC44MTMxOTMgNTEuMjEgMUMxOC4zMSAxIDAuMjEwMDIyIDI2LjggMC4yMTAwMjIgNTJDMC4yMTAwMjIgODAuOCAyMi4xMSAxMDMgNTEuMjEgMTAzQzYzLjM1OCAxMDIuOTE0IDc1LjE4ODMgOTkuMTEgODUuMTEgOTIuMVYxMDJIOTkuNjFWNTBINDYuNjFWNjRIODUuMTFaIiBmaWxsPSIjM0MzODMwIi8+Cjwvc3ZnPg=="
+			alt="Grist G logo"
+		/>
 	</a>
 </div>

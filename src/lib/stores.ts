@@ -1,7 +1,5 @@
 import { writable, derived } from 'svelte/store';
 import type { 
-	Project, 
-	IndexedFeatureCollection, 
 	AddressWithServiceLine,
 	IndexedAddressCollection,
 	IndexedTractCollection,
@@ -68,10 +66,10 @@ export const addressStore = writable<{
 	}
 });
 
-// Legacy data store (to be removed after refactoring complete)
+// Legacy data store - now returns empty data for compatibility
 export const dataStore = writable<{
 	isLoading: boolean;
-	collection: IndexedFeatureCollection;
+	collection: any;
 }>({
 	isLoading: true,
 	collection: {
@@ -102,10 +100,12 @@ export const visualState = writable<{
 	choroplethMode: ChoroplethMode;
 	showAddresses: boolean;
 	selectedTract: string | null;
+	aggregationLevel: 'tract' | 'community';
 }>({
-	choroplethMode: 'median_household_income',
+	choroplethMode: 'pct_requires_replacement',
 	showAddresses: true,
-	selectedTract: null
+	selectedTract: null,
+	aggregationLevel: 'tract'
 });
 
 // Legacy color mode type (to be removed after refactoring)
@@ -117,10 +117,12 @@ export const uiState = writable<{
 	legendExpanded: boolean;
 	creditsExpanded: boolean;
 	resultsExpanded: boolean;
+	searchHeaderCollapsed: boolean;
 }>({
 	legendExpanded: false,
 	creditsExpanded: true,
-	resultsExpanded: false
+	resultsExpanded: false,
+	searchHeaderCollapsed: false
 });
 
 // Derived states for Chicago water service lines
@@ -244,10 +246,15 @@ export const showAddresses = derived(
 	$state => $state.showAddresses
 );
 
-// Legacy exports (to be removed after refactoring)
+export const aggregationLevel = derived(
+	visualState,
+	$state => $state.aggregationLevel
+);
+
+// Legacy exports - returning empty/default values for compatibility
 export const isDataLoading = derived(
 	dataStore,
-	$state => $state.isLoading
+	$state => false
 );
 
 export const allPoints = derived(
@@ -413,9 +420,9 @@ export async function loadInventoryForAddress(address: string, rowId?: number): 
 	try {
 		console.log(`Loading inventory data for address: ${address}${rowId ? ` (row ID: ${rowId})` : ''}`);
 		
-		// Use the live DigitalOcean Function with address parameter for multiple service lines
+		// Use the v2 DigitalOcean Function with address parameter for multiple service lines
 		const encodedAddress = encodeURIComponent(address);
-		const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup?address=${encodedAddress}`;
+		const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup-v2?address=${encodedAddress}`;
 		
 		try {
 			const response = await fetch(apiUrl);
@@ -534,10 +541,13 @@ export async function loadSearchIndex(): Promise<void> {
 	return loadMinimalSearchIndex();
 }
 
-// Legacy inventory loading function - now deprecated in favor of on-demand API
-export async function loadInventoryData(): Promise<void> {
-	console.log('loadInventoryData() called - inventory now loaded on-demand via API');
-	// No longer loads the entire inventory file
-	// Individual addresses are fetched via loadInventoryForAddress()
+// Current inventory store for popup
+export const currentInventory = writable<InventoryData | null>(null);
+
+// Load inventory data by row ID (for individual pins)
+export async function loadInventoryData(rowId: string): Promise<void> {
+	// This function is no longer used since we don't have project pins
+	console.warn('loadInventoryData called but no longer supported');
+	currentInventory.set(null);
 }
 

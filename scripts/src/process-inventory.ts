@@ -132,6 +132,10 @@ async function processInventory(): Promise<void> {
 				const outputPath = path.join(outputDir, 'service-lines.json');
 				await writeCompressedJSON(outputPath, processedData);
 
+				// Copy the original CSV file to processed folder
+				const csvOutputPath = path.join(outputDir, 'inventory.csv');
+				fs.copyFileSync(inventoryPath, csvOutputPath);
+
 				// Generate summary stats
 				const leadCount = processedData.filter(d => d.leadStatus === 'LEAD').length;
 				const grrCount = processedData.filter(d => d.leadStatus === 'GRR').length;

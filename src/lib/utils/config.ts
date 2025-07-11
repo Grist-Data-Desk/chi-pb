@@ -132,7 +132,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		minzoom: 0,
 		maxzoom: 22,
 		layout: {
-			visibility: 'none' // Initially hidden
+			visibility: 'visible' // Always visible for querying
 		},
 		paint: {
 			'fill-color': COLORS.EARTH, // Default color, will be updated reactively
@@ -147,7 +147,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		minzoom: 0,
 		maxzoom: 22,
 		layout: {
-			visibility: 'none' // Initially hidden
+			visibility: 'visible' // Always visible for querying
 		},
 		paint: {
 			'line-color': '#ffffff',

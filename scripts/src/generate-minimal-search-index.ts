@@ -129,6 +129,7 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				const row = parseInt(normalizedRow.row as string) || 0;
 				const lat = parseFloat(normalizedRow.lat as string) || 0;
 				const long = parseFloat(normalizedRow.long as string) || 0;
+				const isIntersection = normalizedRow.is_intersection === 'TRUE';
 
 				// Build normalized street name for indexing
 				const streetParts = [stdir, stname, sttype].filter(p => p).join(' ');
@@ -148,6 +149,42 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				};
 
 				addresses.push(minimalAddress);
+
+				// Handle intersection addresses
+				if (isIntersection && fullAddress.includes('&')) {
+					// Parse intersection from full address
+					// Example: "W LAKE & N CALIF, CHICAGO IL 60612"
+					const intersectionMatch = fullAddress.match(/^([^,]+),/);
+					if (intersectionMatch) {
+						const intersectionText = intersectionMatch[1];
+						// Split by & and index each street name
+						const streets = intersectionText.split('&').map(s => s.trim());
+						
+						streets.forEach(street => {
+							const normalizedIntersectionStreet = normalizeStreetName(street);
+							if (normalizedIntersectionStreet) {
+								// Index full street name
+								if (!streetNameIndex[normalizedIntersectionStreet]) {
+									streetNameIndex[normalizedIntersectionStreet] = [];
+								}
+								streetNameIndex[normalizedIntersectionStreet].push(id);
+								
+								// Index individual words
+								const words = normalizedIntersectionStreet.split(' ');
+								const directions = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+								
+								words.forEach(word => {
+									if (word.length > 2 || directions.includes(word)) {
+										if (!streetNameIndex[word]) {
+											streetNameIndex[word] = [];
+										}
+										streetNameIndex[word].push(id);
+									}
+								});
+							}
+						});
+					}
+				}
 
 				// Build street name index (more comprehensive than before)
 				if (normalizedStreet) {

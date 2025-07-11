@@ -156,7 +156,6 @@ export interface InventoryData {
 	utilitySideMaterial: string;
 	overallCode: string;
 	gooseneck: string;
-	confidence: string;
 	highRisk: string;
 	lastUpdated: string;
 	additionalNotes: string;

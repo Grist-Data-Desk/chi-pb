@@ -38,17 +38,6 @@ function normalizeAddressForMatching(address) {
 		.trim();
 }
 
-// Determine confidence level from inventory record
-function getConfidenceLevel(record) {
-	const hasUnknown = [
-		record['PublSrvLnMatEPA'],
-		record['PrivateSrvLnMatEPA'],
-		record['Gooseneck']
-	].some(field => field === 'U' || !field);
-	
-	if (hasUnknown) return 'Low - Contains unknown materials';
-	return 'Medium - Based on available records';
-}
 
 // Build additional notes from inventory record
 function buildAdditionalNotes(record) {
@@ -110,7 +99,6 @@ async function loadInventoryData() {
 					utilitySideMaterial: record.PublSrvLnMatEPA || 'Unknown',
 					overallCode: record['OverallSL Code'] || 'Unknown',
 					gooseneck: record.Gooseneck || 'Unknown',
-					confidence: getConfidenceLevel(record),
 					highRisk: record['High Risk'] || 'N',
 					lastUpdated: 'Data provided by City of Chicago',
 					additionalNotes: buildAdditionalNotes(record)

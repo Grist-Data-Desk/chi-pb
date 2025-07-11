@@ -36,7 +36,9 @@
 	// Enhanced normalization for Chicago address variants
 	function normalizeAddress(address: string): string {
 		let normalized = address.toLowerCase()
-			.replace(/[^\w\s]/g, ' ')
+			// Preserve & for intersection detection before removing other punctuation
+			.replace(/\band\b/g, '&')  // Replace "and" with "&" for consistent intersection handling
+			.replace(/[^\w\s&]/g, ' ')  // Keep & for now
 			.replace(/\s+/g, ' ')
 			.trim();
 
@@ -94,6 +96,10 @@
 		directions.forEach((dir, i) => {
 			normalized = normalized.replace(new RegExp(`\\b${dir}\\b`, 'g'), directionAbbrevs[i]);
 		});
+
+		// Final cleanup - remove & unless it's being used for intersection detection
+		// This is done at the end to preserve & for intersection queries
+		normalized = normalized.replace(/[^\w\s&]/g, ' ').replace(/\s+/g, ' ').trim();
 
 		return normalized;
 	}
@@ -179,30 +185,96 @@
 				}
 			});
 		} else if (normalizedStreetPart.length > 0) {
-			// Just street search - use the street index
-			const resultIds = new Set<number>();
-			const streetWords = normalizedStreetPart.split(/\s+/);
+			// Check if this is an intersection query (contains & or was normalized from "and")
+			const isIntersectionQuery = normalizedStreetPart.includes('&');
 			
-			streetWords.forEach(word => {
-				if (word.length >= 2) {
-					// Check all street index keys for matches
-					Object.keys(searchIndex.streetNames).forEach(streetKey => {
-						if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
-							const ids = searchIndex.streetNames[streetKey];
-							if (Array.isArray(ids)) {
-								ids.forEach(id => resultIds.add(id));
+			if (isIntersectionQuery) {
+				// Handle intersection search
+				const streets = normalizedStreetPart.split('&').map(s => s.trim()).filter(s => s.length > 0);
+				
+				if (streets.length >= 2) {
+					// Find addresses that match ALL streets in the intersection
+					const streetMatchSets = streets.map(street => {
+						const streetIds = new Set<number>();
+						const streetWords = street.split(/\s+/).filter(w => w.length > 0);
+						
+						// Use the efficient street index instead of iterating all addresses
+						streetWords.forEach(word => {
+							if (word.length >= 2) {
+								// Check all street index keys for matches
+								Object.keys(searchIndex.streetNames).forEach(streetKey => {
+									if (!streetKey.endsWith('*') && streetKey.includes(word)) {
+										const ids = searchIndex.streetNames[streetKey];
+										if (Array.isArray(ids)) {
+											// Add all IDs that match this word
+											ids.forEach(id => streetIds.add(id));
+										}
+									}
+								});
 							}
-						}
+						});
+						
+						// Filter to only keep addresses where ALL words match
+						const filteredIds = new Set<number>();
+						streetIds.forEach(id => {
+							if (id >= 0 && id < searchIndex.addresses.length) {
+								const addr = searchIndex.addresses[id];
+								const normalizedDisplay = normalizeAddress(addr.display);
+								
+								// Check if all words from this street are in the address
+								const allWordsMatch = streetWords.every(word => {
+									if (word.length < 2) return true;
+									return normalizedDisplay.includes(word);
+								});
+								
+								if (allWordsMatch) {
+									filteredIds.add(id);
+								}
+							}
+						});
+						
+						return filteredIds;
 					});
+					
+					// Find intersection - addresses that match ALL streets
+					if (streetMatchSets.length >= 2) {
+						const intersection = streetMatchSets.reduce((a, b) => {
+							return new Set([...a].filter(x => b.has(x)));
+						});
+						
+						intersection.forEach(id => {
+							if (id >= 0 && id < searchIndex.addresses.length) {
+								matchingAddresses.push(searchIndex.addresses[id]);
+							}
+						});
+					}
 				}
-			});
-			
-			// Convert IDs to addresses
-			resultIds.forEach(id => {
-				if (id >= 0 && id < searchIndex.addresses.length) {
-					matchingAddresses.push(searchIndex.addresses[id]);
-				}
-			});
+			} else {
+				// Regular street search - use the street index
+				const resultIds = new Set<number>();
+				const streetWords = normalizedStreetPart.split(/\s+/);
+				
+				streetWords.forEach(word => {
+					if (word.length >= 2) {
+						// Check all street index keys for matches
+						Object.keys(searchIndex.streetNames).forEach(streetKey => {
+							if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
+								const ids = searchIndex.streetNames[streetKey];
+								if (Array.isArray(ids)) {
+									ids.forEach(id => resultIds.add(id));
+								}
+							}
+						});
+					}
+				});
+				
+				// Convert IDs to addresses
+				resultIds.forEach(id => {
+					if (id >= 0 && id < searchIndex.addresses.length) {
+						matchingAddresses.push(searchIndex.addresses[id]);
+					}
+				});
+			}
 		}
 		
 		console.log(`Found ${matchingAddresses.length} matches for query "${query}"`);
@@ -475,8 +547,24 @@
 		
 		// Zoom map directly to the address coordinates
 		if (map && suggestion.lat && suggestion.long) {
+			// On mobile, we need to offset the point to appear below the search panel
+			const isMobile = window.innerWidth <= 640; // Using Tailwind's sm breakpoint
+			
+			let targetCenter: [number, number] = [suggestion.long, suggestion.lat];
+			
+			if (isMobile) {
+				// Pre-compute the offset position
+				// At zoom 16, 1 degree latitude ≈ 69 miles ≈ 111 km
+				// We need to move the map center north (increase latitude) so the point appears lower
+				// Rough calculation: at zoom 16, the viewport shows about 0.01 degrees of latitude
+				// To offset by about 200 pixels (roughly 1/3 of mobile screen), we need about 0.0035 degrees
+				const latOffset = 0.0025;
+				targetCenter = [suggestion.long, suggestion.lat + latOffset];
+			}
+			
+			// Single smooth zoom to the (possibly offset) center
 			map.flyTo({
-				center: [suggestion.long, suggestion.lat],
+				center: targetCenter,
 				zoom: 16,
 				duration: 1500
 			});

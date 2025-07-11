@@ -194,7 +194,7 @@
 }
 
 #map-root .maplibregl-ctrl-top-right {
-	@apply bottom-[72px] right-[3%] top-auto flex flex-col items-end md:bottom-auto md:top-4;
+	@apply bottom-[100px] right-[3%] top-auto flex flex-col items-end md:bottom-auto md:right-4 md:top-4;
 }
 
 #map-root .maplibregl-popup-tip {
@@ -206,7 +206,7 @@
 }
 
 #map-root .maplibregl-ctrl-bottom-right {
-	@apply bottom-[38px] z-20;
+	@apply bottom-4 z-20;
 }
 
 div.observer-pixel-14 {
@@ -215,8 +215,8 @@ div.observer-pixel-14 {
 
 .logo-container {
 	position: fixed;
-	bottom: 48px;
-	right: 40px;
+	bottom: 55px;
+	right: 3%;
 	z-index: 10;
 	width: 20px;
 	height: 20px;
@@ -225,6 +225,13 @@ div.observer-pixel-14 {
 	justify-content: center;
 	opacity: 0.8;
 	transition: opacity 0.2s ease;
+}
+
+@media (min-width: 768px) {
+	.logo-container {
+		right: 16px;
+		bottom: 16px;
+	}
 }
 
 .logo-container:hover {

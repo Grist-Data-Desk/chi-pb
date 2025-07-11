@@ -142,19 +142,19 @@
 		<!-- Overall classification indicator -->
 		<g transform="translate(275, 35)">
 			{#if overallCode === 'L'}
-				<rect x="-30" y="-12" width="60" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
+				<rect x="-35" y="-12" width="70" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Lead</text>
 			{:else if overallCode === 'GRR'}
-				<rect x="-115" y="-12" width="230" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
+				<rect x="-120" y="-12" width="240" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Galvanized Requiring Replacement</text>
 			{:else if overallCode === 'NL'}
-				<rect x="-45" y="-12" width="90" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
+				<rect x="-50" y="-12" width="100" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Non-Lead</text>
 			{:else if overallCode === 'U'}
-				<rect x="-95" y="-12" width="190" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
+				<rect x="-100" y="-12" width="200" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Unknown (Suspected Lead)</text>
 			{:else}
-				<rect x="-65" y="-12" width="130" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
+				<rect x="-70" y="-12" width="140" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Unknown Status</text>
 			{/if}
 		</g>

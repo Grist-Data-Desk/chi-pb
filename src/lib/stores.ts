@@ -402,10 +402,12 @@ export const serviceLineCount = derived(
 
 // Load inventory data for a specific address via API using row ID
 export async function loadInventoryForAddress(address: string, rowId?: number): Promise<void> {
+	// Clear previous data immediately when starting a new search
 	inventoryDataStore.update(store => ({ 
 		...store, 
 		isLoading: true, 
 		error: null,
+		data: null, // Clear previous data
 		address 
 	}));
 	
@@ -413,8 +415,9 @@ export async function loadInventoryForAddress(address: string, rowId?: number): 
 		...store,
 		isLoading: true,
 		error: null,
-		address,
-		currentIndex: 0
+		inventoryList: [], // Clear previous inventory list
+		currentIndex: 0,
+		address
 	}));
 	
 	try {
@@ -466,7 +469,6 @@ export async function loadInventoryForAddress(address: string, rowId?: number): 
 				utilitySideMaterial: 'Unknown - API unavailable',
 				overallCode: 'Unknown',
 				gooseneck: 'Unknown',
-				confidence: 'Low - API unavailable',
 				highRisk: 'N',
 				lastUpdated: 'Mock data - API unavailable',
 				additionalNotes: 'API temporarily unavailable, showing placeholder data'
@@ -545,7 +547,7 @@ export async function loadSearchIndex(): Promise<void> {
 export const currentInventory = writable<InventoryData | null>(null);
 
 // Load inventory data by row ID (for individual pins)
-export async function loadInventoryData(rowId: string): Promise<void> {
+export async function loadInventoryData(_rowId: string): Promise<void> {
 	// This function is no longer used since we don't have project pins
 	console.warn('loadInventoryData called but no longer supported');
 	currentInventory.set(null);

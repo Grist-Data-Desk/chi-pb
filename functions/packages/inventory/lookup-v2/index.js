@@ -15,17 +15,6 @@ const zlib = require('zlib');
 let lookupData = null;
 let lookupLoadPromise = null;
 
-// Determine confidence level from inventory record
-function getConfidenceLevel(serviceLine) {
-	const hasUnknown = [
-		serviceLine.p, // PublSrvLnMatEPA
-		serviceLine.r, // PrivateSrvLnMatEPA
-		serviceLine.g  // Gooseneck
-	].some(field => field === 'U' || !field);
-	
-	if (hasUnknown) return 'Low - Contains unknown materials';
-	return 'Medium - Based on available records';
-}
 
 // Build additional notes from inventory record
 function buildAdditionalNotes(serviceLine) {
@@ -115,7 +104,6 @@ function transformServiceLine(compactServiceLine, fullAddress) {
 		utilitySideMaterial: compactServiceLine.p || 'Unknown',
 		overallCode: compactServiceLine.o || 'Unknown',
 		gooseneck: compactServiceLine.g || 'Unknown',
-		confidence: getConfidenceLevel(compactServiceLine),
 		highRisk: compactServiceLine.h || 'N',
 		lastUpdated: 'Data provided by City of Chicago',
 		additionalNotes: buildAdditionalNotes(compactServiceLine),

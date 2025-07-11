@@ -22,7 +22,7 @@
 				<strong>Sources</strong> City of Chicago / Census Bureau
 			</p>
 			<p class="mb-0">
-				<strong>Development</strong> Clayton Aldern / Grist. See our <a href="https://github.com/Grist-Data-Desk/chi-pb" target="_blank" class="text-emerald-600 hover:text-emerald-700 no-underline hover:underline">methods</a>. Map last refreshed: {BUILD_DATE}.
+				<strong>Development</strong> Clayton Aldern / Grist. See our <a href="https://github.com/Grist-Data-Desk/chi-pb" target="_blank" class="text-emerald-600 hover:text-emerald-700 no-underline hover:underline">methods</a>.
 			</p>
 		</div>
 	{/if}

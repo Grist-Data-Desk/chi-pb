@@ -206,10 +206,10 @@
 </script>
 
 {#if address}
-	<div class="mt-4 max-h-[400px] overflow-y-auto space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+	<div class="mt-4 max-h-[calc(100vh-29rem)] overflow-y-auto space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
 		<!-- Address Information -->
 		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
-			<h3 class="mt-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
+			<h3 class="mt-0 mb-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
 				Selected address
 			</h3>
 			<div class="space-y-2 font-['Basis_Grotesque']">
@@ -311,7 +311,7 @@
 				{/if}
 				
 				<!-- Visual Service Line Diagram -->
-				<div class="mb-4">
+				<div class="mb-0">
 					<ServiceLineDiagram 
 						utilitySideMaterial={currentInventoryData.PublSrvLnMatEPA || currentInventoryData.utilitySideMaterial || 'U'}
 						gooseneckMaterial={currentInventoryData.Gooseneck || currentInventoryData.gooseneck || 'U'}
@@ -322,7 +322,7 @@
 				
 				<!-- Additional inventory details if needed -->
 				{#if currentInventoryData.highRisk === 'Y'}
-					<div class="space-y-2 font-['Basis_Grotesque'] text-xs sm:text-sm">						
+					<div class="space-y-2 mt-2 font-['Basis_Grotesque'] text-xs sm:text-sm">						
 							<div class="flex items-start gap-2">
 								<span class="font-medium text-red-700">⚠️ This address is considered a high-risk property by the City of Chicago</span>
 							</div>

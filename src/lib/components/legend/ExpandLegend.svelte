@@ -7,7 +7,7 @@
 </script>
 
 <div
-	class="absolute bottom-[calc(40px+0.5rem)] left-[3%] z-10 rounded border border-earth bg-smog shadow backdrop-blur md:hidden"
+	class="absolute bottom-6 left-[3%] z-10 rounded border border-earth bg-smog shadow backdrop-blur md:hidden"
 >
 	<button
 		class="flex h-8 items-center justify-center gap-1 px-2"

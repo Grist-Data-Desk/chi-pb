@@ -26,12 +26,16 @@
 	let browser = false;
 	let currentPopup: maplibregl.Popup | null = null;
 	let tractPopup: TractPopup | null = null;
-	let geolocateControl: maplibregl.GeolocateControl | null = null;
 
 	$: isTabletOrAbove = innerWidth > TABLET_BREAKPOINT;
 
 	// Close tract popup when an address is selected
 	$: if ($selectedAddressTractId && tractPopup) {
+		tractPopup.removePopup();
+	}
+
+	// Close popups when visualization mode or aggregation level changes
+	$: if (tractPopup && ($visualState.choroplethMode || $visualState.aggregationLevel)) {
 		tractPopup.removePopup();
 	}
 
@@ -41,26 +45,9 @@
 			btn.className = 'maplibregl-ctrl-icon maplibregl-ctrl-geolocate';
 			btn.innerHTML = '🔄';
 			btn.addEventListener('click', () => {
-				if (geolocateControl) {
-					// Reset geolocate control state
-					(geolocateControl as any)._watchState = 'OFF';
-					(geolocateControl as any)._geolocateButton.classList.remove(
-						'maplibregl-ctrl-geolocate-active'
-					);
-					(geolocateControl as any)._geolocateButton.classList.remove(
-						'maplibregl-ctrl-geolocate-background'
-					);
-					(geolocateControl as any)._geolocateButton.classList.remove(
-						'maplibregl-ctrl-geolocate-background-error'
-					);
-					if ((geolocateControl as any)._watchId !== undefined) {
-						(geolocateControl as any)._clearWatch();
-					}
-				}
-
 				map.flyTo({
-					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.6298, 41.8781],
-					zoom: 10
+					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.7, 42.02],
+					zoom: isTabletOrAbove ? 10 : 9
 				});
 
 				searchState.set({
@@ -108,22 +95,22 @@
 		const currentChoroplethMode = $visualState.choroplethMode;
 		const aggregationLevel = $visualState.aggregationLevel;
 
-		// Handle aggregation level visibility
+		// Handle aggregation level visibility using opacity to keep layers queryable
 		if (aggregationLevel === 'tract') {
 			// Show tract layers, hide community layers
-			map.setLayoutProperty('census-tracts-fill', 'visibility', 'visible');
-			map.setLayoutProperty('census-tracts-stroke', 'visibility', 'visible');
+			map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0.7);
+			map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0.8);
 			if (map.getLayer('community-areas-fill')) {
-				map.setLayoutProperty('community-areas-fill', 'visibility', 'none');
-				map.setLayoutProperty('community-areas-stroke', 'visibility', 'none');
+				map.setPaintProperty('community-areas-fill', 'fill-opacity', 0);
+				map.setPaintProperty('community-areas-stroke', 'line-opacity', 0);
 			}
 		} else {
-			// Show community layers, hide tract layers
-			map.setLayoutProperty('census-tracts-fill', 'visibility', 'none');
-			map.setLayoutProperty('census-tracts-stroke', 'visibility', 'none');
+			// Show community layers, make tract layers invisible but queryable
+			map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0);
+			map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0);
 			if (map.getLayer('community-areas-fill')) {
-				map.setLayoutProperty('community-areas-fill', 'visibility', 'visible');
-				map.setLayoutProperty('community-areas-stroke', 'visibility', 'visible');
+				map.setPaintProperty('community-areas-fill', 'fill-opacity', 0.7);
+				map.setPaintProperty('community-areas-stroke', 'line-opacity', 0.8);
 			}
 		}
 
@@ -174,8 +161,8 @@
 				map = new maplibregl.Map({
 					container: 'map-container',
 					style: `${DO_SPACES_URL}/${STYLES_PATH}/map-style.json`,
-					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.6298, 41.8781],
-					zoom: 10,
+					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.7, 42.02],
+					zoom: isTabletOrAbove ? 10 : 9,
 					minZoom: 8,
 					maxZoom: 18,
 					attributionControl: false
@@ -184,30 +171,6 @@
 				map.scrollZoom.disable();
 				map.scrollZoom.setWheelZoomRate(0);
 				map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-				geolocateControl = new maplibregl.GeolocateControl({
-					positionOptions: {
-						enableHighAccuracy: true
-					},
-					trackUserLocation: false
-				});
-
-				geolocateControl.on('geolocate', (position) => {
-					const lat = position.coords.latitude;
-					const lon = position.coords.longitude;
-					searchState.update((state) => ({
-						...state,
-						query: `${lat.toFixed(4)}, ${lon.toFixed(4)}`
-					}));
-				});
-
-				geolocateControl.on('error', () => {
-					if (geolocateControl) {
-						geolocateControl._watchState = 'OFF';
-						geolocateControl._clearWatch();
-					}
-				});
-
-				map.addControl(geolocateControl, 'top-right');
 				map.addControl(new ResetViewControl(), 'top-right');
 
 				map.on('load', () => {
@@ -237,8 +200,12 @@
 						// Add community area layers
 						if (!map.getLayer(LAYER_CONFIG.communityAreasFill.id)) {
 							map.addLayer(LAYER_CONFIG.communityAreasFill);
+							// Set initial opacity based on current mode
+							const isCommMode = $visualState.aggregationLevel === 'community';
+							map.setPaintProperty('community-areas-fill', 'fill-opacity', isCommMode ? 0.7 : 0);
+							
 							// Apply choropleth expression if in community mode
-							if ($visualState.aggregationLevel === 'community') {
+							if (isCommMode) {
 								const choroplethExpression = getChoroplethColorExpression(
 									$visualState.choroplethMode
 								);
@@ -247,6 +214,9 @@
 						}
 						if (!map.getLayer(LAYER_CONFIG.communityAreasStroke.id)) {
 							map.addLayer(LAYER_CONFIG.communityAreasStroke);
+							// Set initial opacity based on current mode
+							const isCommMode = $visualState.aggregationLevel === 'community';
+							map.setPaintProperty('community-areas-stroke', 'line-opacity', isCommMode ? 0.8 : 0);
 						}
 					} catch (error) {
 						console.error('Error adding layers:', error);
@@ -257,6 +227,9 @@
 
 					// Handle tract clicks
 					map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
+						// Only show census tract popup if we're in tract mode
+						if ($visualState.aggregationLevel !== 'tract') return;
+						
 						if (!e.features?.length) return;
 
 						const feature = e.features[0];
@@ -282,6 +255,9 @@
 
 					// Handle tract hover
 					map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
+						// Only change cursor if we're in tract mode
+						if ($visualState.aggregationLevel !== 'tract') return;
+						
 						const feature = e.features?.[0];
 						const tractGeoid = feature?.properties?.geoid;
 						const selectedTractId = $selectedAddressTractId;
@@ -293,11 +269,32 @@
 					});
 
 					map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, () => {
-						map.getCanvas().style.cursor = '';
+						if ($visualState.aggregationLevel === 'tract') {
+							map.getCanvas().style.cursor = '';
+						}
 					});
 
-					// Handle community area clicks
+					// Community area clicks are now handled by the general click handler
+					// which will show census tract data instead
+
+					// Handle community area hover
+					map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, () => {
+						if ($visualState.aggregationLevel === 'community') {
+							map.getCanvas().style.cursor = 'pointer';
+						}
+					});
+
+					map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, () => {
+						if ($visualState.aggregationLevel === 'community') {
+							map.getCanvas().style.cursor = '';
+						}
+					});
+
+					// Add community area click handler
 					map.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
+						// Only show community area popup if we're in community mode
+						if ($visualState.aggregationLevel !== 'community') return;
+						
 						if (!e.features?.length) return;
 
 						const feature = e.features[0];
@@ -305,20 +302,10 @@
 
 						if (communityProperties && communityProperties.community) {
 							const lngLat = e.lngLat;
-							// Community areas use same popup as tracts
 							if (tractPopup) {
 								tractPopup.showPopup(lngLat, communityProperties as any);
 							}
 						}
-					});
-
-					// Handle community area hover
-					map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, () => {
-						map.getCanvas().style.cursor = 'pointer';
-					});
-
-					map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, () => {
-						map.getCanvas().style.cursor = '';
 					});
 
 					if (!isTabletOrAbove) {

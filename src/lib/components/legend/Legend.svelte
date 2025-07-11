@@ -32,7 +32,7 @@
 			case 'pct_poverty':
 				return 'Percentage of population below poverty line';
 			case 'pct_minority':
-				return 'Percentage of non-white population';
+				return 'Percentage of population that is non-white';
 			default:
 				return '';
 		}
@@ -53,7 +53,7 @@
 	}
 
 	// Fixed panel width
-	const panelWidth = 340;
+	const panelWidth = 350;
 
 	function handleAggregationChange(event: Event) {
 		const target = event.target as HTMLInputElement;
@@ -66,8 +66,8 @@
 
 <div
 	class={[
-		'floating-panel absolute z-[15] bg-white px-2 pb-0.5 pt-0.5 shadow-lg md:bottom-auto md:left-auto md:right-[calc(3%+48px)] md:top-4 md:block',
-		$uiState.legendExpanded ? 'bottom-[calc(40px+0.5rem)] left-[calc(3%+5rem)]' : 'hidden'
+		'floating-panel absolute z-[15] bg-white px-4 pb-0.5 pt-0.5 shadow-lg md:bottom-auto md:left-auto md:right-[calc(16px+48px)] md:top-4 md:block',
+		$uiState.legendExpanded ? 'bottom-[calc(1.5rem+2.5rem)] left-[3%] right-[3%] md:left-auto md:right-[calc(16px+48px)]' : 'hidden'
 	]}
 	style="width: {panelWidth}px"
 >

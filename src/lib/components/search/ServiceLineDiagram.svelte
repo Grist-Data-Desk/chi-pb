@@ -7,7 +7,6 @@
 	export let customerSideMaterial: string = 'U';
 	export let overallCode: string = 'U';
 	
-	// Map material codes to colors based on the schema
 	function getMaterialColor(material: string): string {
 		if (!material) return COLORS.GOLD;
 		
@@ -63,11 +62,9 @@
 	$: gooseneckColor = getMaterialColor(gooseneckMaterial);
 	$: customerColor = getMaterialColor(customerSideMaterial);
 	
-	// Get display text for materials based on the schema codes
 	function getMaterialLabel(material: string): string {
 		if (!material) return 'Unknown';
 		
-		// Handle codes based on the schema
 		switch (material.toUpperCase()) {
 			case 'C': 
 				return 'Copper - No Lead Solder';
@@ -94,13 +91,11 @@
 		}
 	}
 	
-	// Helper to split long material labels intelligently
 	function splitLabel(label: string): { line1: string; line2?: string } {
 		if (label.length <= 20) {
 			return { line1: label };
 		}
 		
-		// Special handling for specific labels
 		if (label === 'Unknown (Suspected Lead)') {
 			return { line1: 'Unknown', line2: '(Suspected Lead)' };
 		}
@@ -123,7 +118,6 @@
 			return { line1: 'Plastic -', line2: 'PVC, HDPE, PEX' };
 		}
 		
-		// Default: split at last space
 		const words = label.split(' ');
 		const midpoint = Math.ceil(words.length / 2);
 		return {

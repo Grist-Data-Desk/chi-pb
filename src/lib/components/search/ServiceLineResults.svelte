@@ -2,9 +2,10 @@
 	import { searchState, multiServiceLineStore, currentServiceLine, serviceLineCount, nextServiceLine, previousServiceLine } from '$lib/stores';
 	import type { AddressWithServiceLine, CensusTract } from '$lib/types';
 	import ServiceLineDiagram from './ServiceLineDiagram.svelte';
+	import ServiceLineDiagramLoading from './ServiceLineDiagramLoading.svelte';
 	import type { Map } from 'maplibre-gl';
 	import { COLORS } from '$lib/utils/constants';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 
 	export let selectedAddress: AddressWithServiceLine | null = null;
 	export let inventoryData: any = null;
@@ -14,34 +15,27 @@
 
 	$: address = selectedAddress || $searchState.selectedAddress;
 	
-	// Get tract data for the selected address by querying which tract contains the address point
 	let tractData: CensusTract | null = null;
 	let isTractDataLoading = false;
 	let pendingTractQuery: { lng: number; lat: number } | null = null;
 	
-	// Reset tract data when address is cleared
 	$: if (!address) {
 		tractData = null;
 		isTractDataLoading = false;
 		pendingTractQuery = null;
 	}
 	
-	// Update tract data when address changes
 	$: if (map && address && address.lat && address.long) {
-		// Set loading state and clear previous data
 		isTractDataLoading = true;
 		tractData = null;
 		pendingTractQuery = { lng: address.long, lat: address.lat };
-		// Wait for map to move to the new location before querying
 		queryTractDataWithRetry(address.long, address.lat);
 	}
 	
-	// Set up map event listeners
 	let mapMoveEndHandler: (() => void) | null = null;
 	
 	$: if (map && !mapMoveEndHandler) {
 		mapMoveEndHandler = () => {
-			// If we have a pending query, execute it now that the map has stopped moving
 			if (pendingTractQuery && isTractDataLoading) {
 				console.log('Map finished moving, querying tract data...');
 				getTractDataAtPoint(pendingTractQuery.lng, pendingTractQuery.lat);
@@ -57,13 +51,10 @@
 	});
 
 	async function queryTractDataWithRetry(lng: number, lat: number) {
-		// Simply wait a bit for the map to start moving, then we'll query on moveend
 		setTimeout(() => {
 			if (!map?.isMoving()) {
-				// If map isn't moving, query immediately
 				getTractDataAtPoint(lng, lat);
 			}
-			// Otherwise, the moveend handler will take care of it
 		}, 100);
 	}
 
@@ -73,7 +64,6 @@
 			return;
 		}
 		
-		// Only process if this is still the pending query
 		if (pendingTractQuery.lng !== lng || pendingTractQuery.lat !== lat) {
 			return;
 		}
@@ -81,7 +71,6 @@
 		const maxRetries = 10;
 		
 		try {
-			// Ensure the layer exists before querying
 			if (!map.getLayer('census-tracts-fill')) {
 				console.log('Census tract layer not yet loaded');
 				if (retryCount < maxRetries) {
@@ -95,7 +84,6 @@
 				return;
 			}
 			
-			// First, ensure we're at the right zoom level and location
 			const currentCenter = map.getCenter();
 			const currentZoom = map.getZoom();
 			const distance = Math.sqrt(
@@ -103,7 +91,6 @@
 				Math.pow(currentCenter.lat - lat, 2)
 			);
 			
-			// If we're too far from the point or zoom is too low, the features might not be rendered
 			if (distance > 0.1 || currentZoom < 10) {
 				console.log(`Map not positioned correctly. Distance: ${distance}, Zoom: ${currentZoom}`);
 				if (retryCount < maxRetries) {
@@ -114,7 +101,6 @@
 				}
 			}
 			
-			// Query with a small buffer around the point to account for any precision issues
 			const point = map.project([lng, lat]);
 			const buffer = 5; // pixels
 			const features = map.queryRenderedFeatures([
@@ -127,10 +113,8 @@
 			console.log(`Query attempt ${retryCount + 1}: Found ${features.length} features at [${lng}, ${lat}]`);
 			
 			if (features.length > 0) {
-				// If multiple features, find the closest one
 				let closestFeature = features[0];
 				if (features.length > 1) {
-					// Simple distance check - in production you'd use proper point-in-polygon
 					closestFeature = features[0];
 				}
 				
@@ -139,7 +123,7 @@
 				pendingTractQuery = null;
 				console.log('Tract data loaded:', tractData.geoid);
 			} else if (retryCount < maxRetries) {
-				// Retry - the tiles might not be loaded yet
+				// Retry (the tiles might not be loaded yet)
 				console.log(`No features found, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
 				setTimeout(() => {
 					getTractDataAtPoint(lng, lat, retryCount + 1);
@@ -164,7 +148,6 @@
 		}
 	}
 	
-	// Get lead status from current service line or inventory data
 	$: currentInventoryData = $currentServiceLine || inventoryData;
 	
 	// Get the worst code when multiple service lines exist
@@ -178,12 +161,10 @@
 		return 'NL';
 	}
 	
-	// Get the overall code to display
 	$: displayCode = $multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1
 		? getWorstCode($multiServiceLineStore.inventoryList)
 		: currentInventoryData?.OverallSL_Code || currentInventoryData?.overallCode || 'U';
 
-	// Formatting utilities for Census tract data (from popup.ts)
 	function formatCurrency(value: number | null | undefined): string {
 		if (!value || value === null || value === undefined) return 'N/A';
 		return new Intl.NumberFormat('en-US', {
@@ -206,7 +187,7 @@
 </script>
 
 {#if address}
-	<div class="mt-4 max-h-[calc(100vh-29rem)] overflow-y-auto space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+	<div class="mt-4 max-h-[calc(100vh-29rem)] overflow-y-auto space-y-3 sm:space-y-4 scrollbar-thin">
 		<!-- Address Information -->
 		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
 			<h3 class="mt-0 mb-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
@@ -248,7 +229,7 @@
 				
 				{#if $serviceLineCount > 1}
 					<p class="mt-1 text-xs text-slate-500 italic">
-						This address is associated with {$serviceLineCount} service line records. The status shown above represents the 'worst-case' scenario across all lines: If lead appears in any of the service lines, it'll be noted here. See individual line details below.
+						This address is associated with {$serviceLineCount} service line records. The status shown above represents the 'worst-case' scenario across all lines: If suspected lead appears in any of the service lines, it'll be noted here. See individual line details below.
 					</p>
 				{/if}
 
@@ -265,10 +246,7 @@
 			</h3>
 			
 			{#if isLoading}
-				<div class="flex items-center gap-2 sm:gap-3 py-6 sm:py-8">
-					<div class="h-4 w-4 sm:h-5 sm:w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
-					<p class="font-['Basis_Grotesque'] text-xs sm:text-sm text-slate-500">Loading detailed service line information...</p>
-				</div>
+				<ServiceLineDiagramLoading />
 			{:else if error}
 				<div class="rounded-md border border-orange-200 bg-orange-50 p-2 sm:p-3">
 					<div class="flex items-start gap-2">
@@ -481,9 +459,14 @@
 {/if}
 
 <style>
-	/* Custom scrollbar styling */
 	.scrollbar-thin {
 		scrollbar-width: thin;
+		scrollbar-color: transparent transparent;
+		transition: scrollbar-color 0.3s;
+	}
+	
+	.scrollbar-thin:hover {
+		scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar {
@@ -492,15 +475,19 @@
 	
 	.scrollbar-thin::-webkit-scrollbar-track {
 		background: transparent;
-		border-radius: 3px;
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar-thumb {
-		background: rgba(0, 0, 0, 0.2);
+		background: transparent;
 		border-radius: 3px;
+		transition: background 0.3s;
+	}
+	
+	.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.2);
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-		background: rgba(0, 0, 0, 0.4);
+		background: rgba(0, 0, 0, 0.3);
 	}
 </style>

@@ -20,7 +20,7 @@ const config = {
 		}),
 		paths: {
 			assets: process.env.USE_CDN === 'true'
-				? 'https://grist.nyc3.cdn.digitaloceanspaces.com/ira-bil/interactives/ira-bil-map'
+				? 'https://grist.nyc3.cdn.digitaloceanspaces.com/chi-pb/interactives/chi-pb-map'
 				: ''
 		}
 	}

@@ -29,12 +29,10 @@
 
 	$: isTabletOrAbove = innerWidth > TABLET_BREAKPOINT;
 
-	// Close tract popup when an address is selected
 	$: if ($selectedAddressTractId && tractPopup) {
 		tractPopup.removePopup();
 	}
 
-	// Close popups when visualization mode or aggregation level changes
 	$: if (tractPopup && ($visualState.choroplethMode || $visualState.aggregationLevel)) {
 		tractPopup.removePopup();
 	}
@@ -57,7 +55,6 @@
 					selectedAddress: null
 				});
 
-				// Reset UI state to show search header and credits
 				uiState.update(state => ({
 					...state,
 					searchHeaderCollapsed: false,
@@ -65,9 +62,7 @@
 				}));
 
 				// Don't reset the visualState for the legend - let users keep their choropleth mode selection
-				// visualState should only be reset if explicitly needed for other functionality
 
-				// Clear address highlight layer
 				if (map.getLayer('selected-address-highlight')) {
 					map.removeLayer('selected-address-highlight');
 				}
@@ -91,13 +86,10 @@
 	async function updateMapFilters() {
 		if (!map) return;
 
-		// Update Chicago choropleth colors
 		const currentChoroplethMode = $visualState.choroplethMode;
 		const aggregationLevel = $visualState.aggregationLevel;
 
-		// Handle aggregation level visibility using opacity to keep layers queryable
 		if (aggregationLevel === 'tract') {
-			// Show tract layers, hide community layers
 			map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0.7);
 			map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0.8);
 			if (map.getLayer('community-areas-fill')) {
@@ -105,7 +97,6 @@
 				map.setPaintProperty('community-areas-stroke', 'line-opacity', 0);
 			}
 		} else {
-			// Show community layers, make tract layers invisible but queryable
 			map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0);
 			map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0);
 			if (map.getLayer('community-areas-fill')) {
@@ -114,10 +105,8 @@
 			}
 		}
 
-		// Update choropleth colors for the active aggregation
 		if (currentChoroplethMode) {
 			try {
-				// Fetch quantile data
 				const quantileData = await fetchQuantileData(aggregationLevel, currentChoroplethMode);
 				const choroplethExpression = getQuantileExpression(
 					currentChoroplethMode,
@@ -132,7 +121,6 @@
 				}
 			} catch (error) {
 				console.error('Error updating map colors:', error);
-				// Fallback to interpolation-based colors
 				const choroplethExpression = getChoroplethColorExpression(currentChoroplethMode);
 
 				if (aggregationLevel === 'tract' && map.getLayer('census-tracts-fill')) {
@@ -185,10 +173,8 @@
 					});
 
 					try {
-						// Add Chicago layers
 						if (!map.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
 							map.addLayer(LAYER_CONFIG.censusTractsFill);
-							// Immediately apply the correct choropleth color expression
 							const choroplethExpression = getChoroplethColorExpression(
 								$visualState.choroplethMode
 							);
@@ -197,14 +183,11 @@
 						if (!map.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
 							map.addLayer(LAYER_CONFIG.censusTractsStroke);
 						}
-						// Add community area layers
 						if (!map.getLayer(LAYER_CONFIG.communityAreasFill.id)) {
 							map.addLayer(LAYER_CONFIG.communityAreasFill);
-							// Set initial opacity based on current mode
 							const isCommMode = $visualState.aggregationLevel === 'community';
 							map.setPaintProperty('community-areas-fill', 'fill-opacity', isCommMode ? 0.7 : 0);
 							
-							// Apply choropleth expression if in community mode
 							if (isCommMode) {
 								const choroplethExpression = getChoroplethColorExpression(
 									$visualState.choroplethMode
@@ -214,7 +197,6 @@
 						}
 						if (!map.getLayer(LAYER_CONFIG.communityAreasStroke.id)) {
 							map.addLayer(LAYER_CONFIG.communityAreasStroke);
-							// Set initial opacity based on current mode
 							const isCommMode = $visualState.aggregationLevel === 'community';
 							map.setPaintProperty('community-areas-stroke', 'line-opacity', isCommMode ? 0.8 : 0);
 						}
@@ -222,12 +204,9 @@
 						console.error('Error adding layers:', error);
 					}
 
-					// Add census tract event handlers
 					tractPopup = new TractPopup(map);
 
-					// Handle tract clicks
 					map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
-						// Only show census tract popup if we're in tract mode
 						if ($visualState.aggregationLevel !== 'tract') return;
 						
 						if (!e.features?.length) return;
@@ -236,13 +215,10 @@
 						const tractGeoid = feature.properties?.geoid;
 						const selectedTractId = $selectedAddressTractId;
 
-						// Don't show popup if this is the selected address's tract
 						if (selectedTractId && tractGeoid === selectedTractId) {
 							return;
 						}
 
-						// Use tract data directly from the map feature
-						// The PMTiles layer should have all the census tract properties
 						const tractProperties = feature.properties;
 
 						if (tractProperties && tractProperties.geoid) {
@@ -253,16 +229,13 @@
 						}
 					});
 
-					// Handle tract hover
 					map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-						// Only change cursor if we're in tract mode
 						if ($visualState.aggregationLevel !== 'tract') return;
 						
 						const feature = e.features?.[0];
 						const tractGeoid = feature?.properties?.geoid;
 						const selectedTractId = $selectedAddressTractId;
 
-						// Change cursor only if not the selected tract
 						if (!selectedTractId || tractGeoid !== selectedTractId) {
 							map.getCanvas().style.cursor = 'pointer';
 						}
@@ -274,10 +247,6 @@
 						}
 					});
 
-					// Community area clicks are now handled by the general click handler
-					// which will show census tract data instead
-
-					// Handle community area hover
 					map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, () => {
 						if ($visualState.aggregationLevel === 'community') {
 							map.getCanvas().style.cursor = 'pointer';
@@ -290,9 +259,7 @@
 						}
 					});
 
-					// Add community area click handler
 					map.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
-						// Only show community area popup if we're in community mode
 						if ($visualState.aggregationLevel !== 'community') return;
 						
 						if (!e.features?.length) return;

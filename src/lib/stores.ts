@@ -2,29 +2,11 @@ import { writable, derived } from 'svelte/store';
 import type { 
 	AddressWithServiceLine,
 	IndexedAddressCollection,
-	IndexedTractCollection,
-	CensusTract,
 	ChoroplethMode,
 	MinimalSearchIndex,
-	MinimalAddress,
 	InventoryData,
 	InventoryApiResponse
 } from './types';
-
-// Core data stores for Chicago water service line app
-export const tractStore = writable<{
-	isLoading: boolean;
-	collection: IndexedTractCollection;
-}>({
-	isLoading: true,
-	collection: {
-		collection: {
-			type: 'FeatureCollection',
-			features: []
-		},
-		index: null
-	}
-});
 
 // Minimal search index store for optimized address search
 export const minimalSearchIndexStore = writable<{
@@ -66,21 +48,6 @@ export const addressStore = writable<{
 	}
 });
 
-// Legacy data store - now returns empty data for compatibility
-export const dataStore = writable<{
-	isLoading: boolean;
-	collection: any;
-}>({
-	isLoading: true,
-	collection: {
-		collection: {
-			type: 'FeatureCollection',
-			features: []
-		},
-		index: null
-	}
-});
-
 // Address search state for Chicago water service lines
 export const searchState = writable<{
 	query: string;
@@ -95,7 +62,6 @@ export const searchState = writable<{
 });
 
 // Visualization state for Chicago choropleth
-
 export const visualState = writable<{
 	choroplethMode: ChoroplethMode;
 	showAddresses: boolean;
@@ -107,10 +73,6 @@ export const visualState = writable<{
 	selectedTract: null,
 	aggregationLevel: 'tract'
 });
-
-// Legacy color mode type (to be removed after refactoring)
-export type ColorMode = 'agency' | 'category' | 'fundingSource';
-
 
 // UI state
 export const uiState = writable<{
@@ -125,61 +87,6 @@ export const uiState = writable<{
 	searchHeaderCollapsed: false
 });
 
-// Derived states for Chicago water service lines
-export const hasSearched = derived(
-	searchState,
-	$searchState => $searchState.results.length > 0
-);
-
-export const hasSelectedAddress = derived(
-	searchState,
-	$searchState => $searchState.selectedAddress !== null
-);
-
-// Filtered address results for Chicago search
-export const filteredAddresses = derived(
-	[searchState, addressStore],
-	([$searchState, $addressStore]) => {
-		// If we have search results, return those
-		if ($searchState.results.length > 0) {
-			return $searchState.results;
-		}
-		
-		// Otherwise return all addresses from the store
-		return $addressStore.collection.collection.features.map(f => f.properties);
-	}
-);
-
-// Legacy filtered results (to be removed after refactoring)
-export const filteredResults = derived(
-	[searchState, addressStore],
-	([$searchState, $addressStore]) => {
-		// Return empty array for legacy compatibility during transition
-		return [];
-	}
-);
-
-export const currentCount = derived(
-	filteredAddresses,
-	$filteredAddresses => $filteredAddresses.length
-);
-
-// Convenience exports for Chicago water service lines
-export const searchQuery = derived(
-	searchState,
-	$state => $state.query
-);
-
-export const isSearching = derived(
-	searchState,
-	$state => $state.isSearching
-);
-
-export const selectedAddress = derived(
-	searchState,
-	$state => $state.selectedAddress
-);
-
 // Derived store for the tract ID of the selected address
 export const selectedAddressTractId = derived(
 	searchState,
@@ -189,16 +96,6 @@ export const selectedAddressTractId = derived(
 export const isAddressDataLoading = derived(
 	[addressStore, minimalSearchIndexStore],
 	([$addressStore, $minimalSearchIndexStore]) => $addressStore.isLoading || $minimalSearchIndexStore.isLoading
-);
-
-export const isSearchIndexLoading = derived(
-	minimalSearchIndexStore,
-	$state => $state.isLoading
-);
-
-export const searchIndexError = derived(
-	minimalSearchIndexStore,
-	$state => $state.error
 );
 
 export const isInventoryLoading = derived(
@@ -215,67 +112,6 @@ export const selectedAddressInventory = derived(
 	inventoryDataStore,
 	$state => $state.data
 );
-
-export const isTractDataLoading = derived(
-	tractStore,
-	$state => $state.isLoading
-);
-
-export const allAddresses = derived(
-	addressStore,
-	$state => $state.collection
-);
-
-export const allTracts = derived(
-	tractStore,
-	$state => $state.collection
-);
-
-export const selectedChoroplethMode = derived(
-	visualState,
-	$state => $state.choroplethMode
-);
-
-export const selectedTract = derived(
-	visualState,
-	$state => $state.selectedTract
-);
-
-export const showAddresses = derived(
-	visualState,
-	$state => $state.showAddresses
-);
-
-export const aggregationLevel = derived(
-	visualState,
-	$state => $state.aggregationLevel
-);
-
-// Legacy exports - returning empty/default values for compatibility
-export const isDataLoading = derived(
-	dataStore,
-	$state => false
-);
-
-export const allPoints = derived(
-	dataStore,
-	$state => $state.collection
-);
-
-export const selectedColorMode = derived(
-	visualState,
-	$state => 'fundingSource' as ColorMode
-);
-
-export const activeFilters = derived(
-	visualState,
-	$state => ({
-		fundingSource: new Set<string>()
-	})
-);
-
-// Inventory-related derived stores
-
 
 // Load minimal search index for optimized address search
 export async function loadMinimalSearchIndex(): Promise<void> {
@@ -523,33 +359,6 @@ export function previousServiceLine(): void {
 	}));
 }
 
-// Set specific service line index
-export function setServiceLineIndex(index: number): void {
-	multiServiceLineStore.update(store => ({
-		...store,
-		currentIndex: Math.max(0, Math.min(index, store.inventoryList.length - 1))
-	}));
-}
 
-// Legacy function for backward compatibility
-export async function loadAddressData(): Promise<void> {
-	console.log('loadAddressData() called - redirecting to loadMinimalSearchIndex()');
-	return loadMinimalSearchIndex();
-}
 
-// Legacy function for backward compatibility
-export async function loadSearchIndex(): Promise<void> {
-	console.log('loadSearchIndex() called - redirecting to loadMinimalSearchIndex()');
-	return loadMinimalSearchIndex();
-}
-
-// Current inventory store for popup
-export const currentInventory = writable<InventoryData | null>(null);
-
-// Load inventory data by row ID (for individual pins)
-export async function loadInventoryData(_rowId: string): Promise<void> {
-	// This function is no longer used since we don't have project pins
-	console.warn('loadInventoryData called but no longer supported');
-	currentInventory.set(null);
-}
 

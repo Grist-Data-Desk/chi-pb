@@ -33,7 +33,7 @@
 		// Address selection handles all the search functionality
 	};
 
-	// Enhanced normalization for Chicago address variants
+	// Some normalization for address variants
 	function normalizeAddress(address: string): string {
 		let normalized = address.toLowerCase()
 			// Preserve & for intersection detection before removing other punctuation
@@ -42,7 +42,7 @@
 			.replace(/\s+/g, ' ')
 			.trim();
 
-		// Handle street type variants
+		// Some street type variants
 		const streetTypeReplacements = {
 			'avenue': 'ave',
 			'street': 'st',
@@ -59,12 +59,11 @@
 			'circle': 'cir'
 		};
 
-		// Apply street type normalizations
 		for (const [full, abbrev] of Object.entries(streetTypeReplacements)) {
 			normalized = normalized.replace(new RegExp(`\\b${full}\\b`, 'g'), abbrev);
 		}
 
-		// Handle specific Chicago street name variants
+		// Some street name variants
 		const streetNameReplacements = {
 			'martin luther king jr': 'king',
 			'martin l king jr': 'king',
@@ -78,18 +77,17 @@
 			'des plaines': 'desplaines'
 		};
 
-		// Apply street name normalizations
 		for (const [variant, standard] of Object.entries(streetNameReplacements)) {
 			normalized = normalized.replace(new RegExp(`\\b${variant}\\b`, 'g'), standard);
 		}
 
-		// Handle prefix variants (LA, MC, O)
+		// Some prefix variants (LA, MC, O)
 		normalized = normalized
 			.replace(/\bla\s+/g, 'la')  // "LA SALLE" -> "lasalle"
 			.replace(/\bmc\s+/g, 'mc')  // "MC VICKER" -> "mcvicker"
 			.replace(/\bo\s+/g, 'o');   // "O BRIEN" -> "obrien"
 
-		// Handle direction variants (N, S, E, W, NE, NW, SE, SW)
+		// Direction variants (N, S, E, W, NE, NW, SE, SW)
 		const directions = ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'];
 		const directionAbbrevs = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 		
@@ -98,7 +96,6 @@
 		});
 
 		// Final cleanup - remove & unless it's being used for intersection detection
-		// This is done at the end to preserve & for intersection queries
 		normalized = normalized.replace(/[^\w\s&]/g, ' ').replace(/\s+/g, ' ').trim();
 
 		return normalized;
@@ -109,14 +106,12 @@
 		return match ? parseInt(match[0]) : null;
 	}
 
-	// Optimized search function using minimal search index
 	function searchAddressesOptimized(query: string): AddressWithServiceLine[] {
 		if (!query || query.length < 3) return [];
 		
 		const searchIndex = $minimalSearchIndexStore.index;
 		if (!searchIndex) {
 			console.log('Minimal search index not loaded, falling back to legacy search');
-			// Fallback to legacy search if index not loaded
 			return searchAddressesLegacy(query);
 		}
 		
@@ -157,7 +152,7 @@
 					
 					// All query street words must match (using prefix matching)
 					const allStreetWordsMatch = streetWords.every(queryWord => {
-						if (queryWord.length < 2) return true; // Skip very short words
+						if (queryWord.length < 3) return true; // Skip very short words
 						
 						// Check if any address word starts with the query word (prefix match)
 						return addressWords.some(addrWord => 
@@ -178,7 +173,7 @@
 				}
 			});
 		} else if (queryNumber !== null) {
-			// Just number search - find all addresses in that range
+			// Just number search (find all addresses in that range)
 			searchIndex.addresses.forEach((addr) => {
 				if (addr.num1 > 0 && addr.num2 > 0 && queryNumber >= addr.num1 && queryNumber <= addr.num2) {
 					matchingAddresses.push(addr);
@@ -545,35 +540,27 @@
 			console.error('No row ID found for suggestion:', suggestion);
 		}
 		
-		// Zoom map directly to the address coordinates
 		if (map && suggestion.lat && suggestion.long) {
 			// On mobile, we need to offset the point to appear below the search panel
-			const isMobile = window.innerWidth <= 640; // Using Tailwind's sm breakpoint
+			const isMobile = window.innerWidth <= 640;
 			
 			let targetCenter: [number, number] = [suggestion.long, suggestion.lat];
 			
 			if (isMobile) {
 				// Pre-compute the offset position
-				// At zoom 16, 1 degree latitude ≈ 69 miles ≈ 111 km
-				// We need to move the map center north (increase latitude) so the point appears lower
-				// Rough calculation: at zoom 16, the viewport shows about 0.01 degrees of latitude
-				// To offset by about 200 pixels (roughly 1/3 of mobile screen), we need about 0.0035 degrees
 				const latOffset = 0.0025;
 				targetCenter = [suggestion.long, suggestion.lat + latOffset];
 			}
 			
-			// Single smooth zoom to the (possibly offset) center
 			map.flyTo({
 				center: targetCenter,
 				zoom: 16,
 				duration: 1500
 			});
 			
-			// Add or update a highlight layer for the selected address
 			const highlightSource = 'selected-address';
 			const highlightLayer = 'selected-address-highlight';
 			
-			// Remove existing highlight if it exists
 			if (map.getLayer(highlightLayer)) {
 				map.removeLayer(highlightLayer);
 			}
@@ -581,7 +568,6 @@
 				map.removeSource(highlightSource);
 			}
 			
-			// Add highlight source and layer
 			map.addSource(highlightSource, {
 				type: 'geojson',
 				data: {
@@ -596,7 +582,6 @@
 				}
 			});
 			
-			// Initially use EARTH color while loading
 			const leadStatusColor = COLORS.EARTH;
 			
 			map.addLayer({
@@ -659,7 +644,6 @@
 				? getWorstCode($multiServiceLineStore.inventoryList)
 				: $currentServiceLine?.OverallSL_Code || $currentServiceLine?.overallCode || 'U';
 			
-			// Determine color based on display code (matching the pill colors exactly)
 			let dotColor: string = COLORS.EARTH; // Default
 			
 			if (displayCode === 'L') {
@@ -672,13 +656,10 @@
 				dotColor = COLORS.GOLD; // Unknown
 			}
 			
-			// Update the dot color
 			map.setPaintProperty(highlightLayer, 'circle-color', dotColor);
 		}
 	}
 
-	// Load search index on component mount
-	// Inventory data is loaded on-demand when address is selected
 	onMount(() => {
 		loadMinimalSearchIndex();
 	});

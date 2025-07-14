@@ -1,14 +1,10 @@
 <script lang="ts">
 	import { visualState, uiState } from '$lib/stores';
-	import { COLORS } from '$lib/utils/constants';
 	import { CHOROPLETH_CATEGORIES } from '$lib/utils/config';
 	import { fetchQuantileData, getColorScheme, formatQuantileValue } from '$lib/utils/quantiles';
-	import { onMount } from 'svelte';
 
-	// Store quantile data
 	let quantileData: { quantiles: number[]; colors: readonly string[] } | null = null;
 
-	// Fetch quantile data when mode or aggregation changes
 	$: if ($visualState.choroplethMode && $visualState.aggregationLevel) {
 		fetchQuantileData($visualState.aggregationLevel, $visualState.choroplethMode)
 			.then((data) => {
@@ -24,7 +20,6 @@
 			});
 	}
 
-	// Get variable description
 	function getVariableDescription(mode: string) {
 		switch (mode) {
 			case 'pct_requires_replacement':
@@ -52,7 +47,6 @@
 		}));
 	}
 
-	// Fixed panel width
 	const panelWidth = 350;
 
 	function handleAggregationChange(event: Event) {
@@ -176,7 +170,7 @@
 					{#each quantileData.colors as color}
 						<div
 							class="quantile-box h-3 flex-1 rounded-sm"
-							style="background-color: {color};"
+							style="background-color: {color}; opacity: 0.7;"
 						></div>
 					{/each}
 				</div>
@@ -206,7 +200,6 @@
 		background-color: white;
 	}
 
-	/* Aggregation selector styles */
 	.aggregation-selector__background {
 		position: absolute;
 		top: 0;
@@ -301,7 +294,6 @@
 		border-right: none;
 	}
 
-	/* Quantile legend styles */
 	.quantile-legend {
 		padding: 0.5rem 0;
 	}

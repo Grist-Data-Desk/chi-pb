@@ -96,7 +96,6 @@ async function processGeoJSON() {
     }
   }
   
-  // Write results to a TypeScript file
   const outputPath = path.join(__dirname, '../../src/lib/utils/quantile-data.ts');
   const output = `// Auto-generated quantile data
 // Generated on ${new Date().toISOString()}

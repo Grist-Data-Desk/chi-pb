@@ -8,7 +8,6 @@ export interface QuantileData {
 	colors: readonly string[];
 }
 
-// Get color scheme based on mode
 export function getColorScheme(mode: string): readonly string[] {
 	switch (mode) {
 		case 'pct_poverty':
@@ -22,7 +21,6 @@ export function getColorScheme(mode: string): readonly string[] {
 	}
 }
 
-// Get quantile data from pre-calculated values
 export async function fetchQuantileData(
 	aggregationLevel: 'tract' | 'community',
 	mode: string
@@ -32,13 +30,12 @@ export async function fetchQuantileData(
 
 	if (data) {
 		return {
-			values: [], // We don't store the full values array to save space
+			values: [],
 			quantiles: [...data.quantiles],
 			colors: getColorScheme(mode)
 		};
 	}
 
-	// Return default data if not found
 	console.warn(`No quantile data found for ${key}`);
 	return {
 		values: [],
@@ -47,7 +44,6 @@ export async function fetchQuantileData(
 	};
 }
 
-// Get quantile color expression for MapLibre
 export function getQuantileColorExpression(
 	mode: string,
 	quantiles: number[],
@@ -55,29 +51,24 @@ export function getQuantileColorExpression(
 ): any[] {
 	const expression: any[] = ['case'];
 
-	// Add null check
 	expression.push(['==', ['get', mode], null]);
 	expression.push(COLORS.SMOG); // Smog color for null values
 
-	// Add flag check for lead visualization
 	if (mode === 'pct_requires_replacement') {
 		expression.push(['==', ['get', 'flag'], 'TRUE']);
 		expression.push(COLORS.SMOG); // Smog color for flagged areas
 	}
 
-	// Add quantile steps
 	for (let i = 0; i < quantiles.length; i++) {
 		expression.push(['<', ['get', mode], quantiles[i]]);
 		expression.push(colors[i]);
 	}
 
-	// Final color for values above all quantiles
 	expression.push(colors[colors.length - 1]);
 
 	return expression;
 }
 
-// Format quantile value for display
 export function formatQuantileValue(value: number): string {
 	return `${Math.round(value)}%`;
 }

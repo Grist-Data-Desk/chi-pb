@@ -20,11 +20,10 @@ interface MinimalAddress {
 	row: number;        // Original row ID for inventory lookup
 	lat: number;        // Latitude for map zoom
 	long: number;       // Longitude for map zoom
-	// NO lead status - will be fetched on-demand via API
 }
 
 interface MinimalSearchIndex {
-	// Maps for fast lookups
+	// Maps for lookups
 	streetNames: Record<string, number[]>;  // normalized street -> address IDs
 	addresses: MinimalAddress[];            // minimal address data by ID
 	metadata: {
@@ -35,14 +34,14 @@ interface MinimalSearchIndex {
 	};
 }
 
-// Enhanced normalization for Chicago address variants
+// Normalization for address variants
 function normalizeStreetName(street: string): string {
 	let normalized = street.toLowerCase()
 		.replace(/[^\w\s]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim();
 
-	// Handle street type variants
+	// Some street type variants
 	const streetTypeReplacements = {
 		'avenue': 'ave',
 		'street': 'st',
@@ -59,12 +58,11 @@ function normalizeStreetName(street: string): string {
 		'circle': 'cir'
 	};
 
-	// Apply street type normalizations
 	for (const [full, abbrev] of Object.entries(streetTypeReplacements)) {
 		normalized = normalized.replace(new RegExp(`\\b${full}\\b`, 'g'), abbrev);
 	}
 
-	// Handle specific Chicago street name variants
+	// Some street name variants
 	const streetNameReplacements = {
 		'martin luther king jr': 'king',
 		'martin l king jr': 'king',
@@ -78,18 +76,17 @@ function normalizeStreetName(street: string): string {
 		'des plaines': 'desplaines'
 	};
 
-	// Apply street name normalizations
 	for (const [variant, standard] of Object.entries(streetNameReplacements)) {
 		normalized = normalized.replace(new RegExp(`\\b${variant}\\b`, 'g'), standard);
 	}
 
-	// Handle prefix variants (LA, MC, O)
+	// Some prefix variants (LA, MC, O)
 	normalized = normalized
 		.replace(/\bla\s+/g, 'la')  // "LA SALLE" -> "lasalle"
 		.replace(/\bmc\s+/g, 'mc')  // "MC VICKER" -> "mcvicker"
 		.replace(/\bo\s+/g, 'o');   // "O BRIEN" -> "obrien"
 
-	// Handle direction variants (N, S, E, W, NE, NW, SE, SW)
+	// Direction variants (N, S, E, W, NE, NW, SE, SW)
 	const directions = ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'];
 	const directionAbbrevs = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 	
@@ -145,7 +142,6 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 					row,
 					lat,
 					long
-					// NO leadStatus - fetched on-demand
 				};
 
 				addresses.push(minimalAddress);
@@ -186,7 +182,7 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 					}
 				}
 
-				// Build street name index (more comprehensive than before)
+				// Build street name index
 				if (normalizedStreet) {
 					// Index full street name
 					if (!streetNameIndex[normalizedStreet]) {
@@ -252,15 +248,12 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 					}
 				};
 
-				// Write uncompressed version
 				const jsonString = JSON.stringify(searchIndex);
 				fs.writeFileSync(outputPath, jsonString, { encoding: 'utf8' });
 
-				// Write compressed version
 				const compressed = await brotliCompressAsync(Buffer.from(jsonString));
 				fs.writeFileSync(`${outputPath}.br`, compressed);
 
-				// Write metadata
 				const metadata = {
 					contentType: 'application/json',
 					contentEncoding: 'br',
@@ -284,10 +277,8 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 	});
 }
 
-// Main execution
 const outputDir = path.join(__dirname, '../data/processed');
 
-// Ensure output directory exists
 if (!fs.existsSync(outputDir)) {
 	fs.mkdirSync(outputDir, { recursive: true });
 }

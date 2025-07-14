@@ -59,7 +59,6 @@ export class TractPopup {
 			return value.toLocaleString();
 		};
 
-		// Check if this is a community area or census tract
 		const isCommunityArea = data.community !== undefined;
 
 		if (isCommunityArea) {

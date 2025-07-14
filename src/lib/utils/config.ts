@@ -10,7 +10,6 @@ export const CSV_PATH = 'chi-pb/data/csv';
 export const SEARCH_INDEX_PATH = 'chi-pb/data/search';
 export const STYLES_PATH = 'chi-pb/styles';
 
-// Chicago water service line categories based on OverallSL Code values
 export const LEAD_STATUS_CATEGORIES = {
 	L: 'Lead',
 	GRR: 'Galvanized Requiring Replacement',
@@ -24,7 +23,6 @@ export const CHOROPLETH_CATEGORIES = {
 };
 
 export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecification }> = {
-	// Chicago water service line sources
 	censusTracts: {
 		id: 'census-tracts',
 		config: {
@@ -39,10 +37,8 @@ export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecifica
 			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/chi-comm-areas.pmtiles?v=${Date.now()}`
 		}
 	}
-	// Chicago water service line sources only
 };
 
-// Get color scale interpolator based on mode
 export function getColorInterpolator(mode: string) {
 	switch (mode) {
 		case 'pct_poverty':
@@ -56,43 +52,33 @@ export function getColorInterpolator(mode: string) {
 	}
 }
 
-// Chicago-specific color expressions for choropleth visualization
 export function getChoroplethColorExpression(mode: string) {
 	const interpolator = getColorInterpolator(mode);
 	const steps: [number, string][] = [];
 
-	// Generate 10 color steps (0-90 by 10s)
 	for (let i = 0; i <= 90; i += 10) {
-		// Map percentage to 0.1-0.9 range for better color visibility
 		const t = 0.1 + (i / 90) * 0.8;
 		steps.push([i, interpolator(t)]);
 	}
 
 	const expression: any[] = ['case'];
 	
-	// Add null check first
 	expression.push(['==', ['get', mode], null]);
 	expression.push(COLORS.SMOG);
 	
-	// Add flag check for lead visualization
 	if (mode === 'pct_requires_replacement') {
 		expression.push(['==', ['get', 'flag'], 'TRUE']);
 		expression.push(COLORS.SMOG);
 	}
 	
-	// Add interpolation for non-null, non-flagged values
 	expression.push(['interpolate', ['linear'], ['coalesce', ['get', mode], 0], ...steps.flat()]);
 	
 	return expression;
 }
 
-// Export the quantile-based color expression
 export { getQuantileExpression };
 
-// Legacy color expressions (removed - no longer needed)
-
 export const LAYER_CONFIG: Record<string, AddLayerObject> = {
-	// Chicago water service line layers
 	censusTractsFill: {
 		id: 'census-tracts-fill',
 		source: 'census-tracts',
@@ -104,7 +90,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 			visibility: 'visible'
 		},
 		paint: {
-			'fill-color': COLORS.EARTH, // Default color, will be updated reactively
+			'fill-color': COLORS.EARTH,
 			'fill-opacity': 0.7
 		}
 	},
@@ -132,10 +118,10 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		minzoom: 0,
 		maxzoom: 22,
 		layout: {
-			visibility: 'visible' // Always visible for querying
+			visibility: 'visible' 
 		},
 		paint: {
-			'fill-color': COLORS.EARTH, // Default color, will be updated reactively
+			'fill-color': COLORS.EARTH, 
 			'fill-opacity': 0.7
 		}
 	},
@@ -147,7 +133,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		minzoom: 0,
 		maxzoom: 22,
 		layout: {
-			visibility: 'visible' // Always visible for querying
+			visibility: 'visible' 
 		},
 		paint: {
 			'line-color': '#ffffff',
@@ -155,8 +141,4 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 			'line-opacity': 0.8
 		}
 	}
-	// Legacy layers removed to prevent errors - sources don't exist in chi-pb bucket
-	// projectsPoints: { ... }
-	// reservationsPolygons: { ... }
-	// reservationLabels: { ... }
 };

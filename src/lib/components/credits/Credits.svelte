@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { uiState } from '$lib/stores';
-	import { BUILD_DATE } from '$lib/buildInfo';
 
 	function toggleCredits() {
 		uiState.update(state => ({ 

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as url from 'node:url';
+import 'dotenv/config';
 
 import {
 	PutObjectCommand,
@@ -86,8 +87,8 @@ function deriveContentType(file: string): string {
  * Ocean Spaces bucket.
  */
 async function main(): Promise<void> {
-	const accessKeyId = process.env.DO_SPACES_KEY;
-	const secretAccessKey = process.env.DO_SPACES_SECRET;
+	const accessKeyId = process.env.DO_SPACES_KEY || '';
+	const secretAccessKey = process.env.DO_SPACES_SECRET || '';
 
 	if (!accessKeyId || !secretAccessKey) {
 		throw new Error('DO_SPACES_KEY and DO_SPACES_SECRET environment variables must be set');

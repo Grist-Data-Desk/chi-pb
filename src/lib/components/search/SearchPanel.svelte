@@ -548,7 +548,7 @@
 			
 			if (isMobile) {
 				// Pre-compute the offset position
-				const latOffset = 0.0025;
+				const latOffset = 0.0175;
 				targetCenter = [suggestion.long, suggestion.lat + latOffset];
 			}
 			

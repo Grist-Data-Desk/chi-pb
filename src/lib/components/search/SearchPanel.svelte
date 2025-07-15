@@ -554,7 +554,7 @@
 			
 			map.flyTo({
 				center: targetCenter,
-				zoom: 16,
+				zoom: 13,
 				duration: 1500
 			});
 			

@@ -1,12 +1,12 @@
 name: chicago-water-service-lines
 functions:
-- name: inventory-lookup
-  source_dir: functions/inventory-lookup
-  github:
-    repo: Grist-Data-Desk/chi-pb
-    branch: main
-    deploy_on_push: true
-  routes:
-  - path: /api/inventory-lookup
-  environment_slug: node-js
-  run_command: node index.js
+  - name: inventory-lookup
+    source_dir: functions/inventory-lookup
+    github:
+      repo: Grist-Data-Desk/chi-pb
+      branch: main
+      deploy_on_push: true
+    routes:
+      - path: /api/inventory-lookup
+    environment_slug: node-js
+    run_command: node index.js

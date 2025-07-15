@@ -1,7 +1,7 @@
 {
-  "name": "inventory-lookup-v2",
-  "version": "2.0.0",
-  "description": "Address-only water service line inventory lookup",
-  "main": "index.js",
-  "dependencies": {}
+	"name": "inventory-lookup-v2",
+	"version": "2.0.0",
+	"description": "Address-only water service line inventory lookup",
+	"main": "index.js",
+	"dependencies": {}
 }

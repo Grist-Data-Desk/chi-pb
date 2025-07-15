@@ -59,15 +59,12 @@ Interactive web application for Chicago residents to check if their water servic
 
 ### Data Processing Pipeline
 
-- `pnpm gen:addresses` - Convert geocoded addresses CSV to GeoJSON
-- `pnpm gen:inventory` - Process water service line inventory data
 - `pnpm gen:search` - Generate minimal search index for address autocomplete
 - `pnpm gen:inventory-lookup` - Create inventory lookup data for serverless function
 - `pnpm gen:pmtiles` - Convert GeoJSON to PMTiles format
 - `pnpm gen:quantiles` - Calculate quantile breakpoints for choropleth map layers
-- `pnpm process:data` - Run all generation scripts in sequence
-- `pnpm upload:pmtiles` - Upload PMTiles to storage
-- `pnpm upload:csv` - Upload inventory CSV for serverless function
+- `pnpm process:data` - Run all generation scripts in sequence (search, inventory, pmtiles, quantiles)
+- `pnpm upload:pmtiles` - Upload PMTiles to Digital Ocean Spaces
 - `pnpm upload:search` - Upload search index
 - `pnpm upload:inventory-lookup` - Upload inventory lookup data
 - `pnpm upload:styles` - Upload map styles
@@ -119,6 +116,7 @@ Interactive web application for Chicago residents to check if their water servic
 ## Lead Status Categories
 
 The map displays water service lines in four categories:
+
 - 🔴 **Lead (L)**: Confirmed lead service line
 - 🟠 **Galvanized Requiring Replacement (GRR)**: Galvanized pipes that need replacement
 - 🟡 **Unknown (U)**: Service line material is unknown
@@ -127,6 +125,7 @@ The map displays water service lines in four categories:
 ## Choropleth Map Layers
 
 The map supports census tract visualization with three demographic overlays:
+
 - **Percent Requires Replacement**: Percentage of addresses requiring lead pipe replacement
 - **Percent Poverty**: Poverty rate percentage by census tract
 - **Percent Minority**: Minority population percentage by census tract
@@ -138,9 +137,9 @@ These overlays use quantile-based color scales calculated from the census data. 
 The map can be embedded in other websites using an `iframe`. Here's an example:
 
 ```html
-<iframe 
-  src="https://grist.org/project/chi-water-service-lines/" 
-  style="margin-left: calc(50% - 50vw); width: 100vw; height: calc(100vh - 66px); border: 0; margin-bottom: 10px;"
+<iframe
+	src="https://grist.org/project/chi-water-service-lines/"
+	style="margin-left: calc(50% - 50vw); width: 100vw; height: calc(100vh - 66px); border: 0; margin-bottom: 10px;"
 ></iframe>
 ```
 

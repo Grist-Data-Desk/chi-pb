@@ -1,9 +1,9 @@
 {
-  "name": "inventory-lookup",
-  "version": "1.0.0",
-  "description": "DigitalOcean Function for Chicago water service line inventory lookup",
-  "main": "index.js",
-  "engines": {
-    "node": ">=18"
-  }
+	"name": "inventory-lookup",
+	"version": "1.0.0",
+	"description": "DigitalOcean Function for Chicago water service line inventory lookup",
+	"main": "index.js",
+	"engines": {
+		"node": ">=18"
+	}
 }

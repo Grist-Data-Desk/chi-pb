@@ -477,7 +477,7 @@
 	
 	.scrollbar-position {
 		/* Move scrollbar to the right without affecting content width */
-		margin-right: -10px;
+		margin-right: 0px;
 	}
 	
 	/* On mobile, adjust to align with search button */

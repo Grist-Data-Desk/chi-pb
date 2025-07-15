@@ -665,7 +665,7 @@
 	});
 </script>
 
-<div class="relative col-span-1 space-y-4 overflow-visible rounded-lg border border-slate-200">
+<div class="search-panel relative col-span-1 space-y-4 overflow-visible rounded-lg border border-slate-200">
 
 	{#if !$uiState.searchHeaderCollapsed}
 		<div class="relative z-10">
@@ -788,6 +788,11 @@
 </div>
 
 <style lang="postcss">
+	.search-panel {
+		/* Ensure consistent width regardless of scrollbar */
+		box-sizing: border-box;
+	}
+
 	.suggestions {
 		@apply absolute left-0 z-50 mt-1 max-h-[300px] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg;
 		width: 200%;

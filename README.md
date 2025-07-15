@@ -64,6 +64,7 @@ Interactive web application for Chicago residents to check if their water servic
 - `pnpm gen:search` - Generate minimal search index for address autocomplete
 - `pnpm gen:inventory-lookup` - Create inventory lookup data for serverless function
 - `pnpm gen:pmtiles` - Convert GeoJSON to PMTiles format
+- `pnpm gen:quantiles` - Calculate quantile breakpoints for choropleth map layers
 - `pnpm process:data` - Run all generation scripts in sequence
 - `pnpm upload:pmtiles` - Upload PMTiles to storage
 - `pnpm upload:csv` - Upload inventory CSV for serverless function
@@ -122,6 +123,15 @@ The map displays water service lines in four categories:
 - 🟠 **Galvanized Requiring Replacement (GRR)**: Galvanized pipes that need replacement
 - 🟡 **Unknown (U)**: Service line material is unknown
 - 🟢 **Non-Lead (NL)**: Confirmed non-lead service line
+
+## Choropleth Map Layers
+
+The map supports census tract visualization with three demographic overlays:
+- **Percent Requires Replacement**: Percentage of addresses requiring lead pipe replacement
+- **Percent Poverty**: Poverty rate percentage by census tract
+- **Percent Minority**: Minority population percentage by census tract
+
+These overlays use quantile-based color scales calculated from the census data. The quantile breakpoints are automatically generated when processing data.
 
 ## Embedding the Map
 

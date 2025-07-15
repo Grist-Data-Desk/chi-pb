@@ -47,7 +47,7 @@
 		}));
 	}
 
-	const panelWidth = 350;
+	const panelWidth = 370;
 
 	function handleAggregationChange(event: Event) {
 		const target = event.target as HTMLInputElement;

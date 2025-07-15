@@ -130,29 +130,35 @@ export class TractPopup {
 							</div>
 						</div>
 						
-						${(data.median_household_income !== undefined || data.pct_minority !== undefined || data.pct_poverty !== undefined) ? `
-							<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 12px;">Demographics</p>
-							<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px;">
-								<table style="width: 100%; font-size: 11px;">
-									<tr ${data.median_household_income !== undefined && (data.pct_minority !== undefined || data.pct_poverty !== undefined) ? 'style="border-bottom: 1px solid #e5e7eb;"' : ''}>
-										<td style="padding: 4px 0; color: #6b7280;">Median Income</td>
-										<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatCurrency(data.median_household_income)}</td>
-									</tr>
-									${data.pct_minority !== undefined ? `
-										<tr ${data.pct_poverty !== undefined ? 'style="border-bottom: 1px solid #e5e7eb;"' : ''}>
-											<td style="padding: 4px 0; color: #6b7280;">Minority Population</td>
-											<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_minority)}</td>
-										</tr>
-									` : ''}
-									${data.pct_poverty !== undefined ? `
-										<tr>
-											<td style="padding: 4px 0; color: #6b7280;">Poverty Rate</td>
-											<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_poverty)}</td>
-										</tr>
-									` : ''}
-								</table>
-							</div>
-						` : ''}
+						<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 12px;">Demographics</p>
+						<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px;">
+							<table style="width: 100%; font-size: 11px;">
+								<tr style="border-bottom: 1px solid #e5e7eb;">
+									<td style="padding: 4px 0; color: #6b7280;">Median Income</td>
+									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatCurrency(data.median_household_income)}</td>
+								</tr>
+								<tr style="border-bottom: 1px solid #e5e7eb;">
+									<td style="padding: 4px 0; color: #6b7280;">Poverty Rate</td>
+									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_poverty)}</td>
+								</tr>
+								<tr style="border-bottom: 1px solid #e5e7eb;">
+									<td style="padding: 4px 0; color: #6b7280;">Black Population</td>
+									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_black_nonhispanic || data.pct_black)}</td>
+								</tr>
+								<tr style="border-bottom: 1px solid #e5e7eb;">
+									<td style="padding: 4px 0; color: #6b7280;">White Population</td>
+									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_white_nonhispanic)}</td>
+								</tr>
+								<tr style="border-bottom: 1px solid #e5e7eb;">
+									<td style="padding: 4px 0; color: #6b7280;">Asian Population</td>
+									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_asian_nonhispanic)}</td>
+								</tr>
+								<tr>
+									<td style="padding: 4px 0; color: #6b7280;">Minority Population</td>
+									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_minority)}</td>
+								</tr>
+							</table>
+						</div>
 					</div>
 				</div>
 			`;

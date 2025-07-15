@@ -1,5 +1,4 @@
 import type { Point, FeatureCollection } from 'geojson';
-import type KDBush from 'kdbush';
 
 export interface Address {
 	row: number;
@@ -39,7 +38,7 @@ export interface AddressWithServiceLine extends Address {
 
 export interface IndexedAddressCollection {
 	collection: FeatureCollection<Point>;
-	index: KDBush | null;
+	index: null;
 	addresses?: AddressWithServiceLine[]; 
 }
 

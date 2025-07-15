@@ -187,7 +187,8 @@
 </script>
 
 {#if address}
-	<div class="mt-4 max-h-[calc(100vh-29rem)] overflow-y-auto space-y-3 sm:space-y-4 scrollbar-thin">
+	<div class="mt-4 max-h-[calc(100vh-29rem)] overflow-y-auto scrollbar-thin scrollbar-position">
+		<div class="space-y-3 sm:space-y-4">
 		<!-- Address Information -->
 		<div class="rounded-lg border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
 			<h3 class="mt-0 mb-0 font-['PolySans'] text-base sm:text-lg font-medium text-slate-800">
@@ -455,20 +456,38 @@
 				</div>
 			{/if}
 		</div>
+		</div>
 	</div>
 {/if}
 
 <style>
 	.scrollbar-thin {
+		/* Reserve space for scrollbar to prevent layout shift */
+		scrollbar-gutter: stable;
+		
+		/* For Firefox - auto hide */
 		scrollbar-width: thin;
-		scrollbar-color: transparent transparent;
-		transition: scrollbar-color 0.3s;
+		scrollbar-color: rgba(0, 0, 0, 0) transparent;
 	}
 	
 	.scrollbar-thin:hover {
-		scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+		/* Show scrollbar on hover for Firefox */
+		scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
 	}
 	
+	.scrollbar-position {
+		/* Move scrollbar to the right without affecting content width */
+		margin-right: -10px;
+	}
+	
+	/* On mobile, adjust to align with search button */
+	@media (max-width: 640px) {
+		.scrollbar-position {
+			margin-right: 0;
+		}
+	}
+	
+	/* For Webkit browsers */
 	.scrollbar-thin::-webkit-scrollbar {
 		width: 6px;
 	}
@@ -478,16 +497,16 @@
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar-thumb {
-		background: transparent;
+		background: rgba(0, 0, 0, 0);
 		border-radius: 3px;
-		transition: background 0.3s;
+		transition: background 0.2s;
 	}
 	
 	.scrollbar-thin:hover::-webkit-scrollbar-thumb {
-		background: rgba(0, 0, 0, 0.2);
+		background: rgba(0, 0, 0, 0.1);
 	}
 	
 	.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-		background: rgba(0, 0, 0, 0.3);
+		background: rgba(0, 0, 0, 0.2);
 	}
 </style>

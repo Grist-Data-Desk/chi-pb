@@ -33,7 +33,7 @@
 		<button
 			type="button"
 			class="flex h-[29px] w-[29px] items-center justify-center bg-white transition-colors hover:bg-slate-50"
-			on:click={toggleCredits}
+			onclick={toggleCredits}
 			aria-label={ui.creditsExpanded ? 'Collapse credits' : 'Expand credits'}
 		>
 			<svg

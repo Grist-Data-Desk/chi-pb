@@ -106,7 +106,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		},
 		paint: {
 			'line-color': '#ffffff',
-			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 12, 1.5],
+			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.25, 12, 1],
 			'line-opacity': 0.8
 		}
 	},
@@ -137,7 +137,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		},
 		paint: {
 			'line-color': '#ffffff',
-			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 12, 1.5],
+			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 12, 1],
 			'line-opacity': 0.8
 		}
 	}

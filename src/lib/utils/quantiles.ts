@@ -1,6 +1,8 @@
 import { schemeReds, schemeBlues, schemePurples } from 'd3-scale-chromatic';
+import type { AggregationLevel, ChoroplethMode } from '$lib/types';
 import { QUANTILE_DATA } from './quantile-data';
 import { COLORS } from './constants';
+import type { ExpressionSpecification } from 'maplibre-gl';
 
 export interface QuantileData {
 	values: number[];
@@ -8,22 +10,20 @@ export interface QuantileData {
 	colors: readonly string[];
 }
 
-export function getColorScheme(mode: string): readonly string[] {
+export function getColorScheme(mode: ChoroplethMode): readonly string[] {
 	switch (mode) {
-		case 'pct_poverty':
-			return schemeReds[5];
 		case 'pct_minority':
+			return schemePurples[5];
+		case 'pct_poverty':
 			return schemeBlues[5];
 		case 'pct_requires_replacement':
-			return schemePurples[5];
-		default:
-			return schemePurples[5];
+			return schemeReds[5];
 	}
 }
 
 export async function fetchQuantileData(
-	aggregationLevel: 'tract' | 'community',
-	mode: string
+	aggregationLevel: AggregationLevel,
+	mode: ChoroplethMode
 ): Promise<QuantileData> {
 	const key = `${aggregationLevel}-${mode}`;
 	const data = QUANTILE_DATA[key as keyof typeof QUANTILE_DATA];
@@ -48,7 +48,7 @@ export function getQuantileColorExpression(
 	mode: string,
 	quantiles: number[],
 	colors: readonly string[]
-): any[] {
+): ExpressionSpecification[] {
 	const expression: any[] = ['case'];
 
 	expression.push(['==', ['get', mode], null]);

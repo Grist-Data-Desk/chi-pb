@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { searchState, visualState, uiState, selectedAddressTractId } from '$lib/stores';
+	import { ui } from '$lib/state/ui.svelte';
+	import { searchState, selectedAddressTractId } from '$lib/stores';
+	import { visualization } from '$lib/state/visualization.svelte';
 	import { TABLET_BREAKPOINT } from '$lib/utils/constants';
 	import maplibregl from 'maplibre-gl';
 	import * as pmtiles from 'pmtiles';
-	import 'maplibre-gl/dist/maplibre-gl.css';
-	import '../app.css';
+
 	import { TractPopup } from '$lib/utils/popup';
 	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
@@ -21,21 +22,13 @@
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Credits from '$lib/components/credits/Credits.svelte';
 
-	let map: maplibregl.Map;
-	let innerWidth: number;
-	let browser = false;
-	let currentPopup: maplibregl.Popup | null = null;
-	let tractPopup: TractPopup | null = null;
-
-	$: isTabletOrAbove = innerWidth > TABLET_BREAKPOINT;
-
-	$: if ($selectedAddressTractId && tractPopup) {
-		tractPopup.removePopup();
-	}
-
-	$: if (tractPopup && ($visualState.choroplethMode || $visualState.aggregationLevel)) {
-		tractPopup.removePopup();
-	}
+	// State.
+	let map = $state<maplibregl.Map | null>(null);
+	let browser = $state(false);
+	let currentPopup = $state<maplibregl.Popup | null>(null);
+	let tractPopup = $state<TractPopup | null>(null);
+	let innerWidth = $state<number>(0);
+	let isTabletOrAbove = $derived(innerWidth > TABLET_BREAKPOINT);
 
 	class ResetViewControl {
 		onAdd(map: maplibregl.Map) {
@@ -55,13 +48,11 @@
 					selectedAddress: null
 				});
 
-				uiState.update(state => ({
-					...state,
-					searchHeaderCollapsed: false,
-					creditsExpanded: true
-				}));
+				ui.searchHeaderCollapsed = false;
+				ui.creditsExpanded = true;
 
-				// Don't reset the visualState for the legend - let users keep their choropleth mode selection
+				// Don't reset the visualization state for the legend - let users keep
+				// their choropleth mode selection.
 
 				if (map.getLayer('selected-address-highlight')) {
 					map.removeLayer('selected-address-highlight');
@@ -86,8 +77,8 @@
 	async function updateMapFilters() {
 		if (!map) return;
 
-		const currentChoroplethMode = $visualState.choroplethMode;
-		const aggregationLevel = $visualState.aggregationLevel;
+		const currentChoroplethMode = visualization.choroplethMode;
+		const aggregationLevel = visualization.aggregationLevel;
 
 		if (aggregationLevel === 'tract') {
 			map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0.7);
@@ -132,10 +123,6 @@
 		}
 	}
 
-	$: if (browser && map && $visualState) {
-		updateMapFilters();
-	}
-
 	onMount(() => {
 		const setupMap = async () => {
 			browser = true;
@@ -161,11 +148,13 @@
 				map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 				map.addControl(new ResetViewControl(), 'top-right');
 
-				map.on('load', () => {
+				map.on('load', (e) => {
+					const m = e.target;
+
 					Object.values(SOURCE_CONFIG).forEach(({ id, config }) => {
 						try {
-							if (!map.getSource(id)) {
-								map.addSource(id, config);
+							if (!m.getSource(id)) {
+								m.addSource(id, config);
 							}
 						} catch (error) {
 							console.error(`Error adding source ${id}:`, error);
@@ -173,42 +162,42 @@
 					});
 
 					try {
-						if (!map.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
-							map.addLayer(LAYER_CONFIG.censusTractsFill);
+						if (!m.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
+							m.addLayer(LAYER_CONFIG.censusTractsFill);
 							const choroplethExpression = getChoroplethColorExpression(
-								$visualState.choroplethMode
+								visualization.choroplethMode
 							);
-							map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
+							m.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
 						}
-						if (!map.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
-							map.addLayer(LAYER_CONFIG.censusTractsStroke);
+						if (!m.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
+							m.addLayer(LAYER_CONFIG.censusTractsStroke);
 						}
-						if (!map.getLayer(LAYER_CONFIG.communityAreasFill.id)) {
-							map.addLayer(LAYER_CONFIG.communityAreasFill);
-							const isCommMode = $visualState.aggregationLevel === 'community';
-							map.setPaintProperty('community-areas-fill', 'fill-opacity', isCommMode ? 0.7 : 0);
-							
+						if (!m.getLayer(LAYER_CONFIG.communityAreasFill.id)) {
+							m.addLayer(LAYER_CONFIG.communityAreasFill);
+							const isCommMode = visualization.aggregationLevel === 'community';
+							m.setPaintProperty('community-areas-fill', 'fill-opacity', isCommMode ? 0.7 : 0);
+
 							if (isCommMode) {
 								const choroplethExpression = getChoroplethColorExpression(
-									$visualState.choroplethMode
+									visualization.choroplethMode
 								);
-								map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
+								m.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
 							}
 						}
-						if (!map.getLayer(LAYER_CONFIG.communityAreasStroke.id)) {
-							map.addLayer(LAYER_CONFIG.communityAreasStroke);
-							const isCommMode = $visualState.aggregationLevel === 'community';
-							map.setPaintProperty('community-areas-stroke', 'line-opacity', isCommMode ? 0.8 : 0);
+						if (!m.getLayer(LAYER_CONFIG.communityAreasStroke.id)) {
+							m.addLayer(LAYER_CONFIG.communityAreasStroke);
+							const isCommMode = visualization.aggregationLevel === 'community';
+							m.setPaintProperty('community-areas-stroke', 'line-opacity', isCommMode ? 0.8 : 0);
 						}
 					} catch (error) {
 						console.error('Error adding layers:', error);
 					}
 
-					tractPopup = new TractPopup(map);
+					tractPopup = new TractPopup(m);
 
-					map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
-						if ($visualState.aggregationLevel !== 'tract') return;
-						
+					m.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
+						if (visualization.aggregationLevel !== 'tract') return;
+
 						if (!e.features?.length) return;
 
 						const feature = e.features[0];
@@ -229,39 +218,39 @@
 						}
 					});
 
-					map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-						if ($visualState.aggregationLevel !== 'tract') return;
-						
+					m.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
+						if (visualization.aggregationLevel !== 'tract') return;
+
 						const feature = e.features?.[0];
 						const tractGeoid = feature?.properties?.geoid;
 						const selectedTractId = $selectedAddressTractId;
 
 						if (!selectedTractId || tractGeoid !== selectedTractId) {
-							map.getCanvas().style.cursor = 'pointer';
+							m.getCanvas().style.cursor = 'pointer';
 						}
 					});
 
-					map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, () => {
-						if ($visualState.aggregationLevel === 'tract') {
-							map.getCanvas().style.cursor = '';
+					m.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, () => {
+						if (visualization.aggregationLevel === 'tract') {
+							m.getCanvas().style.cursor = '';
 						}
 					});
 
-					map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, () => {
-						if ($visualState.aggregationLevel === 'community') {
-							map.getCanvas().style.cursor = 'pointer';
+					m.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, () => {
+						if (visualization.aggregationLevel === 'community') {
+							m.getCanvas().style.cursor = 'pointer';
 						}
 					});
 
-					map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, () => {
-						if ($visualState.aggregationLevel === 'community') {
-							map.getCanvas().style.cursor = '';
+					m.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, () => {
+						if (visualization.aggregationLevel === 'community') {
+							m.getCanvas().style.cursor = '';
 						}
 					});
 
-					map.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
-						if ($visualState.aggregationLevel !== 'community') return;
-						
+					m.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
+						if (visualization.aggregationLevel !== 'community') return;
+
 						if (!e.features?.length) return;
 
 						const feature = e.features[0];
@@ -276,7 +265,7 @@
 					});
 
 					if (!isTabletOrAbove) {
-						map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+						m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 						const attrib = document.querySelector('.maplibregl-ctrl-attrib');
 						attrib?.classList.remove('maplibregl-compact-show');
 						attrib?.removeAttribute('open');
@@ -295,36 +284,39 @@
 			}
 		};
 	});
+
+	// Effects.
+	$effect(() => {
+		if (browser && map && visualization) {
+			updateMapFilters();
+		}
+	});
+
+	$effect(() => {
+		if ($selectedAddressTractId && tractPopup) {
+			tractPopup.removePopup();
+		}
+	});
+
+	$effect(() => {
+		if (tractPopup && (visualization.choroplethMode || visualization.aggregationLevel)) {
+			tractPopup.removePopup();
+		}
+	});
 </script>
 
 <svelte:window bind:innerWidth />
-<main class="absolute inset-0 flex flex-col overflow-hidden font-['Basis_Grotesque']">
-	<div class="relative flex-1" class:blur-sm={$uiState.resultsExpanded}>
+<main class="absolute inset-0 flex flex-col overflow-hidden font-sans">
+	<div class="relative flex-1">
 		<div id="map-container" class="relative h-full">
 			<ExpandLegend />
 			<Legend />
-			<div class="floating-panel absolute left-[3%] top-4 z-10 w-[94%] p-4 md:left-4 md:w-[400px]">
+			<div class="floating-panel absolute top-4 left-[3%] z-10 w-[94%] p-4 md:left-4 md:w-[400px]">
 				<SearchPanel {map} />
 				<Credits />
 			</div>
 		</div>
 	</div>
-
-	{#if $uiState.resultsExpanded}
-		<div
-			class="absolute inset-0 z-10 bg-black/5 backdrop-blur-[2px] transition-opacity duration-300"
-			on:click={() => uiState.update((state) => ({ ...state, resultsExpanded: false }))}
-			on:keydown={(e) => {
-				if (e.key === 'Enter' || e.key === 'Space') {
-					e.preventDefault();
-					uiState.update((state) => ({ ...state, resultsExpanded: false }));
-				}
-			}}
-			role="button"
-			tabindex="0"
-			aria-label="Close results table"
-		></div>
-	{/if}
 </main>
 
 <div class="logo-container">

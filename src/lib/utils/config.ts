@@ -1,7 +1,9 @@
-import type { SourceSpecification, AddLayerObject } from 'maplibre-gl';
+import type { AddLayerObject, SourceSpecification } from 'maplibre-gl';
+import { interpolateBlues, interpolateReds, interpolatePurples } from 'd3-scale-chromatic';
+
 import { COLORS } from '$lib/utils/constants';
-import { interpolateReds, interpolateBlues, interpolatePurples } from 'd3-scale-chromatic';
 import { getQuantileColorExpression as getQuantileExpression } from '$lib/utils/quantiles';
+import type { ChoroplethMode } from '$lib/types';
 
 export const DO_SPACES_URL = 'https://grist.nyc3.cdn.digitaloceanspaces.com';
 export const PMTILES_PATH = 'chi-pb/data/pmtiles';
@@ -39,20 +41,18 @@ export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecifica
 	}
 };
 
-export function getColorInterpolator(mode: string) {
+function getColorInterpolator(mode: ChoroplethMode) {
 	switch (mode) {
 		case 'pct_poverty':
-			return interpolateReds;
-		case 'pct_minority':
 			return interpolateBlues;
+		case 'pct_minority':
+			return interpolatePurples;
 		case 'pct_requires_replacement':
-			return interpolatePurples;
-		default:
-			return interpolatePurples;
+			return interpolateReds;
 	}
 }
 
-export function getChoroplethColorExpression(mode: string) {
+export function getChoroplethColorExpression(mode: ChoroplethMode) {
 	const interpolator = getColorInterpolator(mode);
 	const steps: [number, string][] = [];
 
@@ -62,17 +62,17 @@ export function getChoroplethColorExpression(mode: string) {
 	}
 
 	const expression: any[] = ['case'];
-	
+
 	expression.push(['==', ['get', mode], null]);
 	expression.push(COLORS.SMOG);
-	
+
 	if (mode === 'pct_requires_replacement') {
 		expression.push(['==', ['get', 'flag'], 'TRUE']);
 		expression.push(COLORS.SMOG);
 	}
-	
+
 	expression.push(['interpolate', ['linear'], ['coalesce', ['get', mode], 0], ...steps.flat()]);
-	
+
 	return expression;
 }
 
@@ -118,10 +118,10 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		minzoom: 0,
 		maxzoom: 22,
 		layout: {
-			visibility: 'visible' 
+			visibility: 'visible'
 		},
 		paint: {
-			'fill-color': COLORS.EARTH, 
+			'fill-color': COLORS.EARTH,
 			'fill-opacity': 0.7
 		}
 	},
@@ -133,7 +133,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		minzoom: 0,
 		maxzoom: 22,
 		layout: {
-			visibility: 'visible' 
+			visibility: 'visible'
 		},
 		paint: {
 			'line-color': '#ffffff',

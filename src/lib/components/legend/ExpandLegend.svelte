@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { uiState } from '$lib/stores';
+	import { ui } from '$lib/state/ui.svelte';
 
 	function onClick() {
-		uiState.update(state => ({ ...state, legendExpanded: !state.legendExpanded }));
+		ui.legendExpanded = !ui.legendExpanded;
 	}
 </script>
 
 <div
-	class="absolute bottom-6 left-[3%] z-10 rounded border border-earth bg-smog shadow backdrop-blur md:hidden"
+	class="border-earth bg-smog absolute bottom-6 left-[3%] z-10 rounded-sm border shadow-sm backdrop-blur-sm md:hidden"
 >
 	<button
 		class="flex h-8 items-center justify-center gap-1 px-2"
@@ -27,6 +27,6 @@
 				fill="currentColor"
 			></path></svg
 		>
-		<span class="font-['Basis_Grotesque'] text-xs">Filters</span>
+		<span class="font-sans text-xs">Filters</span>
 	</button>
 </div>

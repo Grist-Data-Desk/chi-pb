@@ -1,26 +1,21 @@
 <script lang="ts">
-	import { visualState, uiState } from '$lib/stores';
+	import { ui } from '$lib/state/ui.svelte';
+	import { visualization } from '$lib/state/visualization.svelte';
+	import type { AggregationLevel, ChoroplethMode } from '$lib/types';
 	import { CHOROPLETH_CATEGORIES } from '$lib/utils/config';
 	import { fetchQuantileData, getColorScheme, formatQuantileValue } from '$lib/utils/quantiles';
 
-	let quantileData: { quantiles: number[]; colors: readonly string[] } | null = null;
+	// Constants.
+	const CHOROPLETH_MODES = Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => ({
+		value: key,
+		label: label.replace('Household ', '').replace('Percent ', '% ')
+	}));
 
-	$: if ($visualState.choroplethMode && $visualState.aggregationLevel) {
-		fetchQuantileData($visualState.aggregationLevel, $visualState.choroplethMode)
-			.then((data) => {
-				quantileData = data;
-			})
-			.catch((error) => {
-				console.error('Error fetching quantile data:', error);
-				// Use default data as fallback
-				quantileData = {
-					quantiles: [20, 40, 60, 80],
-					colors: getColorScheme($visualState.choroplethMode)
-				};
-			});
-	}
+	// State.
+	let quantileData = $state<{ quantiles: number[]; colors: readonly string[] } | null>(null);
 
-	function getVariableDescription(mode: string) {
+	// Event handlers.
+	function getVariableDescription(mode: ChoroplethMode) {
 		switch (mode) {
 			case 'pct_requires_replacement':
 				return 'Percentage of service lines requiring replacement';
@@ -33,37 +28,42 @@
 		}
 	}
 
-	// Choropleth modes
-	const choroplethModes = Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => ({
-		value: key,
-		label: label.replace('Household ', '').replace('Percent ', '% ')
-	}));
+	function handleModeChange(event: Event & { currentTarget: HTMLInputElement }) {
+		const target = event.currentTarget;
 
-	function handleModeChange(event: Event) {
-		const target = event.target as HTMLInputElement;
-		visualState.update((state) => ({
-			...state,
-			choroplethMode: target.value as typeof state.choroplethMode
-		}));
+		visualization.choroplethMode = target.value as ChoroplethMode;
 	}
 
-	const panelWidth = 370;
+	function handleAggregationChange(event: Event & { currentTarget: HTMLInputElement }) {
+		const target = event.currentTarget;
 
-	function handleAggregationChange(event: Event) {
-		const target = event.target as HTMLInputElement;
-		visualState.update((state) => ({
-			...state,
-			aggregationLevel: target.value as 'tract' | 'community'
-		}));
+		visualization.aggregationLevel = target.value as AggregationLevel;
 	}
+
+	// Effects.
+	$effect(() => {
+		if (visualization.choroplethMode && visualization.aggregationLevel) {
+			fetchQuantileData(visualization.aggregationLevel, visualization.choroplethMode)
+				.then((data) => {
+					quantileData = data;
+				})
+				.catch((error) => {
+					console.error('Error fetching quantile data:', error);
+					// Use default data as fallback
+					quantileData = {
+						quantiles: [20, 40, 60, 80],
+						colors: getColorScheme(visualization.choroplethMode)
+					};
+				});
+		}
+	});
 </script>
 
 <div
 	class={[
-		'floating-panel absolute z-[15] bg-white px-4 pb-0.5 pt-0.5 shadow-lg md:bottom-auto md:left-auto md:right-[calc(16px+48px)] md:top-4 md:block',
-		$uiState.legendExpanded ? 'bottom-[calc(1.5rem+2.5rem)] left-[3%] right-[3%] md:left-auto md:right-[calc(16px+48px)]' : 'hidden'
+		'floating-panel absolute z-15 w-[94%] px-4 py-0.5 shadow-lg md:top-4 md:right-16 md:bottom-auto md:left-auto md:block md:w-[370px]',
+		ui.legendExpanded ? 'right-[3%] bottom-16 left-[3%] md:right-16 md:left-auto' : 'hidden'
 	]}
-	style="width: {panelWidth}px"
 >
 	<div class="mb-0 flex items-center gap-1">
 		<svg
@@ -78,50 +78,55 @@
 				clip-rule="evenodd"
 			/>
 		</svg>
-		<p class="font-['Basis_Grotesque'] text-xs leading-tight text-gray-500">
-			Select a data layer to visualize
-		</p>
+		<p class="font-sans text-xs leading-tight text-gray-500">Select a data layer to visualize</p>
 	</div>
 	<div class="mb-3">
-		<p class="mb-1 font-['Basis_Grotesque'] text-[10px] uppercase tracking-wider text-gray-500">
-			Aggregation Level
-		</p>
-		<div class="aggregation-selector relative grid grid-cols-2">
+		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">Aggregation Level</p>
+		<div class="relative grid grid-cols-2 bg-white">
 			<div
-				class="aggregation-selector__background"
-				class:tract={$visualState.aggregationLevel === 'tract'}
-				class:community={$visualState.aggregationLevel === 'community'}
+				class={[
+					'bg-earth absolute top-0 left-0 z-10 h-full w-1/2 transition-transform duration-300 ease-in-out',
+					visualization.aggregationLevel === 'community' && 'translate-x-full'
+				]}
 			></div>
-			<div class="aggregation-selector__radio-container relative">
+			<div class="relative border border-gray-200 bg-white">
 				<input
 					type="radio"
 					value="tract"
 					id="tract-radio"
-					checked={$visualState.aggregationLevel === 'tract'}
-					on:change={handleAggregationChange}
-					class="aggregation-selector__radio-input absolute opacity-0"
+					checked={visualization.aggregationLevel === 'tract'}
+					onchange={handleAggregationChange}
+					class="absolute opacity-0"
 				/>
 				<label
 					for="tract-radio"
-					class="aggregation-selector__radio-label relative z-10 block cursor-pointer px-2 py-1.5 text-center font-['PolySans'] text-xs"
-					class:active={$visualState.aggregationLevel === 'tract'}
+					class={[
+						'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
+						visualization.aggregationLevel === 'tract'
+							? 'text-white'
+							: 'text-earth hover:bg-gray-100'
+					]}
 				>
 					Census Tracts
 				</label>
 			</div>
-			<div class="aggregation-selector__radio-container relative">
+			<div class="relative border border-l-0 border-gray-200 bg-white">
 				<input
 					type="radio"
 					value="community"
 					id="community-radio"
-					checked={$visualState.aggregationLevel === 'community'}
-					on:change={handleAggregationChange}
-					class="aggregation-selector__radio-input absolute opacity-0"
+					checked={visualization.aggregationLevel === 'community'}
+					onchange={handleAggregationChange}
+					class="absolute opacity-0"
 				/>
 				<label
 					for="community-radio"
-					class="aggregation-selector__radio-label relative z-10 block cursor-pointer px-2 py-1.5 text-center font-['PolySans'] text-xs"
-					class:active={$visualState.aggregationLevel === 'community'}
+					class={[
+						'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
+						visualization.aggregationLevel === 'community'
+							? 'text-white'
+							: 'text-earth hover:bg-gray-100'
+					]}
 				>
 					Community Areas
 				</label>
@@ -129,30 +134,35 @@
 		</div>
 	</div>
 	<div class="mb-3">
-		<p class="mb-1 font-['Basis_Grotesque'] text-[10px] uppercase tracking-wider text-gray-500">
-			Data Visualization
-		</p>
-		<div class="mode-selector relative mb-2 grid grid-cols-3">
+		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">Data Visualization</p>
+		<div class="relative mb-2 grid grid-cols-3 bg-white">
 			<div
-				class="mode-selector__background"
-				class:replacement={$visualState.choroplethMode === 'pct_requires_replacement'}
-				class:poverty={$visualState.choroplethMode === 'pct_poverty'}
-				class:minority={$visualState.choroplethMode === 'pct_minority'}
+				class={[
+					'bg-earth absolute top-0 left-0 z-10 h-full w-1/3 transition-transform duration-300 ease-in-out',
+					{
+						'translate-x-full': visualization.choroplethMode === 'pct_poverty',
+						'translate-x-[200%]': visualization.choroplethMode === 'pct_minority'
+					}
+				]}
 			></div>
-			{#each choroplethModes as mode}
-				<div class="mode-selector__radio-container relative">
+			{#each CHOROPLETH_MODES as mode}
+				<div class="relative border border-gray-200 bg-white not-last:border-r-0">
 					<input
 						type="radio"
-						bind:group={$visualState.choroplethMode}
+						bind:group={visualization.choroplethMode}
 						id="{mode.value}-radio"
 						value={mode.value}
-						class="mode-selector__radio-input absolute opacity-0"
-						on:change={handleModeChange}
+						class="absolute opacity-0"
+						onchange={handleModeChange}
 					/>
 					<label
 						for="{mode.value}-radio"
-						class="mode-selector__radio-label relative z-10 block cursor-pointer px-2 py-1.5 text-center font-['PolySans'] text-xs"
-						class:active={$visualState.choroplethMode === mode.value}
+						class={[
+							'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
+							visualization.choroplethMode === mode.value
+								? 'text-white'
+								: 'text-earth hover:bg-gray-100'
+						]}
 					>
 						{mode.label}
 					</label>
@@ -161,29 +171,29 @@
 		</div>
 	</div>
 	<div class="mt-6">
-		<p class="mb-1 font-['Basis_Grotesque'] text-[10px] uppercase tracking-wider text-gray-500">
-			{getVariableDescription($visualState.choroplethMode)}
+		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">
+			{getVariableDescription(visualization.choroplethMode)}
 		</p>
 		{#if quantileData}
-			<div class="quantile-legend">
-				<div class="quantile-boxes flex gap-0.5">
+			<div class="py-2">
+				<div class="flex gap-0.5">
 					{#each quantileData.colors as color}
 						<div
-							class="quantile-box h-3 flex-1 rounded-sm"
+							class="h-3 flex-1 rounded-xs inset-ring inset-ring-[rgba(0,0,0,0.1)]"
 							style="background-color: {color}; opacity: 0.7;"
 						></div>
 					{/each}
 				</div>
-				<div class="quantile-labels mt-1.5 flex text-[10px] text-gray-600">
-					<span class="flex-1 font-['Basis_Grotesque']">0%</span>
+				<div class="quantile-labels text-2xs mt-1.5 flex text-gray-500">
+					<span class="flex-1 font-sans">0%</span>
 					{#each quantileData.quantiles as quantile, i}
-						<span class="flex-1 font-['Basis_Grotesque']">
+						<span class="flex-1 font-sans">
 							{i === quantileData.quantiles.length - 1 ? '≥' : ''}{formatQuantileValue(quantile)}
 						</span>
 					{/each}
 				</div>
-				<p class="mt-1.5 mb-0.5 font-['Basis_Grotesque'] text-xs italic leading-tight text-gray-500">
-					Each color represents 20% of {$visualState.aggregationLevel === 'tract'
+				<p class="mt-1.5 mb-0.5 font-sans text-xs leading-tight text-gray-500 italic">
+					Each color represents 20% of {visualization.aggregationLevel === 'tract'
 						? 'census tracts'
 						: 'community areas'} (quintiles)
 				</p>
@@ -193,112 +203,3 @@
 		{/if}
 	</div>
 </div>
-
-<style lang="postcss">
-	.aggregation-selector,
-	.mode-selector {
-		background-color: white;
-	}
-
-	.aggregation-selector__background {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 50%;
-		height: 100%;
-		background-color: theme(colors.earth);
-		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		z-index: 1;
-	}
-
-	.aggregation-selector__background.tract {
-		transform: translateX(0);
-	}
-
-	.aggregation-selector__background.community {
-		transform: translateX(100%);
-	}
-
-	.aggregation-selector__radio-container {
-		position: relative;
-		background-color: white;
-		border: 1px solid theme(colors.gray.200);
-	}
-
-	.aggregation-selector__radio-container:not(:last-child) {
-		border-right: none;
-	}
-
-	.aggregation-selector__radio-label {
-		transition-property: color, background-color;
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 150ms;
-	}
-
-	.aggregation-selector__radio-label:hover {
-		color: theme(colors.earth);
-		background-color: theme(colors.gray.100);
-	}
-
-	.aggregation-selector__radio-label.active {
-		color: white;
-		background-color: transparent;
-	}
-
-	.mode-selector__background {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 33.333%;
-		height: 100%;
-		background-color: theme(colors.earth);
-		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		z-index: 1;
-	}
-
-	.mode-selector__background.replacement {
-		transform: translateX(0);
-	}
-
-	.mode-selector__background.poverty {
-		transform: translateX(100%);
-	}
-
-	.mode-selector__background.minority {
-		transform: translateX(200%);
-	}
-
-	.mode-selector__radio-label {
-		transition-property: color, background-color;
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 150ms;
-	}
-
-	.mode-selector__radio-label:hover {
-		color: theme(colors.earth);
-		background-color: theme(colors.gray.100);
-	}
-
-	.mode-selector__radio-label.active {
-		color: white;
-		background-color: transparent;
-	}
-
-	.mode-selector__radio-container {
-		position: relative;
-		background-color: white;
-		border: 1px solid theme(colors.gray.200);
-	}
-
-	.mode-selector__radio-container:not(:last-child) {
-		border-right: none;
-	}
-
-	.quantile-legend {
-		padding: 0.5rem 0;
-	}
-
-	.quantile-box {
-		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
-	}
-</style>

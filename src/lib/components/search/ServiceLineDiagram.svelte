@@ -1,200 +1,277 @@
 <script lang="ts">
 	import { COLORS } from '$lib/utils/constants';
 	import { multiServiceLineStore, serviceLineCount } from '$lib/stores';
-	
-	export let utilitySideMaterial: string = 'U';
-	export let gooseneckMaterial: string = 'U';
-	export let customerSideMaterial: string = 'U';
-	export let overallCode: string = 'U';
-	
-	function getMaterialColor(material: string): string {
-		if (!material) return COLORS.GOLD;
-		
-		const materialUpper = material.toUpperCase();
-		
-		// Lead materials (red)
-		if (materialUpper === 'L') {
-			return COLORS.RED;
-		}
-		
-		// Galvanized Requiring Replacement (orange)
-		if (materialUpper === 'GRR') {
-			return COLORS.ORANGE;
-		}
-		
-		// Copper with Lead Solder (orange)
-		if (materialUpper === 'CLS') {
-			return COLORS.ORANGE;
-		}
-		
-		// Non-lead materials (turquoise)
-		if (materialUpper === 'C' || // Copper - No Lead Solder
-			materialUpper === 'P' || // Plastic - PVC, HDPE, PEX
-			materialUpper === 'NL') { // Non-Lead classification
-			return COLORS.TURQUOISE;
-		}
-		
-		// Galvanized (not requiring replacement) (teal)
-		if (materialUpper === 'G') {
-			return COLORS.TEAL;
-		}
-		
-		// Cast/Ductile Iron or Transite (cobalt)
-		if (materialUpper === 'O') {
-			return COLORS.COBALT;
-		}
-		
-		// Unknown not lead (gold)
-		if (materialUpper === 'UNL') {
-			return COLORS.GOLD;
-		}
-		
-		// Unknown (gold)
-		if (materialUpper === 'U') {
-			return COLORS.GOLD;
-		}
-		
-		// Default to unknown
-		return COLORS.GOLD;
+
+	interface Props {
+		utilitySideMaterial: string;
+		gooseneckMaterial: string;
+		customerSideMaterial: string;
+		overallCode: string;
 	}
-	
-	$: utilityColor = getMaterialColor(utilitySideMaterial);
-	$: gooseneckColor = getMaterialColor(gooseneckMaterial);
-	$: customerColor = getMaterialColor(customerSideMaterial);
-	
+
+	let { utilitySideMaterial, gooseneckMaterial, customerSideMaterial, overallCode }: Props =
+		$props();
+
+	// State.
+	let utilityColor = $derived(getMaterialColor(utilitySideMaterial));
+	let gooseneckColor = $derived(getMaterialColor(gooseneckMaterial));
+	let customerColor = $derived(getMaterialColor(customerSideMaterial));
+
+	// Helpers.
+	function getMaterialColor(material: string): string {
+		if (!material) {
+			return COLORS.GOLD;
+		}
+
+		const materialUpper = material.toUpperCase();
+
+		switch (materialUpper) {
+			case 'L': // Lead
+				return COLORS.RED;
+			case 'GRR': // Galvanized Requiring Replacement
+			case 'CLS': // Copper with Lead Solder
+				return COLORS.ORANGE;
+			case 'C':
+			case 'P':
+			case 'NL': // Non-Lead Materials
+				return COLORS.TURQUOISE;
+			case 'G': // Galvanized (not requiring replacement)
+				return COLORS.TEAL;
+			case 'O': // Cast/Ductile Iron or Transite
+				return COLORS.COBALT;
+			case 'UNL': // Unknown (Not Lead)
+			case 'U': // Unknown
+				return COLORS.GOLD;
+			default:
+				return COLORS.GOLD;
+		}
+	}
+
 	function getMaterialLabel(material: string): string {
-		if (!material) return 'Unknown';
-		
+		if (!material) {
+			return 'Unknown';
+		}
+
 		switch (material.toUpperCase()) {
-			case 'C': 
+			case 'C':
 				return 'Copper - No Lead Solder';
-			case 'CLS': 
+			case 'CLS':
 				return 'Copper - Lead Solder';
-			case 'G': 
+			case 'G':
 				return 'Galvanized';
-			case 'GRR': 
+			case 'GRR':
 				return 'Galvanized Requiring Replacement';
-			case 'L': 
+			case 'L':
 				return 'Lead';
-			case 'O': 
+			case 'O':
 				return 'Cast/Ductile Iron or Transite';
-			case 'P': 
+			case 'P':
 				return 'Plastic - PVC, HDPE, PEX';
-			case 'U': 
+			case 'U':
 				return 'Unknown (Suspected Lead)';
-			case 'UNL': 
+			case 'UNL':
 				return 'Unknown (Not Lead)';
-			case 'NL': 
+			case 'NL':
 				return 'Non-Lead';
-			default: 
+			default:
 				return material;
 		}
 	}
-	
+
 	function splitLabel(label: string): { line1: string; line2?: string } {
 		if (label.length <= 20) {
 			return { line1: label };
 		}
-		
-		if (label === 'Unknown (Suspected Lead)') {
-			return { line1: 'Unknown', line2: '(Suspected Lead)' };
+
+		switch (label) {
+			case 'Unknown (Suspected Lead)':
+				return { line1: 'Unknown', line2: '(Suspected Lead)' };
+			case 'Unknown (Not Lead)':
+				return { line1: 'Unknown', line2: '(Not Lead)' };
+			case 'Galvanized Requiring Replacement':
+				return { line1: 'Galvanized Requiring', line2: 'Replacement' };
+			case 'Cast/Ductile Iron or Transite':
+				return { line1: 'Cast/Ductile Iron', line2: 'or Transite' };
+			case 'Copper - No Lead Solder':
+				return { line1: 'Copper -', line2: 'No Lead Solder' };
+			case 'Copper - Lead Solder':
+				return { line1: 'Copper -', line2: 'Lead Solder' };
+			case 'Plastic - PVC, HDPE, PEX':
+				return { line1: 'Plastic -', line2: 'PVC, HDPE, PEX' };
+			default: {
+				const words = label.split(' ');
+				const midpoint = Math.ceil(words.length / 2);
+				return {
+					line1: words.slice(0, midpoint).join(' '),
+					line2: words.slice(midpoint).join(' ')
+				};
+			}
 		}
-		if (label === 'Unknown (Not Lead)') {
-			return { line1: 'Unknown', line2: '(Not Lead)' };
-		}
-		if (label === 'Galvanized Requiring Replacement') {
-			return { line1: 'Galvanized Requiring', line2: 'Replacement' };
-		}
-		if (label === 'Cast/Ductile Iron or Transite') {
-			return { line1: 'Cast/Ductile Iron', line2: 'or Transite' };
-		}
-		if (label === 'Copper - No Lead Solder') {
-			return { line1: 'Copper -', line2: 'No Lead Solder' };
-		}
-		if (label === 'Copper - Lead Solder') {
-			return { line1: 'Copper -', line2: 'Lead Solder' };
-		}
-		if (label === 'Plastic - PVC, HDPE, PEX') {
-			return { line1: 'Plastic -', line2: 'PVC, HDPE, PEX' };
-		}
-		
-		const words = label.split(' ');
-		const midpoint = Math.ceil(words.length / 2);
-		return {
-			line1: words.slice(0, midpoint).join(' '),
-			line2: words.slice(midpoint).join(' ')
-		};
 	}
 </script>
 
 <div class="w-full">
 	<!-- Service Line Diagram -->
-	<svg viewBox="0 0 550 260" class="w-full h-auto max-h-60" xmlns="http://www.w3.org/2000/svg">
+	<svg
+		viewBox="0 0 550 260"
+		class="h-auto max-h-60 w-full font-sans"
+		xmlns="http://www.w3.org/2000/svg"
+	>
 		<!-- Background -->
-		<rect x="0" y="0" width="550" height="260" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="8"/>
-		
+		<rect
+			x="0"
+			y="0"
+			width="550"
+			height="260"
+			fill="#f8fafc"
+			stroke="#e2e8f0"
+			stroke-width="1"
+			rx="8"
+		/>
+
 		<!-- Overall classification indicator -->
 		<g transform="translate(275, 35)">
 			{#if overallCode === 'L'}
-				<rect x="-35" y="-12" width="70" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
+				<rect
+					x="-35"
+					y="-12"
+					width="70"
+					height="24"
+					fill={getMaterialColor(overallCode)}
+					stroke="#ffffff"
+					stroke-width="2"
+					rx="12"
+					opacity="0.9"
+				/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Lead</text>
 			{:else if overallCode === 'GRR'}
-				<rect x="-120" y="-12" width="240" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
-				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Galvanized Requiring Replacement</text>
+				<rect
+					x="-120"
+					y="-12"
+					width="240"
+					height="24"
+					fill={getMaterialColor(overallCode)}
+					stroke="#ffffff"
+					stroke-width="2"
+					rx="12"
+					opacity="0.9"
+				/>
+				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold"
+					>Galvanized Requiring Replacement</text
+				>
 			{:else if overallCode === 'NL'}
-				<rect x="-50" y="-12" width="100" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
+				<rect
+					x="-50"
+					y="-12"
+					width="100"
+					height="24"
+					fill={getMaterialColor(overallCode)}
+					stroke="#ffffff"
+					stroke-width="2"
+					rx="12"
+					opacity="0.9"
+				/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Non-Lead</text>
 			{:else if overallCode === 'U'}
-				<rect x="-100" y="-12" width="200" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
-				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Unknown (Suspected Lead)</text>
+				<rect
+					x="-100"
+					y="-12"
+					width="200"
+					height="24"
+					fill={getMaterialColor(overallCode)}
+					stroke="#ffffff"
+					stroke-width="2"
+					rx="12"
+					opacity="0.9"
+				/>
+				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold"
+					>Unknown (Suspected Lead)</text
+				>
 			{:else}
-				<rect x="-70" y="-12" width="140" height="24" fill={getMaterialColor(overallCode)} stroke="#ffffff" stroke-width="2" rx="12" opacity="0.9"/>
-				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Unknown Status</text>
+				<rect
+					x="-70"
+					y="-12"
+					width="140"
+					height="24"
+					fill={getMaterialColor(overallCode)}
+					stroke="#ffffff"
+					stroke-width="2"
+					rx="12"
+					opacity="0.9"
+				/>
+				<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold"
+					>Unknown Status</text
+				>
 			{/if}
 		</g>
-		
+
 		<!-- Service line counter indicator if multiple -->
 		{#if $serviceLineCount > 1}
 			<g transform="translate(500, 35)">
-				<circle cx="0" cy="0" r="20" fill={COLORS.COBALT} stroke="#ffffff" stroke-width="2" opacity="0.9"/>
+				<circle
+					cx="0"
+					cy="0"
+					r="20"
+					fill={COLORS.COBALT}
+					stroke="#ffffff"
+					stroke-width="2"
+					opacity="0.9"
+				/>
 				<text x="0" y="4" text-anchor="middle" class="fill-white text-xs font-bold">
 					{$multiServiceLineStore.currentIndex + 1}/{$serviceLineCount}
 				</text>
 			</g>
 		{/if}
-		
+
 		<!-- Public/Customer Side Headers -->
-		<text x="170" y="80" text-anchor="middle" class="fill-slate-700 text-sm font-semibold">Public Side</text>
-		<text x="450" y="80" text-anchor="middle" class="fill-slate-700 text-sm font-semibold">Private Side</text>
-		
+		<text x="170" y="80" text-anchor="middle" class="fill-slate-700 text-sm font-semibold"
+			>Public Side</text
+		>
+		<text x="450" y="80" text-anchor="middle" class="fill-slate-700 text-sm font-semibold"
+			>Private Side</text
+		>
+
 		<!-- Dividing line between public and customer sides -->
-		<line x1="370" y1="95" x2="370" y2="220" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,4" opacity="0.5"/>
-		
+		<line
+			x1="370"
+			y1="95"
+			x2="370"
+			y2="220"
+			stroke="#94a3b8"
+			stroke-width="2"
+			stroke-dasharray="4,4"
+			opacity="0.5"
+		/>
+
 		<!-- Labels -->
-		<text x="40" y="110" text-anchor="middle" class="fill-slate-600 text-sm font-medium">Water main</text>
-		<text x="140" y="110" text-anchor="middle" class="fill-slate-600 text-sm font-medium">Gooseneck</text>
-		
+		<text x="40" y="110" text-anchor="middle" class="fill-slate-600 text-sm font-medium"
+			>Water main</text
+		>
+		<text x="140" y="110" text-anchor="middle" class="fill-slate-600 text-sm font-medium"
+			>Gooseneck</text
+		>
+
 		<!-- Utility portion label with text wrapping -->
 		<text x="285" y="105" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
 			<tspan x="285" dy="0">Utility portion</tspan>
 			<tspan x="285" dy="14">of service line</tspan>
 		</text>
-		
+
 		<!-- Customer portion label with text wrapping -->
 		<text x="450" y="105" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
 			<tspan x="450" dy="0">Customer portion</tspan>
 			<tspan x="450" dy="14">of service line</tspan>
 		</text>
-		
+
 		<!-- Water main (Circle on far left) -->
 		<circle cx="40" cy="160" r="25" fill={COLORS.EARTH} stroke="#ffffff" stroke-width="2">
 			<title>Water main</title>
 		</circle>
-		
+
 		<!-- Gooseneck (Connects water main to utility side) -->
 		<g>
 			<!-- S-curve gooseneck path -->
-			<path 
+			<path
 				d="M 65,160 C 100,160 100,142.5 132.5,142.5 C 167.5,142.5 167.5,160 200,160"
 				fill="none"
 				stroke={gooseneckColor}
@@ -203,18 +280,18 @@
 			>
 				<title>Gooseneck: {getMaterialLabel(gooseneckMaterial)}</title>
 			</path>
-			
+
 			<!-- White outline for better definition -->
-			<path 
+			<path
 				d="M 65,160 C 100,160 100,142.5 132.5,142.5 C 167.5,142.5 167.5,160 200,160"
 				fill="none"
 				stroke="#ffffff"
 				stroke-width="15"
 				stroke-linecap="round"
 			/>
-			
+
 			<!-- Reapply colored path -->
-			<path 
+			<path
 				d="M 65,160 C 100,160 100,142.5 132.5,142.5 C 167.5,142.5 167.5,160 200,160"
 				fill="none"
 				stroke={gooseneckColor}
@@ -222,17 +299,35 @@
 				stroke-linecap="round"
 			/>
 		</g>
-		
+
 		<!-- Utility Side Pipe -->
-		<rect x="200" y="142.5" width="170" height="35" fill={utilityColor} stroke="#ffffff" stroke-width="2" rx="4">
+		<rect
+			x="200"
+			y="142.5"
+			width="170"
+			height="35"
+			fill={utilityColor}
+			stroke="#ffffff"
+			stroke-width="2"
+			rx="4"
+		>
 			<title>Utility Side: {getMaterialLabel(utilitySideMaterial)}</title>
 		</rect>
-		
+
 		<!-- Customer Side Pipe (Narrower) -->
-		<rect x="370" y="147.5" width="140" height="25" fill={customerColor} stroke="#ffffff" stroke-width="2" rx="4">
+		<rect
+			x="370"
+			y="147.5"
+			width="140"
+			height="25"
+			fill={customerColor}
+			stroke="#ffffff"
+			stroke-width="2"
+			rx="4"
+		>
 			<title>Customer Side: {getMaterialLabel(customerSideMaterial)}</title>
 		</rect>
-		
+
 		<!-- Material labels below pipes with text wrapping -->
 		<text x="140" y="200" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
 			{#if splitLabel(getMaterialLabel(gooseneckMaterial)).line2}
@@ -260,9 +355,3 @@
 		</text>
 	</svg>
 </div>
-
-<style>
-	text {
-		font-family: 'Basis Grotesque', system-ui, sans-serif;
-	}
-</style>

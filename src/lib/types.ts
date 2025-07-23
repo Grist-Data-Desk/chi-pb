@@ -39,28 +39,35 @@ export interface AddressWithServiceLine extends Address {
 export interface IndexedAddressCollection {
 	collection: FeatureCollection<Point>;
 	index: null;
-	addresses?: AddressWithServiceLine[]; 
+	addresses?: AddressWithServiceLine[];
 }
 
+/**
+ * Represents the core attribute used for the main choropleth map visualization.
+ */
 export type ChoroplethMode = 'pct_requires_replacement' | 'pct_poverty' | 'pct_minority';
 
+/**
+ * Represents the level of aggregation used for the main choropleth map visualization.
+ */
+export type AggregationLevel = 'tract' | 'community';
 
 export interface MinimalAddress {
 	id: number;
-	display: string;    // "1234 N State St"
-	street: string;     // normalized street name for search
-	num1: number;       // start house number
-	num2: number;       // end house number
+	display: string; // "1234 N State St"
+	street: string; // normalized street name for search
+	num1: number; // start house number
+	num2: number; // end house number
 	zip: string;
-	row: number;        // row number from source data for inventory lookup
-	lat: number;        // Latitude for map zoom
-	long: number;       // Longitude for map zoom
+	row: number; // row number from source data for inventory lookup
+	lat: number; // Latitude for map zoom
+	long: number; // Longitude for map zoom
 	serviceLineCount?: number; // Number of service lines at this address
 }
 
 export interface MinimalSearchIndex {
-	streetNames: Record<string, number[]>;  // normalized street -> address IDs
-	addresses: MinimalAddress[];            // minimal address data by ID
+	streetNames: Record<string, number[]>; // normalized street -> address IDs
+	addresses: MinimalAddress[]; // minimal address data by ID
 	metadata: {
 		totalAddresses: number;
 		uniqueStreets: number;

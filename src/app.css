@@ -32,6 +32,10 @@
 		backdrop-filter: blur(4px);
 	}
 
+	.maplibregl-ctrl-attrib.maplibregl-compact-show {
+		@apply my-0!;
+	}
+
 	.floating-panel {
 		@apply border-earth bg-smog rounded-sm border border-solid shadow-md;
 	}
@@ -49,12 +53,12 @@
 	}
 
 	.logo-container {
-		@apply fixed right-[3%] bottom-[55px] z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200;
+		@apply fixed right-[calc(3%+2rem)] bottom-6 z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200;
 	}
 
 	@media (min-width: 768px) {
 		.logo-container {
-			@apply right-4 bottom-4;
+			@apply right-4 bottom-12;
 		}
 	}
 

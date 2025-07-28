@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { ui } from '$lib/state/ui.svelte';
-	import { searchState, selectedAddressTractId } from '$lib/stores';
-	import { visualization } from '$lib/state/visualization.svelte';
-	import { TABLET_BREAKPOINT } from '$lib/utils/constants';
 	import maplibregl from 'maplibre-gl';
 	import * as pmtiles from 'pmtiles';
+	import { onMount } from 'svelte';
 
-	import { TractPopup } from '$lib/utils/popup';
-	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
+	import Credits from '$lib/components/credits/Credits.svelte';
+	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
+	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
+	import { ui } from '$lib/state/ui.svelte';
+	import { visualization } from '$lib/state/visualization.svelte';
+	import { searchState, selectedAddressTractId } from '$lib/stores';
 	import {
 		SOURCE_CONFIG,
 		LAYER_CONFIG,
@@ -18,9 +18,9 @@
 		getChoroplethColorExpression,
 		getQuantileExpression
 	} from '$lib/utils/config';
+	import { TABLET_BREAKPOINT } from '$lib/utils/constants';
+	import { TractPopup } from '$lib/utils/popup';
 	import { fetchQuantileData } from '$lib/utils/quantiles';
-	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
-	import Credits from '$lib/components/credits/Credits.svelte';
 
 	// State.
 	let map = $state<maplibregl.Map | null>(null);
@@ -139,8 +139,7 @@
 					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.7, 42.02],
 					zoom: isTabletOrAbove ? 10 : 9,
 					minZoom: 8,
-					maxZoom: 18,
-					attributionControl: false
+					maxZoom: 18
 				});
 
 				map.scrollZoom.disable();
@@ -163,17 +162,17 @@
 
 					try {
 						if (!m.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
-							m.addLayer(LAYER_CONFIG.censusTractsFill);
+							m.addLayer(LAYER_CONFIG.censusTractsFill, 'road-label-simple');
 							const choroplethExpression = getChoroplethColorExpression(
 								visualization.choroplethMode
 							);
 							m.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
 						}
 						if (!m.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
-							m.addLayer(LAYER_CONFIG.censusTractsStroke);
+							m.addLayer(LAYER_CONFIG.censusTractsStroke, 'road-label-simple');
 						}
 						if (!m.getLayer(LAYER_CONFIG.communityAreasFill.id)) {
-							m.addLayer(LAYER_CONFIG.communityAreasFill);
+							m.addLayer(LAYER_CONFIG.communityAreasFill, 'road-label-simple');
 							const isCommMode = visualization.aggregationLevel === 'community';
 							m.setPaintProperty('community-areas-fill', 'fill-opacity', isCommMode ? 0.7 : 0);
 
@@ -185,7 +184,7 @@
 							}
 						}
 						if (!m.getLayer(LAYER_CONFIG.communityAreasStroke.id)) {
-							m.addLayer(LAYER_CONFIG.communityAreasStroke);
+							m.addLayer(LAYER_CONFIG.communityAreasStroke, 'road-label-simple');
 							const isCommMode = visualization.aggregationLevel === 'community';
 							m.setPaintProperty('community-areas-stroke', 'line-opacity', isCommMode ? 0.8 : 0);
 						}
@@ -265,7 +264,6 @@
 					});
 
 					if (!isTabletOrAbove) {
-						m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 						const attrib = document.querySelector('.maplibregl-ctrl-attrib');
 						attrib?.classList.remove('maplibregl-compact-show');
 						attrib?.removeAttribute('open');

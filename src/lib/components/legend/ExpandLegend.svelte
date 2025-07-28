@@ -11,7 +11,7 @@
 >
 	<button
 		class="flex h-8 items-center justify-center gap-1 px-2"
-		on:click={onClick}
+		onclick={onClick}
 		aria-label="Expand legend"
 	>
 		<svg

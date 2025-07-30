@@ -21,10 +21,10 @@ export function getColorScheme(mode: ChoroplethMode): readonly string[] {
 	}
 }
 
-export async function fetchQuantileData(
+export function fetchQuantileData(
 	aggregationLevel: AggregationLevel,
 	mode: ChoroplethMode
-): Promise<QuantileData> {
+): QuantileData {
 	const key = `${aggregationLevel}-${mode}`;
 	const data = QUANTILE_DATA[key as keyof typeof QUANTILE_DATA];
 

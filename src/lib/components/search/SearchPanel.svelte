@@ -5,21 +5,22 @@
 	import { onMount } from 'svelte';
 
 	import ServiceLineResults from '$lib/components/search/ServiceLineResults.svelte';
+	import { search } from '$lib/state/search.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import {
-		searchState,
 		isAddressDataLoading,
 		addressStore,
-		selectedAddressInventory,
-		isInventoryLoading,
-		inventoryError,
-		loadInventoryForAddress,
 		loadMinimalSearchIndex,
 		minimalSearchIndexStore,
 		multiServiceLineStore,
 		currentServiceLine
 	} from '$lib/stores';
-	import type { AddressWithServiceLine, MinimalAddress } from '$lib/types';
+	import type {
+		AddressWithServiceLine,
+		InventoryApiResponse,
+		InventoryData,
+		MinimalAddress
+	} from '$lib/types';
 	import { COLORS } from '$lib/utils/constants';
 
 	// Props.
@@ -34,6 +35,17 @@
 	let isFetchingSuggestions = $state(false);
 	let showSuggestions = $state(false);
 	let suggestionsContainer = $state<HTMLDivElement | null>(null);
+	let inventory = $state<{
+		isLoading: boolean;
+		data: InventoryData | null;
+		error: string | null;
+		address: string | null;
+	}>({
+		isLoading: false,
+		data: null,
+		error: null,
+		address: null
+	});
 
 	// Event handlers.
 	const handleSearch = () => {
@@ -543,14 +555,106 @@
 		}
 	}, 300);
 
-	function onInput(event: Event) {
-		const input = event.target as HTMLInputElement;
-		searchState.update((state) => ({
-			...state,
-			query: input.value,
-			selectedAddress: null // Clear selected address when user types
+	// Load inventory data for a specific address via API using row ID
+	export async function loadInventoryForAddress(address: string, rowId?: number): Promise<void> {
+		// Clear previous data immediately when starting a new search
+		inventory.isLoading = true;
+		inventory.error = null;
+		inventory.data = null; // Clear previous data
+		inventory.address = address;
+
+		multiServiceLineStore.update((store) => ({
+			...store,
+			isLoading: true,
+			error: null,
+			inventoryList: [], // Clear previous inventory list
+			currentIndex: 0,
+			address
 		}));
-		fetchSuggestions(input.value);
+
+		try {
+			console.log(
+				`Loading inventory data for address: ${address}${rowId ? ` (row ID: ${rowId})` : ''}`
+			);
+
+			// Use the v2 DigitalOcean Function with address parameter for multiple service lines
+			const encodedAddress = encodeURIComponent(address);
+			const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup-v2?address=${encodedAddress}`;
+
+			try {
+				const response = await fetch(apiUrl);
+
+				if (!response.ok) {
+					throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+				}
+
+				const data: InventoryApiResponse = await response.json();
+
+				if (!data.success) {
+					throw new Error(data.error || 'API returned unsuccessful response');
+				}
+
+				console.log(`✓ Inventory data loaded for address ${address}:`, data);
+
+				// Update multi-service line store
+				multiServiceLineStore.update((store) => ({
+					...store,
+					isLoading: false,
+					inventoryList: data.inventoryList || [],
+					error: null
+				}));
+
+				inventory.isLoading = false;
+				inventory.data = data.inventory || (data.inventoryList && data.inventoryList[0]) || null;
+				inventory.error = null;
+			} catch (apiError) {
+				console.warn('API call failed, using mock data:', apiError);
+
+				// Fallback to mock data if API fails
+				const mockInventoryData: InventoryData = {
+					fullAddress: address,
+					serviceLineMaterial: 'Unknown - API unavailable',
+					customerSideMaterial: 'Unknown - API unavailable',
+					utilitySideMaterial: 'Unknown - API unavailable',
+					overallCode: 'Unknown',
+					gooseneck: 'Unknown',
+					highRisk: 'N',
+					lastUpdated: 'Mock data - API unavailable',
+					additionalNotes: 'API temporarily unavailable, showing placeholder data'
+				};
+
+				multiServiceLineStore.update((store) => ({
+					...store,
+					isLoading: false,
+					inventoryList: [mockInventoryData],
+					error: null
+				}));
+
+				inventory.isLoading = false;
+				inventory.data = mockInventoryData;
+				inventory.error = null;
+			}
+		} catch (error) {
+			console.error('Error loading inventory data:', error);
+			const errorMessage = error instanceof Error ? error.message : 'Failed to load inventory data';
+
+			multiServiceLineStore.update((store) => ({
+				...store,
+				isLoading: false,
+				error: errorMessage
+			}));
+
+			inventory.isLoading = false;
+			inventory.error = errorMessage;
+		}
+	}
+
+	function onInput(event: Event & { currentTarget: HTMLInputElement }) {
+		search.query = event.currentTarget.value;
+		// Clear the selected address when user types.
+		search.selectedAddress = null;
+
+		fetchSuggestions(event.currentTarget.value);
 	}
 
 	function onKeyDown(event: KeyboardEvent) {
@@ -569,11 +673,9 @@
 	}
 
 	function onSuggestionClick(suggestion: AddressWithServiceLine) {
-		searchState.update((state) => ({
-			...state,
-			query: suggestion.fullAddress,
-			selectedAddress: suggestion
-		}));
+		search.query = suggestion.fullAddress;
+		search.selectedAddress = suggestion;
+
 		showSuggestions = false;
 		suggestions = []; // Clear suggestions after selection
 
@@ -655,7 +757,7 @@
 		// 1. There are suggestions available
 		// 2. No address has been selected yet
 		// 3. The current query matches what's in the input (not from a previous search)
-		if (suggestions.length > 0 && !$searchState.selectedAddress && $searchState.query.length >= 3) {
+		if (suggestions.length > 0 && !search.selectedAddress && search.query.length >= 3) {
 			showSuggestions = true;
 		}
 	}
@@ -685,7 +787,7 @@
 	// Effects.
 	$effect(() => {
 		// Reactive update of the selected address dot color based on inventory data
-		if (map && $searchState.selectedAddress && !$isInventoryLoading) {
+		if (map && search.selectedAddress && !inventory.isLoading) {
 			const highlightLayer = 'selected-address-highlight';
 
 			if (map.getLayer(highlightLayer)) {
@@ -738,7 +840,7 @@
 				<input
 					type="text"
 					id="search"
-					value={$searchState.query}
+					value={search.query}
 					oninput={onInput}
 					onkeydown={onKeyDown}
 					onfocus={onInputFocus}
@@ -787,9 +889,9 @@
 				onclick={handleSearch}
 				style="background-color: {interpolateReds(0.5)}; border-color: {interpolateReds(0.6)};"
 				class="flex w-[100px] items-center justify-center gap-2 rounded-md border p-1.5 font-sans whitespace-nowrap text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-				disabled={$isAddressDataLoading || $searchState.isSearching}
+				disabled={$isAddressDataLoading || search.isSearching}
 			>
-				{#if $isAddressDataLoading || $searchState.isSearching}
+				{#if $isAddressDataLoading || search.isSearching}
 					<div class="flex items-center gap-2">
 						<svg
 							class="h-4 w-4 animate-spin"
@@ -832,13 +934,12 @@
 			</button>
 		</div>
 	</div>
-
 	<!-- Service Line Results Panel -->
 	<ServiceLineResults
-		selectedAddress={$searchState.selectedAddress}
-		inventoryData={$selectedAddressInventory}
-		isLoading={$isInventoryLoading}
-		error={$inventoryError}
+		selectedAddress={search.selectedAddress}
+		inventoryData={inventory.data}
+		isLoading={inventory.isLoading}
+		error={inventory.error}
 		{map}
 	/>
 </div>

@@ -1,9 +1,8 @@
-import type { Popup } from 'maplibre-gl';
-import * as maplibregl from 'maplibre-gl';
+import maplibregl from 'maplibre-gl';
 
-export class TractPopup {
+export class Popup {
 	private map: maplibregl.Map;
-	private popup: Popup | null = null;
+	private popup: maplibregl.Popup | null = null;
 
 	constructor(map: maplibregl.Map) {
 		this.map = map;
@@ -169,7 +168,9 @@ export class TractPopup {
 					<h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px; margin-top: 0;">Census Tract ${data.geoid || 'Unknown'}</h3>
 					
 					<div style="font-size: 11px;">
-						${data.total !== undefined ? `
+						${
+							data.total !== undefined
+								? `
 							<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 0;">Service Line Inventory</p>
 							
 							<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px; margin-bottom: 12px;">
@@ -216,7 +217,9 @@ export class TractPopup {
 									</table>
 								</div>
 								
-								${data.requires_replacement !== undefined ? `
+								${
+									data.requires_replacement !== undefined
+										? `
 									<div style="margin-top: 8px; padding: 8px; background-color: #f3e8ff; border-radius: 4px;">
 										<table style="width: 100%; font-size: 11px; table-layout: fixed;">
 											<colgroup>
@@ -231,9 +234,13 @@ export class TractPopup {
 											</tr>
 										</table>
 									</div>
-								` : ''}
+								`
+										: ''
+								}
 							</div>
-						` : ''}
+						`
+								: ''
+						}
 						
 						<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 12px;">Demographics</p>
 						<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px;">

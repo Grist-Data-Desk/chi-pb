@@ -1,9 +1,6 @@
 import type { AddLayerObject, SourceSpecification } from 'maplibre-gl';
-import { interpolateBlues, interpolateReds, interpolatePurples } from 'd3-scale-chromatic';
 
 import { COLORS } from '$lib/utils/constants';
-import { getQuantileColorExpression as getQuantileExpression } from '$lib/utils/quantiles';
-import type { ChoroplethMode } from '$lib/types';
 
 export const DO_SPACES_URL = 'https://grist.nyc3.cdn.digitaloceanspaces.com';
 export const PMTILES_PATH = 'chi-pb/data/pmtiles';
@@ -24,6 +21,11 @@ export const CHOROPLETH_CATEGORIES = {
 	pct_minority: 'Race'
 };
 
+export const INITIAL_MOBILE_CENTER = [-87.7, 42.02] as [number, number];
+export const INITIAL_CENTER = [-87.7298, 41.84] as [number, number];
+export const INITIAL_MOBILE_ZOOM = 9;
+export const INITIAL_ZOOM = 10;
+
 export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecification }> = {
 	censusTracts: {
 		id: 'census-tracts',
@@ -40,43 +42,6 @@ export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecifica
 		}
 	}
 };
-
-function getColorInterpolator(mode: ChoroplethMode) {
-	switch (mode) {
-		case 'pct_poverty':
-			return interpolateBlues;
-		case 'pct_minority':
-			return interpolatePurples;
-		case 'pct_requires_replacement':
-			return interpolateReds;
-	}
-}
-
-export function getChoroplethColorExpression(mode: ChoroplethMode) {
-	const interpolator = getColorInterpolator(mode);
-	const steps: [number, string][] = [];
-
-	for (let i = 0; i <= 90; i += 10) {
-		const t = 0.1 + (i / 90) * 0.8;
-		steps.push([i, interpolator(t)]);
-	}
-
-	const expression: any[] = ['case'];
-
-	expression.push(['==', ['get', mode], null]);
-	expression.push(COLORS.SMOG);
-
-	if (mode === 'pct_requires_replacement') {
-		expression.push(['==', ['get', 'flag'], 'TRUE']);
-		expression.push(COLORS.SMOG);
-	}
-
-	expression.push(['interpolate', ['linear'], ['coalesce', ['get', mode], 0], ...steps.flat()]);
-
-	return expression;
-}
-
-export { getQuantileExpression };
 
 export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 	censusTractsFill: {
@@ -122,7 +87,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		},
 		paint: {
 			'fill-color': COLORS.EARTH,
-			'fill-opacity': 0.7
+			'fill-opacity': 0
 		}
 	},
 	communityAreasStroke: {
@@ -138,7 +103,7 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		paint: {
 			'line-color': '#ffffff',
 			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 12, 1],
-			'line-opacity': 0.8
+			'line-opacity': 0
 		}
 	}
 };

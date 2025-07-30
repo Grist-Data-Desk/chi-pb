@@ -1,11 +1,12 @@
 import { writable, derived } from 'svelte/store';
+
+import { DO_SPACES_URL, SEARCH_INDEX_PATH } from '$lib/utils/config';
 import type {
 	AddressWithServiceLine,
 	IndexedAddressCollection,
 	MinimalSearchIndex,
-	InventoryData,
-	InventoryApiResponse
-} from './types';
+	InventoryData
+} from '$lib/types';
 
 // Minimal search index store for optimized address search
 export const minimalSearchIndexStore = writable<{
@@ -16,19 +17,6 @@ export const minimalSearchIndexStore = writable<{
 	isLoading: false,
 	index: null,
 	error: null
-});
-
-// Individual inventory data store (on-demand loading)
-export const inventoryDataStore = writable<{
-	isLoading: boolean;
-	data: InventoryData | null;
-	error: string | null;
-	address: string | null;
-}>({
-	isLoading: false,
-	data: null,
-	error: null,
-	address: null
 });
 
 // Legacy address store (maintained for compatibility during transition)
@@ -47,45 +35,17 @@ export const addressStore = writable<{
 	}
 });
 
-// Address search state for Chicago water service lines
-export const searchState = writable<{
-	query: string;
-	isSearching: boolean;
-	results: AddressWithServiceLine[];
-	selectedAddress: AddressWithServiceLine | null;
-}>({
-	query: '',
-	isSearching: false,
-	results: [],
-	selectedAddress: null
-});
-
-// Derived store for the tract ID of the selected address
-export const selectedAddressTractId = derived(
-	searchState,
-	($state) => $state.selectedAddress?.geoid || null
-);
-
 export const isAddressDataLoading = derived(
 	[addressStore, minimalSearchIndexStore],
 	([$addressStore, $minimalSearchIndexStore]) =>
 		$addressStore.isLoading || $minimalSearchIndexStore.isLoading
 );
 
-export const isInventoryLoading = derived(inventoryDataStore, ($state) => $state.isLoading);
-
-export const inventoryError = derived(inventoryDataStore, ($state) => $state.error);
-
-export const selectedAddressInventory = derived(inventoryDataStore, ($state) => $state.data);
-
 // Load minimal search index for optimized address search
 export async function loadMinimalSearchIndex(): Promise<void> {
 	minimalSearchIndexStore.update((store) => ({ ...store, isLoading: true, error: null }));
 
 	try {
-		// Import the config to get the CDN path
-		const { DO_SPACES_URL, SEARCH_INDEX_PATH } = await import('$lib/utils/config');
-
 		console.log('Loading minimal search index...');
 		const cacheBuster = Date.now(); // Force cache refresh
 		const indexUrl = `${DO_SPACES_URL}/${SEARCH_INDEX_PATH}/minimal-search-index.json.br?v=${cacheBuster}`;
@@ -202,113 +162,6 @@ export const serviceLineCount = derived(
 	multiServiceLineStore,
 	($store) => $store.inventoryList.length
 );
-
-// Load inventory data for a specific address via API using row ID
-export async function loadInventoryForAddress(address: string, rowId?: number): Promise<void> {
-	// Clear previous data immediately when starting a new search
-	inventoryDataStore.update((store) => ({
-		...store,
-		isLoading: true,
-		error: null,
-		data: null, // Clear previous data
-		address
-	}));
-
-	multiServiceLineStore.update((store) => ({
-		...store,
-		isLoading: true,
-		error: null,
-		inventoryList: [], // Clear previous inventory list
-		currentIndex: 0,
-		address
-	}));
-
-	try {
-		console.log(
-			`Loading inventory data for address: ${address}${rowId ? ` (row ID: ${rowId})` : ''}`
-		);
-
-		// Use the v2 DigitalOcean Function with address parameter for multiple service lines
-		const encodedAddress = encodeURIComponent(address);
-		const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup-v2?address=${encodedAddress}`;
-
-		try {
-			const response = await fetch(apiUrl);
-
-			if (!response.ok) {
-				throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-			}
-
-			const data: InventoryApiResponse = await response.json();
-
-			if (!data.success) {
-				throw new Error(data.error || 'API returned unsuccessful response');
-			}
-
-			console.log(`✓ Inventory data loaded for address ${address}:`, data);
-
-			// Update multi-service line store
-			multiServiceLineStore.update((store) => ({
-				...store,
-				isLoading: false,
-				inventoryList: data.inventoryList || [],
-				error: null
-			}));
-
-			// Update legacy store for backward compatibility
-			inventoryDataStore.update((store) => ({
-				...store,
-				isLoading: false,
-				data: data.inventory || (data.inventoryList && data.inventoryList[0]) || null,
-				error: null
-			}));
-		} catch (apiError) {
-			console.warn('API call failed, using mock data:', apiError);
-
-			// Fallback to mock data if API fails
-			const mockInventoryData: InventoryData = {
-				fullAddress: address,
-				serviceLineMaterial: 'Unknown - API unavailable',
-				customerSideMaterial: 'Unknown - API unavailable',
-				utilitySideMaterial: 'Unknown - API unavailable',
-				overallCode: 'Unknown',
-				gooseneck: 'Unknown',
-				highRisk: 'N',
-				lastUpdated: 'Mock data - API unavailable',
-				additionalNotes: 'API temporarily unavailable, showing placeholder data'
-			};
-
-			multiServiceLineStore.update((store) => ({
-				...store,
-				isLoading: false,
-				inventoryList: [mockInventoryData],
-				error: null
-			}));
-
-			inventoryDataStore.update((store) => ({
-				...store,
-				isLoading: false,
-				data: mockInventoryData,
-				error: null
-			}));
-		}
-	} catch (error) {
-		console.error('Error loading inventory data:', error);
-		const errorMessage = error instanceof Error ? error.message : 'Failed to load inventory data';
-
-		multiServiceLineStore.update((store) => ({
-			...store,
-			isLoading: false,
-			error: errorMessage
-		}));
-
-		inventoryDataStore.update((store) => ({
-			...store,
-			isLoading: false,
-			error: errorMessage
-		}));
-	}
-}
 
 // Navigate to next service line
 export function nextServiceLine(): void {

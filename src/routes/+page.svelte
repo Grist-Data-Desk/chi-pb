@@ -3,302 +3,159 @@
 	import * as pmtiles from 'pmtiles';
 	import { onMount } from 'svelte';
 
+	import { Popup } from '$lib/classes/Popup';
+	import { ResetViewControl } from '$lib/classes/ResetViewControl';
 	import Credits from '$lib/components/credits/Credits.svelte';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
 	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
-	import { ui } from '$lib/state/ui.svelte';
+	import { mapState } from '$lib/state/map.svelte';
+	import { popup } from '$lib/state/popup.svelte';
+	import { search } from '$lib/state/search.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
-	import { searchState, selectedAddressTractId } from '$lib/stores';
 	import {
 		SOURCE_CONFIG,
 		LAYER_CONFIG,
 		DO_SPACES_URL,
 		STYLES_PATH,
-		getChoroplethColorExpression,
-		getQuantileExpression
+		INITIAL_CENTER,
+		INITIAL_MOBILE_CENTER,
+		INITIAL_ZOOM,
+		INITIAL_MOBILE_ZOOM
 	} from '$lib/utils/config';
 	import { TABLET_BREAKPOINT } from '$lib/utils/constants';
-	import { TractPopup } from '$lib/utils/popup';
-	import { fetchQuantileData } from '$lib/utils/quantiles';
+	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
 
 	// State.
-	let map = $state<maplibregl.Map | null>(null);
-	let browser = $state(false);
-	let currentPopup = $state<maplibregl.Popup | null>(null);
-	let tractPopup = $state<TractPopup | null>(null);
 	let innerWidth = $state<number>(0);
 	let isTabletOrAbove = $derived(innerWidth > TABLET_BREAKPOINT);
 
-	class ResetViewControl {
-		onAdd(map: maplibregl.Map) {
-			const btn = document.createElement('button');
-			btn.className = 'maplibregl-ctrl-icon maplibregl-ctrl-geolocate';
-			btn.innerHTML = '🔄';
-			btn.addEventListener('click', () => {
-				map.flyTo({
-					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.7, 42.02],
-					zoom: isTabletOrAbove ? 10 : 9
-				});
-
-				searchState.set({
-					query: '',
-					isSearching: false,
-					results: [],
-					selectedAddress: null
-				});
-
-				ui.searchHeaderCollapsed = false;
-				ui.creditsExpanded = true;
-
-				// Don't reset the visualization state for the legend - let users keep
-				// their choropleth mode selection.
-
-				if (map.getLayer('selected-address-highlight')) {
-					map.removeLayer('selected-address-highlight');
-				}
-				if (map.getSource('selected-address')) {
-					map.removeSource('selected-address');
-				}
-
-				if (currentPopup) {
-					currentPopup.remove();
-					currentPopup = null;
-				}
-			});
-			const container = document.createElement('div');
-			container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-			container.appendChild(btn);
-			return container;
-		}
-		onRemove() {}
-	}
-
-	async function updateMapFilters() {
-		if (!map) return;
-
-		const currentChoroplethMode = visualization.choroplethMode;
-		const aggregationLevel = visualization.aggregationLevel;
-
-		if (aggregationLevel === 'tract') {
-			map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0.7);
-			map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0.8);
-			if (map.getLayer('community-areas-fill')) {
-				map.setPaintProperty('community-areas-fill', 'fill-opacity', 0);
-				map.setPaintProperty('community-areas-stroke', 'line-opacity', 0);
-			}
-		} else {
-			map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0);
-			map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0);
-			if (map.getLayer('community-areas-fill')) {
-				map.setPaintProperty('community-areas-fill', 'fill-opacity', 0.7);
-				map.setPaintProperty('community-areas-stroke', 'line-opacity', 0.8);
-			}
-		}
-
-		if (currentChoroplethMode) {
-			try {
-				const quantileData = await fetchQuantileData(aggregationLevel, currentChoroplethMode);
-				const choroplethExpression = getQuantileExpression(
-					currentChoroplethMode,
-					quantileData.quantiles,
-					quantileData.colors
-				);
-
-				if (aggregationLevel === 'tract' && map.getLayer('census-tracts-fill')) {
-					map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
-				} else if (aggregationLevel === 'community' && map.getLayer('community-areas-fill')) {
-					map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
-				}
-			} catch (error) {
-				console.error('Error updating map colors:', error);
-				const choroplethExpression = getChoroplethColorExpression(currentChoroplethMode);
-
-				if (aggregationLevel === 'tract' && map.getLayer('census-tracts-fill')) {
-					map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
-				} else if (aggregationLevel === 'community' && map.getLayer('community-areas-fill')) {
-					map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
-				}
-			}
-		}
-	}
-
 	onMount(() => {
-		const setupMap = async () => {
-			browser = true;
+		const protocol = new pmtiles.Protocol();
+		maplibregl.addProtocol('pmtiles', protocol.tile);
 
-			try {
-				const protocol = new pmtiles.Protocol();
-				maplibregl.addProtocol('pmtiles', protocol.tile);
+		mapState.map = new maplibregl.Map({
+			container: 'map-container',
+			style: `${DO_SPACES_URL}/${STYLES_PATH}/map-style.json`,
+			center: isTabletOrAbove ? INITIAL_CENTER : INITIAL_MOBILE_CENTER,
+			zoom: isTabletOrAbove ? INITIAL_ZOOM : INITIAL_MOBILE_ZOOM,
+			minZoom: 8,
+			maxZoom: 18
+		});
 
-				await new Promise((resolve) => setTimeout(resolve, 0));
+		mapState.map.scrollZoom.disable();
+		mapState.map.scrollZoom.setWheelZoomRate(0);
+		mapState.map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+		mapState.map.addControl(new ResetViewControl({ isTabletOrAbove }), 'top-right');
 
-				map = new maplibregl.Map({
-					container: 'map-container',
-					style: `${DO_SPACES_URL}/${STYLES_PATH}/map-style.json`,
-					center: isTabletOrAbove ? [-87.7298, 41.84] : [-87.7, 42.02],
-					zoom: isTabletOrAbove ? 10 : 9,
-					minZoom: 8,
-					maxZoom: 18
-				});
+		mapState.map.on('load', (e) => {
+			const map = e.target;
 
-				map.scrollZoom.disable();
-				map.scrollZoom.setWheelZoomRate(0);
-				map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-				map.addControl(new ResetViewControl(), 'top-right');
+			Object.values(SOURCE_CONFIG).forEach(({ id, config }) => {
+				map.addSource(id, config);
+			});
 
-				map.on('load', (e) => {
-					const m = e.target;
+			// Add the Census tracts layer.
+			map.addLayer(LAYER_CONFIG.censusTractsFill, 'road-label-simple');
 
-					Object.values(SOURCE_CONFIG).forEach(({ id, config }) => {
-						try {
-							if (!m.getSource(id)) {
-								m.addSource(id, config);
-							}
-						} catch (error) {
-							console.error(`Error adding source ${id}:`, error);
-						}
-					});
+			const quantileData = fetchQuantileData(
+				visualization.aggregationLevel,
+				visualization.choroplethMode
+			);
+			const choroplethExpression = getQuantileColorExpression(
+				visualization.choroplethMode,
+				quantileData.quantiles,
+				quantileData.colors
+			);
+			map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
 
-					try {
-						if (!m.getLayer(LAYER_CONFIG.censusTractsFill.id)) {
-							m.addLayer(LAYER_CONFIG.censusTractsFill, 'road-label-simple');
-							const choroplethExpression = getChoroplethColorExpression(
-								visualization.choroplethMode
-							);
-							m.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
-						}
-						if (!m.getLayer(LAYER_CONFIG.censusTractsStroke.id)) {
-							m.addLayer(LAYER_CONFIG.censusTractsStroke, 'road-label-simple');
-						}
-						if (!m.getLayer(LAYER_CONFIG.communityAreasFill.id)) {
-							m.addLayer(LAYER_CONFIG.communityAreasFill, 'road-label-simple');
-							const isCommMode = visualization.aggregationLevel === 'community';
-							m.setPaintProperty('community-areas-fill', 'fill-opacity', isCommMode ? 0.7 : 0);
+			// Add the Census tracts stroke layer.
+			map.addLayer(LAYER_CONFIG.censusTractsStroke, 'road-label-simple');
 
-							if (isCommMode) {
-								const choroplethExpression = getChoroplethColorExpression(
-									visualization.choroplethMode
-								);
-								m.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
-							}
-						}
-						if (!m.getLayer(LAYER_CONFIG.communityAreasStroke.id)) {
-							m.addLayer(LAYER_CONFIG.communityAreasStroke, 'road-label-simple');
-							const isCommMode = visualization.aggregationLevel === 'community';
-							m.setPaintProperty('community-areas-stroke', 'line-opacity', isCommMode ? 0.8 : 0);
-						}
-					} catch (error) {
-						console.error('Error adding layers:', error);
-					}
+			// Add the Community areas layer.
+			map.addLayer(LAYER_CONFIG.communityAreasFill, 'road-label-simple');
 
-					tractPopup = new TractPopup(m);
+			// Add the Community areas stroke layer.
+			map.addLayer(LAYER_CONFIG.communityAreasStroke, 'road-label-simple');
 
-					m.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
-						if (visualization.aggregationLevel !== 'tract') return;
+			// Initialize the popup.
+			popup.node = new Popup(map);
 
-						if (!e.features?.length) return;
-
-						const feature = e.features[0];
-						const tractGeoid = feature.properties?.geoid;
-						const selectedTractId = $selectedAddressTractId;
-
-						if (selectedTractId && tractGeoid === selectedTractId) {
-							return;
-						}
-
-						const tractProperties = feature.properties;
-
-						if (tractProperties && tractProperties.geoid) {
-							const lngLat = e.lngLat;
-							if (tractPopup) {
-								tractPopup.showPopup(lngLat, tractProperties as any);
-							}
-						}
-					});
-
-					m.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-						if (visualization.aggregationLevel !== 'tract') return;
-
-						const feature = e.features?.[0];
-						const tractGeoid = feature?.properties?.geoid;
-						const selectedTractId = $selectedAddressTractId;
-
-						if (!selectedTractId || tractGeoid !== selectedTractId) {
-							m.getCanvas().style.cursor = 'pointer';
-						}
-					});
-
-					m.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, () => {
-						if (visualization.aggregationLevel === 'tract') {
-							m.getCanvas().style.cursor = '';
-						}
-					});
-
-					m.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, () => {
-						if (visualization.aggregationLevel === 'community') {
-							m.getCanvas().style.cursor = 'pointer';
-						}
-					});
-
-					m.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, () => {
-						if (visualization.aggregationLevel === 'community') {
-							m.getCanvas().style.cursor = '';
-						}
-					});
-
-					m.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
-						if (visualization.aggregationLevel !== 'community') return;
-
-						if (!e.features?.length) return;
-
-						const feature = e.features[0];
-						const communityProperties = feature.properties;
-
-						if (communityProperties && communityProperties.community) {
-							const lngLat = e.lngLat;
-							if (tractPopup) {
-								tractPopup.showPopup(lngLat, communityProperties as any);
-							}
-						}
-					});
-
-					if (!isTabletOrAbove) {
-						const attrib = document.querySelector('.maplibregl-ctrl-attrib');
-						attrib?.classList.remove('maplibregl-compact-show');
-						attrib?.removeAttribute('open');
-					}
-				});
-			} catch (error) {
-				console.error('Error initializing map:', error);
+			if (!isTabletOrAbove) {
+				const attrib = document.querySelector('.maplibregl-ctrl-attrib');
+				attrib?.classList.remove('maplibregl-compact-show');
+				attrib?.removeAttribute('open');
 			}
-		};
+		});
 
-		setupMap();
+		// Add click handlers for Census tracts and Community areas.
+		mapState.map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'tract' || !e.features?.length) return;
+
+			const feature = e.features[0];
+			const tractProperties = feature.properties;
+
+			if (tractProperties && tractProperties.geoid) {
+				const lngLat = e.lngLat;
+				if (popup.node) {
+					popup.node.showPopup(lngLat, tractProperties as any);
+				}
+			}
+		});
+
+		mapState.map.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'community' || !e.features?.length) return;
+
+			const feature = e.features[0];
+			const communityProperties = feature.properties;
+
+			if (communityProperties && communityProperties.community) {
+				const lngLat = e.lngLat;
+				if (popup.node) {
+					popup.node.showPopup(lngLat, communityProperties as any);
+				}
+			}
+		});
+
+		// Add mouseenter and mouseleave handlers for Census tracts and Community areas.
+		mapState.map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
+			if (visualization.aggregationLevel === 'tract') {
+				const map = e.target;
+				map.getCanvas().style.cursor = 'pointer';
+			}
+		});
+
+		mapState.map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, (e) => {
+			if (visualization.aggregationLevel === 'tract') {
+				const map = e.target;
+				map.getCanvas().style.cursor = '';
+			}
+		});
+
+		mapState.map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, (e) => {
+			if (visualization.aggregationLevel === 'community') {
+				const map = e.target;
+				map.getCanvas().style.cursor = 'pointer';
+			}
+		});
+
+		mapState.map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, (e) => {
+			if (visualization.aggregationLevel === 'community') {
+				const map = e.target;
+				map.getCanvas().style.cursor = '';
+			}
+		});
 
 		return () => {
-			if (map) {
-				map.remove();
+			if (mapState.map) {
+				mapState.map.remove();
 			}
 		};
 	});
 
-	// Effects.
 	$effect(() => {
-		if (browser && map && visualization) {
-			updateMapFilters();
-		}
-	});
-
-	$effect(() => {
-		if ($selectedAddressTractId && tractPopup) {
-			tractPopup.removePopup();
-		}
-	});
-
-	$effect(() => {
-		if (tractPopup && (visualization.choroplethMode || visualization.aggregationLevel)) {
-			tractPopup.removePopup();
+		if (search.selectedAddress && popup.node) {
+			popup.node.removePopup();
 		}
 	});
 </script>
@@ -310,13 +167,12 @@
 			<ExpandLegend />
 			<Legend />
 			<div class="floating-panel absolute top-4 left-[3%] z-10 w-[94%] p-4 md:left-4 md:w-[400px]">
-				<SearchPanel {map} />
+				<SearchPanel map={mapState.map} />
 				<Credits />
 			</div>
 		</div>
 	</div>
 </main>
-
 <div class="logo-container">
 	<a href="https://grist.org" target="_blank" rel="noopener noreferrer">
 		<img

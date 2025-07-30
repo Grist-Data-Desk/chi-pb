@@ -5,13 +5,13 @@
 	import ServiceLineDiagram from '$lib/components/search/ServiceLineDiagram.svelte';
 	import ServiceLineDiagramLoading from '$lib/components/search/ServiceLineDiagramLoading.svelte';
 	import {
-		searchState,
 		multiServiceLineStore,
 		currentServiceLine,
 		serviceLineCount,
 		nextServiceLine,
 		previousServiceLine
 	} from '$lib/stores';
+	import { search } from '$lib/state/search.svelte';
 	import type { AddressWithServiceLine, CensusTract } from '$lib/types';
 	import { COLORS } from '$lib/utils/constants';
 
@@ -31,7 +31,7 @@
 	let isTractDataLoading = $state(false);
 	let pendingTractQuery = $state<{ lng: number; lat: number } | null>(null);
 	let mapMoveEndHandler = $state<(() => void) | null>(null);
-	let address = $derived(selectedAddress || $searchState.selectedAddress);
+	let address = $derived(selectedAddress || search.selectedAddress);
 	let currentInventoryData = $derived($currentServiceLine || inventoryData);
 	let displayCode = $derived(
 		$multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1

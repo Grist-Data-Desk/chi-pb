@@ -1,9 +1,14 @@
 <script lang="ts">
+	import { mapState } from '$lib/state/map.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { AggregationLevel, ChoroplethMode } from '$lib/types';
 	import { CHOROPLETH_CATEGORIES } from '$lib/utils/config';
-	import { fetchQuantileData, getColorScheme, formatQuantileValue } from '$lib/utils/quantiles';
+	import {
+		fetchQuantileData,
+		formatQuantileValue,
+		getQuantileColorExpression
+	} from '$lib/utils/quantiles';
 
 	// Constants.
 	const CHOROPLETH_MODES = Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => ({
@@ -12,7 +17,9 @@
 	}));
 
 	// State.
-	let quantileData = $state<{ quantiles: number[]; colors: readonly string[] } | null>(null);
+	let quantileData = $derived<{ quantiles: number[]; colors: readonly string[] }>(
+		fetchQuantileData(visualization.aggregationLevel, visualization.choroplethMode)
+	);
 
 	// Event handlers.
 	function getVariableDescription(mode: ChoroplethMode) {
@@ -28,35 +35,47 @@
 		}
 	}
 
+	function updateLayers() {
+		const choroplethExpression = getQuantileColorExpression(
+			visualization.choroplethMode,
+			quantileData.quantiles,
+			quantileData.colors
+		);
+
+		if (
+			visualization.aggregationLevel === 'tract' &&
+			mapState.map?.getLayer('census-tracts-fill')
+		) {
+			mapState.map.setPaintProperty('census-tracts-fill', 'fill-color', choroplethExpression);
+			mapState.map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0.7);
+			mapState.map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0.8);
+			mapState.map.setPaintProperty('community-areas-fill', 'fill-opacity', 0);
+			mapState.map.setPaintProperty('community-areas-stroke', 'line-opacity', 0);
+		} else if (
+			visualization.aggregationLevel === 'community' &&
+			mapState.map?.getLayer('community-areas-fill')
+		) {
+			mapState.map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
+			mapState.map.setPaintProperty('community-areas-fill', 'fill-opacity', 0.7);
+			mapState.map.setPaintProperty('community-areas-stroke', 'line-opacity', 0.8);
+			mapState.map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0);
+			mapState.map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0);
+		}
+	}
+
 	function handleModeChange(event: Event & { currentTarget: HTMLInputElement }) {
 		const target = event.currentTarget;
-
 		visualization.choroplethMode = target.value as ChoroplethMode;
+
+		updateLayers();
 	}
 
 	function handleAggregationChange(event: Event & { currentTarget: HTMLInputElement }) {
 		const target = event.currentTarget;
-
 		visualization.aggregationLevel = target.value as AggregationLevel;
-	}
 
-	// Effects.
-	$effect(() => {
-		if (visualization.choroplethMode && visualization.aggregationLevel) {
-			fetchQuantileData(visualization.aggregationLevel, visualization.choroplethMode)
-				.then((data) => {
-					quantileData = data;
-				})
-				.catch((error) => {
-					console.error('Error fetching quantile data:', error);
-					// Use default data as fallback
-					quantileData = {
-						quantiles: [20, 40, 60, 80],
-						colors: getColorScheme(visualization.choroplethMode)
-					};
-				});
-		}
-	});
+		updateLayers();
+	}
 </script>
 
 <div

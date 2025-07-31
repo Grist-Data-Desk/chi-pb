@@ -18,7 +18,10 @@
 				<strong>Sources</strong> City of Chicago / Census Bureau
 			</p>
 			<p class="m-0">
-				<strong>Development</strong> Clayton Aldern / Grist. See our
+				<strong>Analyis</strong> Peter Aldhous / Inside Climate News / Amy Qin / WBEZ
+			</p>
+			<p class="m-0">
+				<strong>Development</strong> Clayton Aldern / Parker Ziegler / Grist. See our
 				<a
 					href="https://github.com/Grist-Data-Desk/chi-pb"
 					target="_blank"

@@ -78,6 +78,24 @@
 			// Add the Community areas stroke layer.
 			map.addLayer(LAYER_CONFIG.communityAreasStroke, 'road-label-simple');
 
+			// Set initial layer visibility based on default aggregation level (community)
+			if (visualization.aggregationLevel === 'community') {
+				// Show community areas
+				map.setPaintProperty('community-areas-fill', 'fill-color', choroplethExpression);
+				map.setPaintProperty('community-areas-fill', 'fill-opacity', 0.7);
+				map.setPaintProperty('community-areas-stroke', 'line-opacity', 0.8);
+				// Hide census tracts
+				map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0);
+				map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0);
+			} else {
+				// Show census tracts
+				map.setPaintProperty('census-tracts-fill', 'fill-opacity', 0.7);
+				map.setPaintProperty('census-tracts-stroke', 'line-opacity', 0.8);
+				// Hide community areas
+				map.setPaintProperty('community-areas-fill', 'fill-opacity', 0);
+				map.setPaintProperty('community-areas-stroke', 'line-opacity', 0);
+			}
+
 			// Initialize the popup.
 			popup.node = new Popup(map);
 

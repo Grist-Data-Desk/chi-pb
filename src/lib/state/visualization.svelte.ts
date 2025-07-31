@@ -8,7 +8,7 @@ interface VisualizationState {
 }
 
 export const visualization = $state<VisualizationState>({
-	aggregationLevel: 'tract',
+	aggregationLevel: 'community',
 	choroplethMode: 'pct_requires_replacement',
 	selectedTract: null,
 	showAddresses: true

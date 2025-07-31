@@ -105,31 +105,10 @@
 			<div
 				class={[
 					'bg-earth absolute top-0 left-0 z-10 h-full w-1/2 transition-transform duration-300 ease-in-out',
-					visualization.aggregationLevel === 'community' && 'translate-x-full'
+					visualization.aggregationLevel === 'tract' && 'translate-x-full'
 				]}
 			></div>
 			<div class="relative border border-gray-200 bg-white">
-				<input
-					type="radio"
-					value="tract"
-					id="tract-radio"
-					checked={visualization.aggregationLevel === 'tract'}
-					onchange={handleAggregationChange}
-					class="absolute opacity-0"
-				/>
-				<label
-					for="tract-radio"
-					class={[
-						'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
-						visualization.aggregationLevel === 'tract'
-							? 'text-white'
-							: 'text-earth hover:bg-gray-100'
-					]}
-				>
-					Census Tracts
-				</label>
-			</div>
-			<div class="relative border border-l-0 border-gray-200 bg-white">
 				<input
 					type="radio"
 					value="community"
@@ -148,6 +127,27 @@
 					]}
 				>
 					Community Areas
+				</label>
+			</div>
+			<div class="relative border border-l-0 border-gray-200 bg-white">
+				<input
+					type="radio"
+					value="tract"
+					id="tract-radio"
+					checked={visualization.aggregationLevel === 'tract'}
+					onchange={handleAggregationChange}
+					class="absolute opacity-0"
+				/>
+				<label
+					for="tract-radio"
+					class={[
+						'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
+						visualization.aggregationLevel === 'tract'
+							? 'text-white'
+							: 'text-earth hover:bg-gray-100'
+					]}
+				>
+					Census Tracts
 				</label>
 			</div>
 		</div>

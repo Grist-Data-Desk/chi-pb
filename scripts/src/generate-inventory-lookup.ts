@@ -63,7 +63,7 @@ async function generateInventoryLookup(): Promise<void> {
 				);
 				
 				const row = parseInt(normalizedRow.row as string) || 0;
-				const fullAddress = String(normalizedRow.full_address || '').trim();
+				const fullAddress = String(normalizedRow.matched_address || '').trim();
 				
 				if (fullAddress && row) {
 					const normalizedAddr = normalizeAddress(fullAddress);

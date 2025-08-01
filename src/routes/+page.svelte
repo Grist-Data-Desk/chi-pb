@@ -80,6 +80,9 @@
 
 			// Add the Service lines layer.
 			map.addLayer(LAYER_CONFIG.serviceLines, 'road-label-simple');
+			
+			// Trigger the service layer ready state
+			serviceLayerReady = true;
 
 			// Set initial layer visibility based on default aggregation level (community)
 			if (visualization.aggregationLevel === 'community') {
@@ -177,6 +180,50 @@
 	$effect(() => {
 		if (search.selectedAddress && popup.node) {
 			popup.node.removePopup();
+		}
+	});
+
+	// Create a reactive state for tracking if the layer is ready
+	let serviceLayerReady = $state(false);
+	
+	// Check when service layer is ready
+	$effect(() => {
+		if (mapState.map && mapState.map.getLayer('service-lines')) {
+			serviceLayerReady = true;
+		}
+	});
+
+	$effect(() => {
+		if (!mapState.map || !serviceLayerReady) {
+			return;
+		}
+
+		if (search.selectedAddress) {
+			// When an address is selected, wait for the zoom animation to complete
+			// then show service lines
+			const handleMoveEnd = () => {
+				if (!mapState.map) return;
+				if (!mapState.map.getLayer('service-lines')) return;
+				
+				// Show service lines layer
+				mapState.map.setPaintProperty('service-lines', 'circle-opacity', 0.8);
+				mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0.9);
+				
+				// Remove the listener after it's triggered once
+				mapState.map.off('moveend', handleMoveEnd);
+			};
+
+			// Add listener for when map movement ends
+			mapState.map.on('moveend', handleMoveEnd);
+			
+			// Also check if map is already idle (not moving)
+			if (!mapState.map.isMoving()) {
+				handleMoveEnd();
+			}
+		} else {
+			// Hide service lines when no address is selected
+			mapState.map.setPaintProperty('service-lines', 'circle-opacity', 0);
+			mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0);
 		}
 	});
 </script>

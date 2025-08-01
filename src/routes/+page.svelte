@@ -78,6 +78,9 @@
 			// Add the Community areas stroke layer.
 			map.addLayer(LAYER_CONFIG.communityAreasStroke, 'road-label-simple');
 
+			// Add the Service lines layer.
+			map.addLayer(LAYER_CONFIG.serviceLines, 'road-label-simple');
+
 			// Set initial layer visibility based on default aggregation level (community)
 			if (visualization.aggregationLevel === 'community') {
 				// Show community areas

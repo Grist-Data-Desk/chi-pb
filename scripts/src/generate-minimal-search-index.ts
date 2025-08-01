@@ -116,7 +116,7 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				);
 
 				const id = addresses.length;
-				const fullAddress = String(normalizedRow.full_address || '');
+				const fullAddress = String(normalizedRow.matched_address || '');
 				const stnum1 = parseInt(normalizedRow.stnum1 as string) || 0;
 				const stnum2 = parseInt(normalizedRow.stnum2 as string) || 0;
 				const stdir = String(normalizedRow.stdir || '');

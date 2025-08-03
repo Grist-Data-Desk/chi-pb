@@ -34,6 +34,22 @@ interface MinimalSearchIndex {
 	};
 }
 
+interface ServiceLinePoint {
+	row: number;        // Row ID for matching with PMTiles
+	lat: number;
+	long: number;
+	material: string;   // Lead status for filtering
+}
+
+interface ServiceLineSpatialIndex {
+	points: ServiceLinePoint[];
+	metadata: {
+		totalPoints: number;
+		generatedAt: string;
+		version: string;
+	};
+}
+
 // Normalization for address variants
 function normalizeStreetName(street: string): string {
 	let normalized = street.toLowerCase()
@@ -101,6 +117,7 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 	console.log('Processing address data for minimal search index...');
 	const addresses: MinimalAddress[] = [];
 	const streetNameIndex: Record<string, number[]> = {};
+	const serviceLinePoints: ServiceLinePoint[] = [];
 
 	return new Promise((resolve, reject) => {
 		fs.createReadStream(addressPath)
@@ -127,6 +144,7 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				const lat = parseFloat(normalizedRow.lat as string) || 0;
 				const long = parseFloat(normalizedRow.long as string) || 0;
 				const isIntersection = normalizedRow.is_intersection === 'TRUE';
+				const material = String(normalizedRow.classification_for_entire_service_line || 'U');
 
 				// Build normalized street name for indexing
 				const streetParts = [stdir, stname, sttype].filter(p => p).join(' ');
@@ -145,6 +163,16 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				};
 
 				addresses.push(minimalAddress);
+
+				// Add to spatial index if coordinates are valid
+				if (lat && long && !isNaN(lat) && !isNaN(long)) {
+					serviceLinePoints.push({
+						row,
+						lat,
+						long,
+						material
+					});
+				}
 
 				// Handle intersection addresses
 				if (isIntersection && fullAddress.includes('&')) {
@@ -270,6 +298,47 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				console.log(`  - Compressed size: ${(compressed.length / 1024 / 1024).toFixed(1)}MB`);
 				console.log(`  - Compression ratio: ${metadata.compressionRatio}`);
 				console.log(`  - Size reduction from full index: ~${((8.5 - compressed.length / 1024 / 1024) / 8.5 * 100).toFixed(0)}%`);
+
+				// Generate spatial index
+				console.log('\nGenerating service line spatial index...');
+				const spatialIndex: ServiceLineSpatialIndex = {
+					points: serviceLinePoints,
+					metadata: {
+						totalPoints: serviceLinePoints.length,
+						generatedAt: new Date().toISOString(),
+						version: '1.0.0'
+					}
+				};
+
+				const spatialJsonString = JSON.stringify(spatialIndex);
+				const spatialOutputPath = path.join(outputDir, 'service-lines-spatial-index.json');
+				
+				fs.writeFileSync(spatialOutputPath, spatialJsonString, { encoding: 'utf8' });
+
+				const spatialCompressed = await brotliCompressAsync(Buffer.from(spatialJsonString));
+				fs.writeFileSync(`${spatialOutputPath}.br`, spatialCompressed);
+
+				const spatialMetadata = {
+					contentType: 'application/json',
+					contentEncoding: 'br',
+					originalSize: spatialJsonString.length,
+					compressedSize: spatialCompressed.length,
+					compressionRatio: (spatialCompressed.length / spatialJsonString.length * 100).toFixed(1) + '%'
+				};
+				fs.writeFileSync(`${spatialOutputPath}.br.meta`, JSON.stringify(spatialMetadata, null, 2));
+
+				console.log(`✓ Service line spatial index generated:`);
+				console.log(`  - ${serviceLinePoints.length} points`);
+				console.log(`  - Original size: ${(spatialJsonString.length / 1024 / 1024).toFixed(1)}MB`);
+				console.log(`  - Compressed size: ${(spatialCompressed.length / 1024 / 1024).toFixed(1)}MB`);
+				console.log(`  - Compression ratio: ${spatialMetadata.compressionRatio}`);
+
+				// Show material distribution
+				const materialCounts = serviceLinePoints.reduce((acc, point) => {
+					acc[point.material] = (acc[point.material] || 0) + 1;
+					return acc;
+				}, {} as Record<string, number>);
+				console.log(`  - Material distribution:`, materialCounts);
 
 				resolve();
 			})

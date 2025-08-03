@@ -1,6 +1,7 @@
 <script lang="ts">
 	import maplibregl from 'maplibre-gl';
 	import * as pmtiles from 'pmtiles';
+	import * as turf from '@turf/turf';
 	import { onMount } from 'svelte';
 
 	import { Popup } from '$lib/classes/Popup';
@@ -13,6 +14,7 @@
 	import { popup } from '$lib/state/popup.svelte';
 	import { search } from '$lib/state/search.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
+	import { spatialIndex, loadServiceLineSpatialIndex, findServiceLinesWithinRadius } from '$lib/state/spatial-index.svelte';
 	import {
 		SOURCE_CONFIG,
 		LAYER_CONFIG,
@@ -23,7 +25,7 @@
 		INITIAL_ZOOM,
 		INITIAL_MOBILE_ZOOM
 	} from '$lib/utils/config';
-	import { TABLET_BREAKPOINT } from '$lib/utils/constants';
+	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
 
 	// State.
@@ -33,6 +35,9 @@
 	onMount(() => {
 		const protocol = new pmtiles.Protocol();
 		maplibregl.addProtocol('pmtiles', protocol.tile);
+		
+		// Load spatial index for service lines
+		loadServiceLineSpatialIndex();
 
 		mapState.map = new maplibregl.Map({
 			container: 'map-container',
@@ -194,20 +199,72 @@
 	});
 
 	$effect(() => {
-		if (!mapState.map || !serviceLayerReady) {
+		if (!mapState.map || !serviceLayerReady || !spatialIndex.isReady) {
 			return;
 		}
 
 		if (search.selectedAddress) {
 			// When an address is selected, wait for the zoom animation to complete
-			// then show service lines
+			// then show service lines within radius
 			const handleMoveEnd = () => {
 				if (!mapState.map) return;
 				if (!mapState.map.getLayer('service-lines')) return;
 				
-				// Show service lines layer
-				mapState.map.setPaintProperty('service-lines', 'circle-opacity', 0.8);
-				mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0.9);
+				// Find service lines within 500 feet
+				const radiusInFeet = 500;
+				const radiusInMeters = radiusInFeet * 0.3048;
+				const center = turf.point([search.selectedAddress!.long, search.selectedAddress!.lat]);
+				
+				// Create radius circle
+				const radiusCircle = turf.circle(center, radiusInMeters, {
+					steps: 64,
+					units: 'meters'
+				});
+				
+				// Add or update radius circle source and layer
+				const radiusSourceId = 'radius-circle';
+				const radiusLayerId = 'radius-circle-line';
+				
+				if (mapState.map.getSource(radiusSourceId)) {
+					(mapState.map.getSource(radiusSourceId) as maplibregl.GeoJSONSource).setData(radiusCircle);
+				} else {
+					mapState.map.addSource(radiusSourceId, {
+						type: 'geojson',
+						data: radiusCircle
+					});
+					
+					mapState.map.addLayer({
+						id: radiusLayerId,
+						type: 'line',
+						source: radiusSourceId,
+						layout: {},
+						paint: {
+							'line-color': COLORS.EARTH,
+							'line-width': 2,
+							'line-dasharray': [4, 4],
+							'line-opacity': 0.6
+						}
+					});
+				}
+				
+				const nearbyServiceLines = findServiceLinesWithinRadius(
+					search.selectedAddress!.long,
+					search.selectedAddress!.lat,
+					radiusInFeet
+				);
+				
+				// Create filter expression to show only nearby service lines
+				if (nearbyServiceLines.length > 0) {
+					const rowIds = nearbyServiceLines.map(p => p.row);
+					mapState.map.setFilter('service-lines', ['in', ['get', 'row'], ['literal', rowIds]]);
+					
+					// Show service lines layer
+					mapState.map.setPaintProperty('service-lines', 'circle-opacity', 0.8);
+					mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0.9);
+				} else {
+					// No service lines within radius
+					mapState.map.setFilter('service-lines', ['==', ['get', 'row'], -1]); // Show nothing
+				}
 				
 				// Remove the listener after it's triggered once
 				mapState.map.off('moveend', handleMoveEnd);
@@ -221,9 +278,22 @@
 				handleMoveEnd();
 			}
 		} else {
-			// Hide service lines when no address is selected
-			mapState.map.setPaintProperty('service-lines', 'circle-opacity', 0);
-			mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0);
+			// Hide service lines immediately when no address is selected
+			if (mapState.map.getLayer('service-lines')) {
+				// Hide first, then clear filter to prevent flashing
+				mapState.map.setPaintProperty('service-lines', 'circle-opacity', 0);
+				mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0);
+				// Clear filter after hiding
+				mapState.map.setFilter('service-lines', ['==', ['get', 'row'], -1]);
+			}
+			
+			// Remove radius circle
+			if (mapState.map.getLayer('radius-circle-line')) {
+				mapState.map.removeLayer('radius-circle-line');
+			}
+			if (mapState.map.getSource('radius-circle')) {
+				mapState.map.removeSource('radius-circle');
+			}
 		}
 	});
 </script>

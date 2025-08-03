@@ -106,3 +106,20 @@ export interface InventoryApiResponse {
 	};
 	error?: string;
 }
+
+// Spatial Index
+export interface ServiceLinePoint {
+	row: number;
+	lat: number;
+	long: number;
+	material: string;
+}
+
+export interface ServiceLineSpatialIndex {
+	points: ServiceLinePoint[];
+	metadata: {
+		totalPoints: number;
+		generatedAt: string;
+		version: string;
+	};
+}

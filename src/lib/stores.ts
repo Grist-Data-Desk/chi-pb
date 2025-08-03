@@ -1,11 +1,13 @@
 import { writable, derived } from 'svelte/store';
+import KDBush from 'kdbush';
 
 import { DO_SPACES_URL, SEARCH_INDEX_PATH } from '$lib/utils/config';
 import type {
 	AddressWithServiceLine,
 	IndexedAddressCollection,
 	MinimalSearchIndex,
-	InventoryData
+	InventoryData,
+	ServiceLineSpatialIndex
 } from '$lib/types';
 
 // Minimal search index store for optimized address search

@@ -368,25 +368,37 @@
 		}
 	});
 
-	// Update service line dot sizes based on selection
+	// Update service line dot stroke based on selection
 	$effect(() => {
-		if (!mapState.map || !mapState.map.getLayer('service-lines')) return;
+		if (!mapState.map || !serviceLayerReady) return;
 		
-		const selectedRow = search.clickedServiceLineRow ?? search.selectedAddress?.row;
+		const layer = mapState.map.getLayer('service-lines');
+		if (!layer) return;
 		
-		// Update circle radius to show selected state
+		// Only the clicked service line gets visual changes, not the searched address
+		const clickedRow = search.clickedServiceLineRow;
+		
+		// Update circle radius - searched address stays large, others normal
+		// Use a single interpolate with case expressions inside for the values
 		mapState.map.setPaintProperty('service-lines', 'circle-radius', [
-			'case',
-			['==', ['get', 'row'], selectedRow ?? -1],
-			['interpolate', ['linear'], ['zoom'], 10, 4, 16, 12], // Larger for selected
-			['interpolate', ['linear'], ['zoom'], 10, 2, 16, 8]   // Normal size
+			'interpolate', ['linear'], ['zoom'],
+			10, ['case',
+				['==', ['get', 'row'], search.searchedAddress?.row ?? -1],
+				4,  // Larger for searched at zoom 10
+				2   // Normal size at zoom 10
+			],
+			16, ['case',
+				['==', ['get', 'row'], search.searchedAddress?.row ?? -1],
+				12, // Larger for searched at zoom 16
+				8   // Normal size at zoom 16
+			]
 		]);
 		
-		// Update stroke width for selected
+		// Update stroke width - only clicked dots get thicker stroke
 		mapState.map.setPaintProperty('service-lines', 'circle-stroke-width', [
 			'case',
-			['==', ['get', 'row'], selectedRow ?? -1],
-			2, // Thicker stroke for selected
+			['==', ['get', 'row'], clickedRow ?? -1],
+			3, // Thicker stroke for clicked
 			1  // Normal stroke
 		]);
 	});

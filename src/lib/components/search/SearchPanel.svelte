@@ -1016,30 +1016,34 @@
 
 	// Effects.
 	$effect(() => {
-		// Reactive update of the selected address dot color based on inventory data
-		if (map && search.selectedAddress && !inventory.isLoading) {
+		// Reactive update of the searched address dot color based on inventory data
+		// This should only update the color of the searched address, not clicked dots
+		if (map && search.searchedAddress && !inventory.isLoading) {
 			const highlightLayer = 'selected-address-highlight';
 
 			if (map.getLayer(highlightLayer)) {
-				// Get the overall code to display
-				const displayCode =
-					$multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1
-						? getWorstCode($multiServiceLineStore.inventoryList)
-						: $currentServiceLine?.OverallSL_Code || $currentServiceLine?.overallCode || 'U';
+				// Only update color if this is displaying the searched address
+				if (search.selectedAddress?.row === search.searchedAddress.row) {
+					// Get the overall code to display
+					const displayCode =
+						$multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1
+							? getWorstCode($multiServiceLineStore.inventoryList)
+							: $currentServiceLine?.OverallSL_Code || $currentServiceLine?.overallCode || 'U';
 
-				let dotColor: string = COLORS.EARTH; // Default
+					let dotColor: string = COLORS.EARTH; // Default
 
-				if (displayCode === 'L') {
-					dotColor = COLORS.RED;
-				} else if (displayCode === 'GRR') {
-					dotColor = COLORS.ORANGE;
-				} else if (displayCode === 'NL') {
-					dotColor = COLORS.TURQUOISE;
-				} else {
-					dotColor = COLORS.GOLD; // Unknown
+					if (displayCode === 'L') {
+						dotColor = COLORS.RED;
+					} else if (displayCode === 'GRR') {
+						dotColor = COLORS.ORANGE;
+					} else if (displayCode === 'NL') {
+						dotColor = COLORS.TURQUOISE;
+					} else {
+						dotColor = COLORS.GOLD; // Unknown
+					}
+
+					map.setPaintProperty(highlightLayer, 'circle-color', dotColor);
 				}
-
-				map.setPaintProperty(highlightLayer, 'circle-color', dotColor);
 			}
 		}
 	});
@@ -1095,6 +1099,7 @@
 					};
 					
 					// Update search state to show this as selected (but don't update the query)
+					// Important: Keep the searched address separate from clicked addresses
 					search.selectedAddress = clickedAddress;
 					
 					// Load inventory for the clicked service line using the address

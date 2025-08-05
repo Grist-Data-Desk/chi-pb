@@ -245,12 +245,11 @@
 					queryNumber >= addr.n1 &&
 					queryNumber <= addr.n2
 				) {
-					// Reconstruct full address for matching
-					// addr.a already contains the zip code after the fix
-					const fullAddress = addr.a.includes(addr.z) 
-						? addr.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
-						: addr.a + ', CHICAGO, IL ' + addr.z;
-					const normalizedAddr = normalizeAddress(fullAddress);
+					// Only match against the street portion of the address, not the city
+					// addr.a is already in the format "1234 N CHICAGO AVE, 60601" or similar
+					// We want to exclude the zip code from matching to avoid matching "chicago" against city name
+					const streetPortion = addr.a.replace(/, \d{5}$/, ''); // Remove zip code
+					const normalizedAddr = normalizeAddress(streetPortion);
 					const addressWords = normalizedAddr.split(/\s+/);
 					const streetWords = normalizedStreetPart.split(/\s+/).filter((w) => w.length > 0);
 

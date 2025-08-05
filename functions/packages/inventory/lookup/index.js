@@ -1,5 +1,5 @@
 /**
- * DigitalOcean Function for Chicago Water Service Line Inventory Lookup 
+ * DigitalOcean Function for Chicago Water Service Line Inventory Lookup
  *
  * This function takes an address and returns all service lines at that address
  * using a pre-indexed, address-based lookup file.

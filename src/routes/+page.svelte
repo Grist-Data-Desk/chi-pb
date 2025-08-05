@@ -130,13 +130,16 @@
 		mapState.map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
 			if (visualization.aggregationLevel !== 'tract' || !e.features?.length) return;
 			
-			// Don't show popup if an address is selected
-			if (search.selectedAddress) return;
-
 			const feature = e.features[0];
 			const tractProperties = feature.properties;
 
 			if (tractProperties && tractProperties.geoid) {
+				// Check if this is the tract containing the searched address
+				if (search.selectedAddress && search.selectedAddressTractId === tractProperties.geoid) {
+					// Don't show popup for the tract containing the searched address
+					return;
+				}
+				
 				const lngLat = e.lngLat;
 				if (popup.node) {
 					popup.node.showPopup(lngLat, tractProperties as any);
@@ -147,13 +150,16 @@
 		mapState.map.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
 			if (visualization.aggregationLevel !== 'community' || !e.features?.length) return;
 			
-			// Don't show popup if an address is selected
-			if (search.selectedAddress) return;
-
 			const feature = e.features[0];
 			const communityProperties = feature.properties;
 
 			if (communityProperties && communityProperties.community) {
+				// Check if this is the community area containing the searched address
+				if (search.selectedAddress && search.selectedAddressCommunityName === communityProperties.community) {
+					// Don't show popup for the community area containing the searched address
+					return;
+				}
+				
 				const lngLat = e.lngLat;
 				if (popup.node) {
 					popup.node.showPopup(lngLat, communityProperties as any);
@@ -163,7 +169,14 @@
 
 		// Add mouseenter and mouseleave handlers for Census tracts and Community areas.
 		mapState.map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-			if (visualization.aggregationLevel === 'tract' && !search.selectedAddress) {
+			if (visualization.aggregationLevel === 'tract') {
+				// Show pointer cursor for all tracts except the one containing the searched address
+				if (e.features?.length && search.selectedAddress && search.selectedAddressTractId) {
+					const feature = e.features[0];
+					if (feature.properties?.geoid === search.selectedAddressTractId) {
+						return; // Don't show pointer for the searched address tract
+					}
+				}
 				const map = e.target;
 				map.getCanvas().style.cursor = 'pointer';
 			}
@@ -177,7 +190,14 @@
 		});
 
 		mapState.map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, (e) => {
-			if (visualization.aggregationLevel === 'community' && !search.selectedAddress) {
+			if (visualization.aggregationLevel === 'community') {
+				// Show pointer cursor for all community areas except the one containing the searched address
+				if (e.features?.length && search.selectedAddress && search.selectedAddressCommunityName) {
+					const feature = e.features[0];
+					if (feature.properties?.community === search.selectedAddressCommunityName) {
+						return; // Don't show pointer for the searched address community area
+					}
+				}
 				const map = e.target;
 				map.getCanvas().style.cursor = 'pointer';
 			}

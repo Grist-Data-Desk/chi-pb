@@ -8,6 +8,8 @@ interface SearchState {
 	searchedAddress: AddressWithServiceLine | null; // Address from search, not clicks
 	clickedServiceLineRow: number | null;
 	nearbyServiceLines: ServiceLinePoint[];
+	selectedAddressTractId: string | null;
+	selectedAddressCommunityName: string | null;
 }
 
 export const search = $state<SearchState>({
@@ -17,5 +19,7 @@ export const search = $state<SearchState>({
 	selectedAddress: null,
 	searchedAddress: null,
 	clickedServiceLineRow: null,
-	nearbyServiceLines: []
+	nearbyServiceLines: [],
+	selectedAddressTractId: null,
+	selectedAddressCommunityName: null
 });

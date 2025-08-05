@@ -12,6 +12,7 @@
 		previousServiceLine
 	} from '$lib/stores';
 	import { search } from '$lib/state/search.svelte';
+	import { visualization } from '$lib/state/visualization.svelte';
 	import type { AddressWithServiceLine, CensusTract } from '$lib/types';
 	import { COLORS } from '$lib/utils/constants';
 
@@ -28,8 +29,11 @@
 
 	// State.
 	let tractData = $state<CensusTract | null>(null);
+	let communityData = $state<any | null>(null);
 	let isTractDataLoading = $state(false);
+	let isCommunityDataLoading = $state(false);
 	let pendingTractQuery = $state<{ lng: number; lat: number } | null>(null);
+	let pendingCommunityQuery = $state<{ lng: number; lat: number } | null>(null);
 	let mapMoveEndHandler = $state<(() => void) | null>(null);
 	let address = $derived(
 		search.clickedServiceLineRow !== null && $multiServiceLineStore.address
@@ -48,6 +52,14 @@
 		setTimeout(() => {
 			if (!map?.isMoving()) {
 				getTractDataAtPoint(lng, lat);
+			}
+		}, 100);
+	}
+	
+	async function queryCommunityDataWithRetry(lng: number, lat: number) {
+		setTimeout(() => {
+			if (!map?.isMoving()) {
+				getCommunityDataAtPoint(lng, lat);
 			}
 		}, 100);
 	}
@@ -120,6 +132,11 @@
 				isTractDataLoading = false;
 				pendingTractQuery = null;
 				console.log('Tract data loaded:', tractData.geoid);
+				
+				// Update search state with the tract ID for the selected address
+				if (search.selectedAddress) {
+					search.selectedAddressTractId = tractData.geoid;
+				}
 			} else if (retryCount < maxRetries) {
 				// Retry (the tiles might not be loaded yet)
 				console.log(`No features found, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
@@ -142,6 +159,76 @@
 				tractData = null;
 				isTractDataLoading = false;
 				pendingTractQuery = null;
+			}
+		}
+	}
+	
+	async function getCommunityDataAtPoint(lng: number, lat: number, retryCount = 0) {
+		if (!map || !pendingCommunityQuery) {
+			isCommunityDataLoading = false;
+			return;
+		}
+
+		if (pendingCommunityQuery.lng !== lng || pendingCommunityQuery.lat !== lat) {
+			return;
+		}
+
+		const maxRetries = 10;
+
+		try {
+			if (!map.getLayer('community-areas-fill')) {
+				console.log('Community area layer not yet loaded');
+				if (retryCount < maxRetries) {
+					setTimeout(() => {
+						getCommunityDataAtPoint(lng, lat, retryCount + 1);
+					}, 200);
+				} else {
+					isCommunityDataLoading = false;
+					pendingCommunityQuery = null;
+				}
+				return;
+			}
+
+			const point = map.project([lng, lat]);
+			const buffer = 5; // pixels
+			const features = map.queryRenderedFeatures(
+				[
+					[point.x - buffer, point.y - buffer],
+					[point.x + buffer, point.y + buffer]
+				],
+				{
+					layers: ['community-areas-fill']
+				}
+			);
+
+			if (features.length > 0) {
+				communityData = features[0].properties;
+				isCommunityDataLoading = false;
+				pendingCommunityQuery = null;
+				
+				// Update search state with the community name for the selected address
+				if (search.selectedAddress && communityData.community) {
+					search.selectedAddressCommunityName = communityData.community;
+				}
+			} else if (retryCount < maxRetries) {
+				setTimeout(() => {
+					getCommunityDataAtPoint(lng, lat, retryCount + 1);
+				}, 300);
+			} else {
+				communityData = null;
+				isCommunityDataLoading = false;
+				pendingCommunityQuery = null;
+			}
+		} catch (error) {
+			console.error('Error getting community data at point:', error);
+			if (retryCount < maxRetries) {
+				setTimeout(() => {
+					getCommunityDataAtPoint(lng, lat, retryCount + 1);
+				}, 300);
+			} else {
+				communityData = null;
+				isCommunityDataLoading = false;
+				pendingCommunityQuery = null;
 			}
 		}
 	}
@@ -181,8 +268,14 @@
 	$effect(() => {
 		if (!address) {
 			tractData = null;
+			communityData = null;
 			isTractDataLoading = false;
+			isCommunityDataLoading = false;
 			pendingTractQuery = null;
+			pendingCommunityQuery = null;
+			// Clear the tract/community info when no address is selected
+			search.selectedAddressTractId = null;
+			search.selectedAddressCommunityName = null;
 		}
 	});
 
@@ -192,6 +285,12 @@
 			tractData = null;
 			pendingTractQuery = { lng: address.long, lat: address.lat };
 			queryTractDataWithRetry(address.long, address.lat);
+			
+			// Also query for community area data
+			isCommunityDataLoading = true;
+			communityData = null;
+			pendingCommunityQuery = { lng: address.long, lat: address.lat };
+			queryCommunityDataWithRetry(address.long, address.lat);
 		}
 	});
 
@@ -201,6 +300,10 @@
 				if (pendingTractQuery && isTractDataLoading) {
 					console.log('Map finished moving, querying tract data...');
 					getTractDataAtPoint(pendingTractQuery.lng, pendingTractQuery.lat);
+				}
+				if (pendingCommunityQuery && isCommunityDataLoading) {
+					console.log('Map finished moving, querying community data...');
+					getCommunityDataAtPoint(pendingCommunityQuery.lng, pendingCommunityQuery.lat);
 				}
 			};
 			map.on('moveend', mapMoveEndHandler);
@@ -430,14 +533,165 @@
 				{/if}
 			</div>
 
-			<!-- Census Tract Information -->
+			<!-- Census Tract/Community Area Information -->
 			<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
 				<h3 class="font-sans-secondary mt-0 text-base font-medium text-slate-800 sm:text-lg">
-					Census tract context
+					{visualization.aggregationLevel === 'community' ? 'Community area' : 'Census tract'} context
 				</h3>
 				{#if !address}
 					<div class="font-sans text-xs text-slate-500 sm:text-sm">
-						<p>Select an address to view census tract information.</p>
+						<p>Select an address to view {visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'} information.</p>
+					</div>
+				{:else if visualization.aggregationLevel === 'community' && communityData}
+					<div class="font-sans text-xs sm:text-sm">
+						<p class="mt-1 text-xs text-slate-500 italic">
+							This address is located in {communityData.community}. Statistics on this community area
+							appear below.
+						</p>
+
+						{#if communityData.total !== undefined}
+							<p class="mb-1 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
+								Service Line Inventory
+							</p>
+
+							<div class="mb-3 rounded-sm bg-gray-50 p-2">
+								<table class="w-full text-xs">
+									<colgroup>
+										<col class="w-3/5" />
+										<col class="w-1/5" />
+										<col class="w-1/5" />
+									</colgroup>
+									<tbody>
+										<tr class="border-b border-gray-200">
+											<td class="py-1 text-gray-600">Lead</td>
+											<td class="px-2 py-1 text-right font-medium"
+												>{formatCount(communityData.L)}</td
+											>
+											<td class="py-1 text-right text-gray-600"
+												>{formatPercent(communityData.pct_lead)}</td
+											>
+										</tr>
+										<tr class="border-b border-gray-200">
+											<td class="py-1 text-gray-600">Galvanized (Replace)</td>
+											<td class="px-2 py-1 text-right font-medium"
+												>{formatCount(communityData.GRR)}</td
+											>
+											<td class="py-1 text-right text-gray-600"
+												>{formatPercent(communityData.pct_grr)}</td
+											>
+										</tr>
+										<tr class="border-b border-gray-200">
+											<td class="py-1 text-gray-600">Unknown (Suspected Lead)</td>
+											<td class="px-2 py-1 text-right font-medium"
+												>{formatCount(communityData.U)}</td
+											>
+											<td class="py-1 text-right text-gray-600"
+												>{formatPercent(communityData.pct_suspected_lead)}</td
+											>
+										</tr>
+										<tr>
+											<td class="py-1 text-gray-600">Non-Lead</td>
+											<td class="px-2 py-1 text-right font-medium"
+												>{formatCount(communityData.NL)}</td
+											>
+											<td class="py-1 text-right text-gray-600"
+												>{formatPercent(communityData.pct_not_lead)}</td
+											>
+										</tr>
+									</tbody>
+								</table>
+
+								<div class="px-2">
+									<table class="mt-2 w-full border-t border-gray-200 pt-2 text-xs">
+										<colgroup>
+											<col class="w-3/5" />
+											<col class="w-1/5" />
+											<col class="w-1/5" />
+										</colgroup>
+										<tbody>
+											<tr>
+												<td class="py-1 text-gray-700">Total</td>
+												<td class="px-2 py-1 text-right font-bold"
+													>{formatCount(communityData.total)}</td
+												>
+												<td class="py-1"></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+
+								{#if communityData.requires_replacement !== undefined}
+									<div class="mt-2 rounded-sm bg-purple-50 p-2">
+										<table class="w-full text-xs">
+											<colgroup>
+												<col class="w-3/5" />
+												<col class="w-1/5" />
+												<col class="w-1/5" />
+											</colgroup>
+											<tbody>
+												<tr>
+													<td class="font-medium text-purple-700">Requires Replacement</td>
+													<td class="px-2 text-right font-bold text-purple-900"
+														>{formatCount(communityData.requires_replacement)}</td
+													>
+													<td class="text-right font-bold text-purple-900"
+														>{formatPercent(communityData.pct_requires_replacement)}</td
+													>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								{/if}
+							</div>
+						{/if}
+
+						<p class="mb-1 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
+							Demographics
+						</p>
+						<div class="rounded-sm bg-gray-50 p-2">
+							<table class="w-full text-xs">
+								<tbody>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">Median Income</td>
+										<td class="py-1 text-right font-medium"
+											>{formatCurrency(communityData.median_household_income)}</td
+										>
+									</tr>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">Poverty Rate</td>
+										<td class="py-1 text-right font-medium"
+											>{formatPercent(communityData.pct_poverty)}</td
+										>
+									</tr>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">Black Population</td>
+										<td class="py-1 text-right font-medium"
+											>{formatPercent(
+												communityData.pct_black_nonhispanic || communityData.pct_black
+											)}</td
+										>
+									</tr>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">White Population</td>
+										<td class="py-1 text-right font-medium"
+											>{formatPercent(communityData.pct_white_nonhispanic)}</td
+										>
+									</tr>
+									<tr class="border-b border-gray-200">
+										<td class="py-1 text-gray-600">Asian Population</td>
+										<td class="py-1 text-right font-medium"
+											>{formatPercent(communityData.pct_asian_nonhispanic)}</td
+										>
+									</tr>
+									<tr>
+										<td class="py-1 text-gray-600">Minority Population</td>
+										<td class="py-1 text-right font-medium"
+											>{formatPercent(communityData.pct_minority)}</td
+										>
+									</tr>
+								</tbody>
+							</table>
+						</div>
 					</div>
 				{:else if tractData}
 					<div class="font-sans text-xs sm:text-sm">
@@ -590,18 +844,18 @@
 							</table>
 						</div>
 					</div>
-				{:else if isTractDataLoading}
+				{:else if (visualization.aggregationLevel === 'tract' && isTractDataLoading) || (visualization.aggregationLevel === 'community' && isCommunityDataLoading)}
 					<div class="font-sans text-xs text-slate-500 sm:text-sm">
 						<div class="flex items-center gap-2">
 							<div
 								class="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"
 							></div>
-							<p>Loading census tract information...</p>
+							<p>Loading {visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'} information...</p>
 						</div>
 					</div>
 				{:else}
 					<div class="font-sans text-xs text-slate-500 sm:text-sm">
-						<p>Census tract information is not available for this location.</p>
+						<p>{visualization.aggregationLevel === 'community' ? 'Community area' : 'Census tract'} information is not available for this location.</p>
 					</div>
 				{/if}
 			</div>

@@ -853,6 +853,8 @@
 		search.query = event.currentTarget.value;
 		// Clear the selected address when user types.
 		search.selectedAddress = null;
+		search.selectedAddressTractId = null;
+		search.selectedAddressCommunityName = null;
 
 		fetchSuggestions(event.currentTarget.value);
 	}

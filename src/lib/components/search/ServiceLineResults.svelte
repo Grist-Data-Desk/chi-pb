@@ -320,17 +320,38 @@
 {#if address}
 	<div class="scrollbar-thin scrollbar-position mt-4 max-h-[calc(100vh-29rem)] overflow-y-auto">
 		<div class="space-y-3 sm:space-y-4">
-			<!-- Address Information -->
-			<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
-				<h3 class="font-sans-secondary mt-0 mb-0 text-base font-medium text-slate-800 sm:text-lg">
-					Selected address
-				</h3>
-				<div class="space-y-2 font-sans">
-					<div>
-						<p class="text-sm font-medium break-words text-slate-800 sm:text-base">
-							{address.fullAddress}
-						</p>
+			{#if search.isNominatimAddress}
+				<!-- Placeholder for Nominatim addresses -->
+				<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
+					<h3 class="font-sans-secondary mt-0 mb-2 text-base font-medium text-slate-800 sm:text-lg">
+						Selected address
+					</h3>
+					<p class="text-sm break-words text-slate-800 sm:text-base mb-3">
+						{address.fullAddress}
+					</p>
+					<div class="rounded-md border border-amber-200 bg-amber-50 pl-3 pr-3">
+						<div class="flex items-start gap-2">
+							<div>
+								<p class="font-sans text-sm text-amber-800 font-medium">
+									The address you searched is not in the City of Chicago's water service line inventory. However, you can click on a nearby service line dot to view its corresponding inventory entry.
+								</p>
+							</div>
+						</div>
 					</div>
+				</div>
+			{:else}
+				<!-- Normal address display -->
+				<!-- Address Information -->
+				<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
+					<h3 class="font-sans-secondary mt-0 mb-0 text-base font-medium text-slate-800 sm:text-lg">
+						Selected address
+					</h3>
+					<div class="space-y-2 font-sans">
+						<div>
+							<p class="text-sm font-medium break-words text-slate-800 sm:text-base">
+								{address.fullAddress}
+							</p>
+						</div>
 
 					<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
 						<span class="text-xs text-slate-600 sm:text-sm">Lead Status:</span>
@@ -859,6 +880,7 @@
 					</div>
 				{/if}
 			</div>
+			{/if}
 		</div>
 	</div>
 {/if}

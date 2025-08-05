@@ -10,6 +10,8 @@ interface SearchState {
 	nearbyServiceLines: ServiceLinePoint[];
 	selectedAddressTractId: string | null;
 	selectedAddressCommunityName: string | null;
+	noInventoryResults: boolean; // Flag when inventory search returns 0 results
+	isNominatimAddress: boolean; // Flag when selected address is from Nominatim
 }
 
 export const search = $state<SearchState>({
@@ -21,5 +23,7 @@ export const search = $state<SearchState>({
 	clickedServiceLineRow: null,
 	nearbyServiceLines: [],
 	selectedAddressTractId: null,
-	selectedAddressCommunityName: null
+	selectedAddressCommunityName: null,
+	noInventoryResults: false,
+	isNominatimAddress: false
 });

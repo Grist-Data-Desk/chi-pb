@@ -25,6 +25,8 @@
 		CombinedAddress
 	} from '$lib/types';
 	import { COLORS } from '$lib/utils/constants';
+	import { isCoordinatePair, searchNominatim, reverseGeocode, formatNominatimAddress } from '$lib/utils/nominatim';
+	import type { NominatimResult } from '$lib/utils/nominatim';
 
 	// Props.
 	interface Props {
@@ -43,6 +45,8 @@
 	let showSuggestions = $state(false);
 	let suggestionsContainer = $state<HTMLDivElement | null>(null);
 	let selectedIndex = $state<number>(-1);
+	let isSearchingNominatim = $state(false);
+	let nominatimSuggestions = $state<AddressWithServiceLine[]>([]);
 	let inventory = $state<{
 		isLoading: boolean;
 		data: InventoryData | null;
@@ -55,10 +59,72 @@
 		address: null
 	});
 
+	// Perform Nominatim search when no inventory results are found
+	async function performNominatimSearch(query: string): Promise<void> {
+		// Check if it's a coordinate pair first
+		const coords = isCoordinatePair(query);
+		
+		isSearchingNominatim = true;
+		nominatimSuggestions = [];
+		
+		try {
+			let result: NominatimResult | null = null;
+			
+			if (coords) {
+				// Reverse geocode the coordinates
+				result = await reverseGeocode(coords.lat, coords.lon);
+			} else {
+				// Search for the address
+				result = await searchNominatim(query);
+			}
+			
+			if (result) {
+				// Format the address to match inventory style
+				const formattedAddress = formatNominatimAddress(result.display_name);
+				
+				// Create a simplified suggestion for Nominatim results
+				const nominatimAddress: AddressWithServiceLine = {
+					row: -1, // Special marker for Nominatim addresses
+					fullAddress: formattedAddress,
+					isIntersection: false,
+					stnum1: 0,
+					stnum2: 0,
+					stdir: '',
+					stname: '',
+					sttype: '',
+					zip: '',
+					geocoder: 'nominatim',
+					lat: parseFloat(result.lat),
+					long: parseFloat(result.lon),
+					geoid: '',
+					leadStatus: 'UNKNOWN',
+					hasLead: false,
+					mIsIntersection: false,
+					mStnum1: 0,
+					mStnum2: 0,
+					mStdir: '',
+					mStname: '',
+					mZip: ''
+				};
+				
+				nominatimSuggestions = [nominatimAddress];
+			}
+		} catch (error) {
+			console.error('Error performing Nominatim search:', error);
+		} finally {
+			isSearchingNominatim = false;
+		}
+	}
+
 	// Event handlers.
 	const handleSearch = () => {
-		// This is now just a placeholder for the search button
-		// Address selection handles all the search functionality
+		// Enter key or search button just triggers selection if we have suggestions
+		if (showSuggestions && selectedIndex >= 0) {
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (selectedIndex < allSuggestions.length) {
+				onSuggestionClick(allSuggestions[selectedIndex]);
+			}
+		}
 	};
 
 	// Some normalization for address variants
@@ -731,7 +797,9 @@
 	const fetchSuggestions = debounce(async (query: string) => {
 		if (!query || query.length < 3) {
 			suggestions = [];
+			nominatimSuggestions = [];
 			showSuggestions = false;
+			search.noInventoryResults = false;
 			return;
 		}
 
@@ -740,13 +808,27 @@
 			// Use combined search if available, otherwise fall back
 			suggestions = searchAddressesCombined(query);
 			console.log(`Search for "${query}" returned ${suggestions.length} results`);
-			showSuggestions = suggestions.length > 0;
+			
+			// Track when we have no inventory results
+			search.noInventoryResults = suggestions.length === 0;
+			
+			// If no inventory results, automatically search Nominatim
+			if (search.noInventoryResults) {
+				await performNominatimSearch(query);
+			} else {
+				// Clear Nominatim suggestions if we have inventory results
+				nominatimSuggestions = [];
+			}
+			
+			// Show suggestions if we have any (inventory or Nominatim)
+			showSuggestions = suggestions.length > 0 || nominatimSuggestions.length > 0;
 			selectedIndex = -1; // Reset selection when new suggestions are loaded
 		} catch (error) {
 			console.error('Error searching addresses:', error);
 			console.error('Query was:', query);
 			console.error('Search index state:', $minimalSearchIndexStore);
 			suggestions = [];
+			search.noInventoryResults = true;
 		} finally {
 			isFetchingSuggestions = false;
 		}
@@ -868,22 +950,25 @@
 	function onKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			if (showSuggestions && selectedIndex >= 0 && selectedIndex < suggestions.length) {
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (showSuggestions && selectedIndex >= 0 && selectedIndex < allSuggestions.length) {
 				// Select the highlighted suggestion
-				onSuggestionClick(suggestions[selectedIndex]);
+				onSuggestionClick(allSuggestions[selectedIndex]);
 			} else {
 				showSuggestions = false;
 				handleSearch();
 			}
 		} else if (event.key === 'ArrowDown') {
 			event.preventDefault();
-			if (showSuggestions && suggestions.length > 0) {
-				selectedIndex = (selectedIndex + 1) % suggestions.length;
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (showSuggestions && allSuggestions.length > 0) {
+				selectedIndex = (selectedIndex + 1) % allSuggestions.length;
 			}
 		} else if (event.key === 'ArrowUp') {
 			event.preventDefault();
-			if (showSuggestions && suggestions.length > 0) {
-				selectedIndex = selectedIndex <= 0 ? suggestions.length - 1 : selectedIndex - 1;
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (showSuggestions && allSuggestions.length > 0) {
+				selectedIndex = selectedIndex <= 0 ? allSuggestions.length - 1 : selectedIndex - 1;
 			}
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
@@ -907,16 +992,29 @@
 
 		showSuggestions = false;
 		suggestions = []; // Clear suggestions after selection
+		nominatimSuggestions = []; // Clear Nominatim suggestions too
 
 		// Collapse the search header when an address is selected
 		ui.searchHeaderCollapsed = true;
 		ui.creditsExpanded = false;
 
-		// Load inventory data for the selected address
-		if (suggestion.row) {
-			loadInventoryForAddress(suggestion.fullAddress, suggestion.row);
+		// Check if this is a Nominatim address (row = -1)
+		if (suggestion.row === -1) {
+			// Mark this as a Nominatim address
+			search.isNominatimAddress = true;
+			// Don't load inventory data for Nominatim addresses
+			inventory.isLoading = false;
+			inventory.data = null;
+			inventory.error = null;
 		} else {
-			console.error('No row ID found for suggestion:', suggestion);
+			// Regular inventory address
+			search.isNominatimAddress = false;
+			// Load inventory data for the selected address
+			if (suggestion.row > 0) {
+				loadInventoryForAddress(suggestion.fullAddress, suggestion.row);
+			} else {
+				console.error('No row ID found for suggestion:', suggestion);
+			}
 		}
 
 		if (map && suggestion.lat && suggestion.long) {
@@ -1018,7 +1116,7 @@
 	$effect(() => {
 		// Reactive update of the searched address dot color based on inventory data
 		// This should only update the color of the searched address, not clicked dots
-		if (map && search.searchedAddress && !inventory.isLoading) {
+		if (map && search.searchedAddress && !inventory.isLoading && !search.isNominatimAddress) {
 			const highlightLayer = 'selected-address-highlight';
 
 			if (map.getLayer(highlightLayer)) {
@@ -1101,6 +1199,7 @@
 					// Update search state to show this as selected (but don't update the query)
 					// Important: Keep the searched address separate from clicked addresses
 					search.selectedAddress = clickedAddress;
+					search.isNominatimAddress = false; // Clear the Nominatim flag since this is a real inventory address
 					
 					// Load inventory for the clicked service line using the address
 					loadInventoryForAddress(fullAddress);
@@ -1149,19 +1248,24 @@
 					placeholder="1234 N State St"
 					disabled={$isAddressDataLoading}
 				/>
-				{#if isFetchingSuggestions}
+				{#if isFetchingSuggestions || isSearchingNominatim}
 					<div class="absolute top-1/2 right-2 -translate-y-1/2">
 						<div
 							class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
 						></div>
 					</div>
 				{/if}
-				{#if showSuggestions && suggestions.length > 0}
+				{#if showSuggestions && (suggestions.length > 0 || nominatimSuggestions.length > 0)}
 					<div
 						class="absolute left-0 z-50 mt-1 max-h-[300px] w-[200%] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
 						bind:this={suggestionsContainer}
 					>
-						{#each suggestions as suggestion, index}
+						{#if suggestions.length === 0 && nominatimSuggestions.length > 0}
+							<div class="px-4 py-2 text-xs text-slate-500 border-b border-slate-100">
+								No inventory results found. Showing general address search:
+							</div>
+						{/if}
+						{#each [...suggestions, ...nominatimSuggestions] as suggestion, index}
 							<div
 								class="cursor-pointer border-b border-slate-100 px-4 py-2.5 text-sm last:border-b-0 hover:bg-slate-50"
 								style={selectedIndex === index ? `background-color: ${highlightColor};` : ''}
@@ -1173,7 +1277,7 @@
 							>
 								<div class="font-medium break-words text-slate-800">
 									{suggestion.fullAddress}
-									{#if suggestion.serviceLineCount && suggestion.serviceLineCount > 1}
+									{#if suggestion.row !== -1 && suggestion.serviceLineCount && suggestion.serviceLineCount > 1}
 										<span class="ml-2 text-xs text-slate-500"
 											>({suggestion.serviceLineCount} service lines)</span
 										>

@@ -33,11 +33,16 @@
 
 	let { map }: Props = $props();
 
+	// Derived colors - matching search button hue
+	const searchButtonColor = interpolateReds(0.5);
+	const highlightColor = interpolateReds(0.15); // Lighter shade for background highlight
+
 	// State.
 	let suggestions = $state<AddressWithServiceLine[]>([]);
 	let isFetchingSuggestions = $state(false);
 	let showSuggestions = $state(false);
 	let suggestionsContainer = $state<HTMLDivElement | null>(null);
+	let selectedIndex = $state<number>(-1);
 	let inventory = $state<{
 		isLoading: boolean;
 		data: InventoryData | null;
@@ -736,6 +741,7 @@
 			suggestions = searchAddressesCombined(query);
 			console.log(`Search for "${query}" returned ${suggestions.length} results`);
 			showSuggestions = suggestions.length > 0;
+			selectedIndex = -1; // Reset selection when new suggestions are loaded
 		} catch (error) {
 			console.error('Error searching addresses:', error);
 			console.error('Query was:', query);
@@ -862,8 +868,27 @@
 	function onKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
+			if (showSuggestions && selectedIndex >= 0 && selectedIndex < suggestions.length) {
+				// Select the highlighted suggestion
+				onSuggestionClick(suggestions[selectedIndex]);
+			} else {
+				showSuggestions = false;
+				handleSearch();
+			}
+		} else if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			if (showSuggestions && suggestions.length > 0) {
+				selectedIndex = (selectedIndex + 1) % suggestions.length;
+			}
+		} else if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			if (showSuggestions && suggestions.length > 0) {
+				selectedIndex = selectedIndex <= 0 ? suggestions.length - 1 : selectedIndex - 1;
+			}
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
 			showSuggestions = false;
-			handleSearch();
+			selectedIndex = -1;
 		}
 	}
 
@@ -1131,13 +1156,15 @@
 						class="absolute left-0 z-50 mt-1 max-h-[300px] w-[200%] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
 						bind:this={suggestionsContainer}
 					>
-						{#each suggestions as suggestion}
+						{#each suggestions as suggestion, index}
 							<div
 								class="cursor-pointer border-b border-slate-100 px-4 py-2.5 text-sm last:border-b-0 hover:bg-slate-50"
+								style={selectedIndex === index ? `background-color: ${highlightColor};` : ''}
 								role="button"
 								tabindex="0"
 								onmousedown={() => onSuggestionClick(suggestion)}
 								onkeydown={(e) => onSuggestionKeyDown(e, suggestion)}
+								onmouseenter={() => selectedIndex = index}
 							>
 								<div class="font-medium break-words text-slate-800">
 									{suggestion.fullAddress}
@@ -1157,7 +1184,7 @@
 		<div class="flex flex-col justify-end">
 			<button
 				onclick={handleSearch}
-				style="background-color: {interpolateReds(0.5)}; border-color: {interpolateReds(0.6)};"
+				style="background-color: {searchButtonColor}; border-color: {interpolateReds(0.6)};"
 				class="flex w-[100px] items-center justify-center gap-2 rounded-md border p-1.5 font-sans whitespace-nowrap text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={$isAddressDataLoading || search.isSearching}
 			>

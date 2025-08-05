@@ -1,7 +1,8 @@
 import KDBush from 'kdbush';
 import * as turf from '@turf/turf';
 import { DO_SPACES_URL, SEARCH_INDEX_PATH } from '$lib/utils/config';
-import type { ServiceLineSpatialIndex, ServiceLinePoint } from '$lib/types';
+import type { ServiceLineSpatialIndex, ServiceLinePoint, CombinedIndex } from '$lib/types';
+import { combinedIndexStore } from '$lib/stores';
 
 interface SpatialIndexState {
 	isLoading: boolean;
@@ -118,6 +119,53 @@ export function findServiceLinesWithinRadius(
 	}
 
 	return pointsWithinRadius;
+}
+
+// Build spatial index from combined index data
+export function buildSpatialIndexFromCombined(combinedIndex: CombinedIndex): void {
+	try {
+		console.log('Building spatial index from combined data...');
+		
+		// Convert combined addresses to service line points
+		const points: ServiceLinePoint[] = combinedIndex.addresses.map(addr => ({
+			row: addr.r,
+			lat: addr.la,
+			long: addr.lo,
+			material: addr.m
+		}));
+		
+		// Build KDBush spatial index
+		const kdbush = new KDBush(points.length, 64, Float32Array);
+		
+		// Add all points to the index
+		for (const point of points) {
+			kdbush.add(point.long, point.lat);
+		}
+		
+		// Finish building the index
+		kdbush.finish();
+		
+		// Create spatial index object
+		const spatialIndex: ServiceLineSpatialIndex = {
+			points,
+			metadata: {
+				totalPoints: points.length,
+				generatedAt: combinedIndex.metadata.generatedAt,
+				version: combinedIndex.metadata.version
+			}
+		};
+		
+		state.index = spatialIndex;
+		state.kdbush = kdbush;
+		state.isLoading = false;
+		state.error = null;
+		
+		console.log(`✓ Spatial index built from combined data: ${points.length} points`);
+	} catch (error) {
+		console.error('Error building spatial index from combined data:', error);
+		state.error = error instanceof Error ? error.message : 'Failed to build spatial index';
+		state.isLoading = false;
+	}
 }
 
 // Export reactive getters

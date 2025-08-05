@@ -123,3 +123,28 @@ export interface ServiceLineSpatialIndex {
 		version: string;
 	};
 }
+
+// Combined index types (optimized for space)
+export interface CombinedAddress {
+	i: number; // id (shortened field name)
+	r: number; // row
+	a: string; // address without ", CHICAGO, IL," to save space
+	s: string; // street (normalized for search)
+	n1: number; // num1
+	n2: number; // num2
+	z: string; // zip
+	la: number; // latitude
+	lo: number; // longitude
+	m: string; // material (single char)
+}
+
+export interface CombinedIndex {
+	streets: Record<string, number[]>; // normalized street -> address IDs
+	addresses: CombinedAddress[]; // combined address data by ID
+	metadata: {
+		totalAddresses: number;
+		uniqueStreets: number;
+		generatedAt: string;
+		version: string;
+	};
+}

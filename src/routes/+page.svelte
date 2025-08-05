@@ -14,7 +14,8 @@
 	import { popup } from '$lib/state/popup.svelte';
 	import { search } from '$lib/state/search.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
-	import { spatialIndex, loadServiceLineSpatialIndex, findServiceLinesWithinRadius } from '$lib/state/spatial-index.svelte';
+	import { spatialIndex, loadServiceLineSpatialIndex, findServiceLinesWithinRadius, buildSpatialIndexFromCombined } from '$lib/state/spatial-index.svelte';
+	import { loadCombinedIndex, combinedIndexStore } from '$lib/stores';
 	import {
 		SOURCE_CONFIG,
 		LAYER_CONFIG,
@@ -36,8 +37,16 @@
 		const protocol = new pmtiles.Protocol();
 		maplibregl.addProtocol('pmtiles', protocol.tile);
 		
-		// Load spatial index for service lines
-		loadServiceLineSpatialIndex();
+		// Load combined index and build spatial index from it
+		loadCombinedIndex().then(() => {
+			const combinedIndex = $combinedIndexStore.index;
+			if (combinedIndex) {
+				buildSpatialIndexFromCombined(combinedIndex);
+			}
+		}).catch(() => {
+			console.warn('Failed to load combined index, falling back to separate spatial index');
+			loadServiceLineSpatialIndex();
+		});
 
 		mapState.map = new maplibregl.Map({
 			container: 'map-container',
@@ -120,6 +129,9 @@
 		// Add click handlers for Census tracts and Community areas.
 		mapState.map.on('click', LAYER_CONFIG.censusTractsFill.id, (e) => {
 			if (visualization.aggregationLevel !== 'tract' || !e.features?.length) return;
+			
+			// Don't show popup if an address is selected
+			if (search.selectedAddress) return;
 
 			const feature = e.features[0];
 			const tractProperties = feature.properties;
@@ -134,6 +146,9 @@
 
 		mapState.map.on('click', LAYER_CONFIG.communityAreasFill.id, (e) => {
 			if (visualization.aggregationLevel !== 'community' || !e.features?.length) return;
+			
+			// Don't show popup if an address is selected
+			if (search.selectedAddress) return;
 
 			const feature = e.features[0];
 			const communityProperties = feature.properties;
@@ -148,7 +163,7 @@
 
 		// Add mouseenter and mouseleave handlers for Census tracts and Community areas.
 		mapState.map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-			if (visualization.aggregationLevel === 'tract') {
+			if (visualization.aggregationLevel === 'tract' && !search.selectedAddress) {
 				const map = e.target;
 				map.getCanvas().style.cursor = 'pointer';
 			}
@@ -162,7 +177,7 @@
 		});
 
 		mapState.map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, (e) => {
-			if (visualization.aggregationLevel === 'community') {
+			if (visualization.aggregationLevel === 'community' && !search.selectedAddress) {
 				const map = e.target;
 				map.getCanvas().style.cursor = 'pointer';
 			}
@@ -173,6 +188,33 @@
 				const map = e.target;
 				map.getCanvas().style.cursor = '';
 			}
+		});
+
+		// Add click handler for service lines
+		mapState.map.on('click', LAYER_CONFIG.serviceLines.id, (e) => {
+			if (!e.features?.length) return;
+			
+			const feature = e.features[0];
+			const clickedRow = feature.properties?.row;
+			
+			if (clickedRow !== undefined && clickedRow !== null) {
+				// Update the clicked service line row
+				search.clickedServiceLineRow = clickedRow;
+				
+				// Don't change the map view or search query
+				e.preventDefault();
+			}
+		});
+
+		// Add hover effect for service lines
+		mapState.map.on('mouseenter', LAYER_CONFIG.serviceLines.id, (e) => {
+			const map = e.target;
+			map.getCanvas().style.cursor = 'pointer';
+		});
+
+		mapState.map.on('mouseleave', LAYER_CONFIG.serviceLines.id, (e) => {
+			const map = e.target;
+			map.getCanvas().style.cursor = '';
 		});
 
 		return () => {
@@ -203,8 +245,8 @@
 			return;
 		}
 
-		if (search.selectedAddress) {
-			// When an address is selected, wait for the zoom animation to complete
+		if (search.searchedAddress) {
+			// When an address is selected from search, wait for the zoom animation to complete
 			// then show service lines within radius
 			const handleMoveEnd = () => {
 				if (!mapState.map) return;
@@ -213,7 +255,8 @@
 				// Find service lines within 500 feet
 				const radiusInFeet = 500;
 				const radiusInMeters = radiusInFeet * 0.3048;
-				const center = turf.point([search.selectedAddress!.long, search.selectedAddress!.lat]);
+				// Always use the searched address for the radius center, not clicked dots
+				const center = turf.point([search.searchedAddress!.long, search.searchedAddress!.lat]);
 				
 				// Create radius circle
 				const radiusCircle = turf.circle(center, radiusInMeters, {
@@ -248,8 +291,8 @@
 				}
 				
 				const nearbyServiceLines = findServiceLinesWithinRadius(
-					search.selectedAddress!.long,
-					search.selectedAddress!.lat,
+					search.searchedAddress!.long,
+					search.searchedAddress!.lat,
 					radiusInFeet
 				);
 				
@@ -261,9 +304,13 @@
 					// Show service lines layer
 					mapState.map.setPaintProperty('service-lines', 'circle-opacity', 0.8);
 					mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0.9);
+					
+					// Store nearby service lines in state for click handling
+					search.nearbyServiceLines = nearbyServiceLines;
 				} else {
 					// No service lines within radius
 					mapState.map.setFilter('service-lines', ['==', ['get', 'row'], -1]); // Show nothing
+					search.nearbyServiceLines = [];
 				}
 				
 				// Remove the listener after it's triggered once
@@ -285,6 +332,10 @@
 				mapState.map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0);
 				// Clear filter after hiding
 				mapState.map.setFilter('service-lines', ['==', ['get', 'row'], -1]);
+				// Clear nearby service lines and clicked service line
+				search.nearbyServiceLines = [];
+				search.clickedServiceLineRow = null;
+				search.searchedAddress = null;
 			}
 			
 			// Remove radius circle
@@ -295,6 +346,29 @@
 				mapState.map.removeSource('radius-circle');
 			}
 		}
+	});
+
+	// Update service line dot sizes based on selection
+	$effect(() => {
+		if (!mapState.map || !mapState.map.getLayer('service-lines')) return;
+		
+		const selectedRow = search.clickedServiceLineRow ?? search.selectedAddress?.row;
+		
+		// Update circle radius to show selected state
+		mapState.map.setPaintProperty('service-lines', 'circle-radius', [
+			'case',
+			['==', ['get', 'row'], selectedRow ?? -1],
+			['interpolate', ['linear'], ['zoom'], 10, 4, 16, 12], // Larger for selected
+			['interpolate', ['linear'], ['zoom'], 10, 2, 16, 8]   // Normal size
+		]);
+		
+		// Update stroke width for selected
+		mapState.map.setPaintProperty('service-lines', 'circle-stroke-width', [
+			'case',
+			['==', ['get', 'row'], selectedRow ?? -1],
+			2, // Thicker stroke for selected
+			1  // Normal stroke
+		]);
 	});
 </script>
 

@@ -10,22 +10,23 @@ const __dirname = path.dirname(__filename);
 
 const brotliCompressAsync = promisify(brotliCompress);
 
-interface MinimalAddress {
-	id: number;
-	display: string;    // "1234 N State St"
-	street: string;     // normalized street name for search
-	num1: number;       // start house number
-	num2: number;       // end house number
-	zip: string;
-	row: number;        // Original row ID for inventory lookup
-	lat: number;        // Latitude for map zoom
-	long: number;       // Longitude for map zoom
+interface CombinedAddress {
+	i: number;     // id (shortened field name)
+	r: number;     // row
+	a: string;     // address without ", CHICAGO, IL," to save space
+	s: string;     // street (normalized for search)
+	n1: number;    // num1
+	n2: number;    // num2
+	z: string;     // zip
+	la: number;    // latitude
+	lo: number;    // longitude
+	m: string;     // material (single char)
 }
 
-interface MinimalSearchIndex {
+interface CombinedIndex {
 	// Maps for lookups
-	streetNames: Record<string, number[]>;  // normalized street -> address IDs
-	addresses: MinimalAddress[];            // minimal address data by ID
+	streets: Record<string, number[]>;  // normalized street -> address IDs
+	addresses: CombinedAddress[];       // combined address data by ID
 	metadata: {
 		totalAddresses: number;
 		uniqueStreets: number;
@@ -113,11 +114,10 @@ function normalizeStreetName(street: string): string {
 	return normalized;
 }
 
-async function generateMinimalSearchIndex(addressPath: string, outputPath: string): Promise<void> {
-	console.log('Processing address data for minimal search index...');
-	const addresses: MinimalAddress[] = [];
+async function generateCombinedIndex(addressPath: string, outputPath: string): Promise<void> {
+	console.log('Processing address data for combined index...');
+	const addresses: CombinedAddress[] = [];
 	const streetNameIndex: Record<string, number[]> = {};
-	const serviceLinePoints: ServiceLinePoint[] = [];
 
 	return new Promise((resolve, reject) => {
 		fs.createReadStream(addressPath)
@@ -150,29 +150,27 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				const streetParts = [stdir, stname, sttype].filter(p => p).join(' ');
 				const normalizedStreet = normalizeStreetName(streetParts);
 
-				const minimalAddress: MinimalAddress = {
-					id,
-					display: fullAddress,
-					street: normalizedStreet,
-					num1: stnum1,
-					num2: stnum2,
-					zip,
-					row,
-					lat,
-					long
+				// Remove ", CHICAGO, IL" from the address to save space, but keep the zip separate
+				// Handle patterns like "123 MAIN ST, CHICAGO, IL, 60601" or "123 MAIN ST, CHICAGO, IL 60601"
+				const shortAddress = fullAddress
+					.replace(/,\s*CHICAGO,?\s*IL,?\s*(?=\d{5})/gi, ', ')
+					.replace(/,\s*CHICAGO,?\s*IL,?\s*$/gi, '')
+					.trim();
+
+				const combinedAddress: CombinedAddress = {
+					i: id,
+					r: row,
+					a: shortAddress,
+					s: normalizedStreet,
+					n1: stnum1,
+					n2: stnum2,
+					z: zip,
+					la: lat,
+					lo: long,
+					m: material.charAt(0) // Just first character to save space
 				};
 
-				addresses.push(minimalAddress);
-
-				// Add to spatial index if coordinates are valid
-				if (lat && long && !isNaN(lat) && !isNaN(long)) {
-					serviceLinePoints.push({
-						row,
-						lat,
-						long,
-						material
-					});
-				}
+				addresses.push(combinedAddress);
 
 				// Handle intersection addresses
 				if (isIntersection && fullAddress.includes('&')) {
@@ -265,18 +263,18 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 					streetNameIndex[key] = [...new Set(streetNameIndex[key])];
 				});
 
-				const searchIndex: MinimalSearchIndex = {
-					streetNames: streetNameIndex,
+				const combinedIndex: CombinedIndex = {
+					streets: streetNameIndex,
 					addresses,
 					metadata: {
 						totalAddresses: addresses.length,
 						uniqueStreets: Object.keys(streetNameIndex).length,
 						generatedAt: new Date().toISOString(),
-						version: '2.0.0-minimal'
+						version: '1.0.0-combined'
 					}
 				};
 
-				const jsonString = JSON.stringify(searchIndex);
+				const jsonString = JSON.stringify(combinedIndex);
 				fs.writeFileSync(outputPath, jsonString, { encoding: 'utf8' });
 
 				const compressed = await brotliCompressAsync(Buffer.from(jsonString));
@@ -291,54 +289,12 @@ async function generateMinimalSearchIndex(addressPath: string, outputPath: strin
 				};
 				fs.writeFileSync(`${outputPath}.br.meta`, JSON.stringify(metadata, null, 2));
 
-				console.log(`✓ Minimal search index generated:`);
+				console.log(`✓ Combined index generated:`);
 				console.log(`  - ${addresses.length} addresses`);
 				console.log(`  - ${Object.keys(streetNameIndex).length} street name entries`);
 				console.log(`  - Original size: ${(jsonString.length / 1024 / 1024).toFixed(1)}MB`);
 				console.log(`  - Compressed size: ${(compressed.length / 1024 / 1024).toFixed(1)}MB`);
 				console.log(`  - Compression ratio: ${metadata.compressionRatio}`);
-				console.log(`  - Size reduction from full index: ~${((8.5 - compressed.length / 1024 / 1024) / 8.5 * 100).toFixed(0)}%`);
-
-				// Generate spatial index
-				console.log('\nGenerating service line spatial index...');
-				const spatialIndex: ServiceLineSpatialIndex = {
-					points: serviceLinePoints,
-					metadata: {
-						totalPoints: serviceLinePoints.length,
-						generatedAt: new Date().toISOString(),
-						version: '1.0.0'
-					}
-				};
-
-				const spatialJsonString = JSON.stringify(spatialIndex);
-				const spatialOutputPath = path.join(outputDir, 'service-lines-spatial-index.json');
-				
-				fs.writeFileSync(spatialOutputPath, spatialJsonString, { encoding: 'utf8' });
-
-				const spatialCompressed = await brotliCompressAsync(Buffer.from(spatialJsonString));
-				fs.writeFileSync(`${spatialOutputPath}.br`, spatialCompressed);
-
-				const spatialMetadata = {
-					contentType: 'application/json',
-					contentEncoding: 'br',
-					originalSize: spatialJsonString.length,
-					compressedSize: spatialCompressed.length,
-					compressionRatio: (spatialCompressed.length / spatialJsonString.length * 100).toFixed(1) + '%'
-				};
-				fs.writeFileSync(`${spatialOutputPath}.br.meta`, JSON.stringify(spatialMetadata, null, 2));
-
-				console.log(`✓ Service line spatial index generated:`);
-				console.log(`  - ${serviceLinePoints.length} points`);
-				console.log(`  - Original size: ${(spatialJsonString.length / 1024 / 1024).toFixed(1)}MB`);
-				console.log(`  - Compressed size: ${(spatialCompressed.length / 1024 / 1024).toFixed(1)}MB`);
-				console.log(`  - Compression ratio: ${spatialMetadata.compressionRatio}`);
-
-				// Show material distribution
-				const materialCounts = serviceLinePoints.reduce((acc, point) => {
-					acc[point.material] = (acc[point.material] || 0) + 1;
-					return acc;
-				}, {} as Record<string, number>);
-				console.log(`  - Material distribution:`, materialCounts);
 
 				resolve();
 			})
@@ -353,9 +309,9 @@ if (!fs.existsSync(outputDir)) {
 }
 
 const addressPath = path.join(__dirname, '../data/raw/service-lines.csv');
-const outputPath = path.join(outputDir, 'minimal-search-index.json');
+const outputPath = path.join(outputDir, 'combined-index.json');
 
-console.log('Generating minimal search index...');
-generateMinimalSearchIndex(addressPath, outputPath)
-	.then(() => console.log('Minimal search index generation complete'))
+console.log('Generating combined search and spatial index...');
+generateCombinedIndex(addressPath, outputPath)
+	.then(() => console.log('Combined index generation complete'))
 	.catch((err: Error) => console.error('Error:', err.message));

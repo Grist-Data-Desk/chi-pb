@@ -23,7 +23,7 @@ async function main(): Promise<void> {
 	});
 
 	const searchIndexFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => file.startsWith('minimal-search-index.json') || file.startsWith('service-lines-spatial-index.json'));
+		.filter((file) => file.startsWith('combined-index.json') && !file.endsWith('.meta'));
 
 	for (const file of searchIndexFiles) {
 		console.log(`Uploading ${file}`);
@@ -60,9 +60,7 @@ async function main(): Promise<void> {
 
 	// Also upload metadata files
 	const metaFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => (
-			file.startsWith('minimal-search-index.json') || 
-			file.startsWith('service-lines-spatial-index.json')) && file.endsWith('.meta'));
+		.filter((file) => file.startsWith('combined-index.json') && file.endsWith('.meta'));
 
 	for (const file of metaFiles) {
 		console.log(`Uploading ${file}`);

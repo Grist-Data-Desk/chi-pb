@@ -7,13 +7,25 @@ import type {
 	IndexedAddressCollection,
 	MinimalSearchIndex,
 	InventoryData,
-	ServiceLineSpatialIndex
+	ServiceLineSpatialIndex,
+	CombinedIndex
 } from '$lib/types';
 
 // Minimal search index store for optimized address search
 export const minimalSearchIndexStore = writable<{
 	isLoading: boolean;
 	index: MinimalSearchIndex | null;
+	error: string | null;
+}>({
+	isLoading: false,
+	index: null,
+	error: null
+});
+
+// Combined index store (search + spatial data)
+export const combinedIndexStore = writable<{
+	isLoading: boolean;
+	index: CombinedIndex | null;
 	error: string | null;
 }>({
 	isLoading: false,
@@ -38,9 +50,9 @@ export const addressStore = writable<{
 });
 
 export const isAddressDataLoading = derived(
-	[addressStore, minimalSearchIndexStore],
-	([$addressStore, $minimalSearchIndexStore]) =>
-		$addressStore.isLoading || $minimalSearchIndexStore.isLoading
+	[addressStore, minimalSearchIndexStore, combinedIndexStore],
+	([$addressStore, $minimalSearchIndexStore, $combinedIndexStore]) =>
+		$addressStore.isLoading || $minimalSearchIndexStore.isLoading || $combinedIndexStore.isLoading
 );
 
 // Load minimal search index for optimized address search
@@ -134,6 +146,64 @@ export async function loadMinimalSearchIndex(): Promise<void> {
 			isLoading: false,
 			error: errorMessage
 		}));
+		addressStore.update((store) => ({ ...store, isLoading: false }));
+	}
+}
+
+// Load combined index (search + spatial data)
+export async function loadCombinedIndex(): Promise<void> {
+	combinedIndexStore.update((store) => ({ ...store, isLoading: true, error: null }));
+
+	try {
+		console.log('Loading combined index...');
+		const cacheBuster = Date.now();
+		const indexUrl = `${DO_SPACES_URL}/${SEARCH_INDEX_PATH}/combined-index.json.br?v=${cacheBuster}`;
+		const response = await fetch(indexUrl);
+		if (!response.ok) {
+			throw new Error(`Failed to load combined index: ${response.statusText}`);
+		}
+
+		const arrayBuffer = await response.arrayBuffer();
+		let combinedIndex: CombinedIndex;
+		
+		try {
+			const text = new TextDecoder().decode(arrayBuffer);
+			combinedIndex = JSON.parse(text);
+		} catch {
+			console.warn('Falling back to uncompressed combined index');
+			const fallbackUrl = `${DO_SPACES_URL}/${SEARCH_INDEX_PATH}/combined-index.json?v=${cacheBuster}`;
+			const fallbackResponse = await fetch(fallbackUrl);
+			if (!fallbackResponse.ok) {
+				throw new Error('Failed to load fallback combined index');
+			}
+			const text = await fallbackResponse.text();
+			combinedIndex = JSON.parse(text);
+		}
+
+		combinedIndexStore.update((store) => ({
+			...store,
+			isLoading: false,
+			index: combinedIndex,
+			error: null
+		}));
+
+		console.log(
+			`✓ Combined index loaded: ${combinedIndex.addresses.length} addresses, ${Object.keys(combinedIndex.streets).length} street entries`
+		);
+		console.log(`  Generated: ${combinedIndex.metadata.generatedAt}`);
+		console.log(`  Version: ${combinedIndex.metadata.version}`);
+		
+		// Update addressStore to indicate loading is complete
+		addressStore.update((store) => ({ ...store, isLoading: false }));
+	} catch (error) {
+		console.error('Error loading combined index:', error);
+		const errorMessage = error instanceof Error ? error.message : 'Failed to load combined index';
+		combinedIndexStore.update((store) => ({
+			...store,
+			isLoading: false,
+			error: errorMessage
+		}));
+		// Also update addressStore on error
 		addressStore.update((store) => ({ ...store, isLoading: false }));
 	}
 }

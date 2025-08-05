@@ -31,7 +31,11 @@
 	let isTractDataLoading = $state(false);
 	let pendingTractQuery = $state<{ lng: number; lat: number } | null>(null);
 	let mapMoveEndHandler = $state<(() => void) | null>(null);
-	let address = $derived(selectedAddress || search.selectedAddress);
+	let address = $derived(
+		search.clickedServiceLineRow !== null && $multiServiceLineStore.address
+			? { ...search.selectedAddress, fullAddress: $multiServiceLineStore.address }
+			: selectedAddress || search.selectedAddress
+	);
 	let currentInventoryData = $derived($currentServiceLine || inventoryData);
 	let displayCode = $derived(
 		$multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1

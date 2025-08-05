@@ -33,6 +33,9 @@ export class ResetViewControl implements IControl {
 			search.isSearching = false;
 			search.results = [];
 			search.selectedAddress = null;
+			search.searchedAddress = null;
+			search.clickedServiceLineRow = null;
+			search.nearbyServiceLines = [];
 
 			// Reset the UI state.
 			ui.searchHeaderCollapsed = false;
@@ -50,6 +53,21 @@ export class ResetViewControl implements IControl {
 
 			if (popup.node) {
 				popup.node.removePopup();
+			}
+
+			// Remove radius circle
+			if (map.getLayer('radius-circle-line')) {
+				map.removeLayer('radius-circle-line');
+			}
+			if (map.getSource('radius-circle')) {
+				map.removeSource('radius-circle');
+			}
+
+			// Hide and reset service lines
+			if (map.getLayer('service-lines')) {
+				map.setPaintProperty('service-lines', 'circle-opacity', 0);
+				map.setPaintProperty('service-lines', 'circle-stroke-opacity', 0);
+				map.setFilter('service-lines', ['==', ['get', 'row'], -1]);
 			}
 		});
 

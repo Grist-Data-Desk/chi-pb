@@ -1,6 +1,6 @@
 import type { AddLayerObject, SourceSpecification } from 'maplibre-gl';
 
-import { COLORS } from '$lib/utils/constants';
+import { COLORS, SERVICE_LINE_COLOR_EXPRESSION } from '$lib/utils/constants';
 
 export const DO_SPACES_URL = 'https://grist.nyc3.cdn.digitaloceanspaces.com';
 export const PMTILES_PATH = 'chi-pb/data/pmtiles';
@@ -39,6 +39,13 @@ export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecifica
 		config: {
 			type: 'vector',
 			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/chi-comm-areas.pmtiles?v=${Date.now()}`
+		}
+	},
+	serviceLines: {
+		id: 'service-lines',
+		config: {
+			type: 'vector',
+			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/service-lines.pmtiles?v=${Date.now()}`
 		}
 	}
 };
@@ -104,6 +111,25 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 			'line-color': '#ffffff',
 			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 12, 1],
 			'line-opacity': 0
+		}
+	},
+	serviceLines: {
+		id: 'service-lines',
+		source: 'service-lines',
+		type: 'circle',
+		'source-layer': 'service-lines',
+		minzoom: 0,
+		maxzoom: 22,
+		layout: {
+			visibility: 'visible'
+		},
+		paint: {
+			'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 16, 8],
+			'circle-color': SERVICE_LINE_COLOR_EXPRESSION,
+			'circle-opacity': 0,
+			'circle-stroke-width': 1,
+			'circle-stroke-color': '#ffffff',
+			'circle-stroke-opacity': 0
 		}
 	}
 };

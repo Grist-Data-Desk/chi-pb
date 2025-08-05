@@ -12,6 +12,8 @@
 		addressStore,
 		loadMinimalSearchIndex,
 		minimalSearchIndexStore,
+		loadCombinedIndex,
+		combinedIndexStore,
 		multiServiceLineStore,
 		currentServiceLine
 	} from '$lib/stores';
@@ -19,9 +21,12 @@
 		AddressWithServiceLine,
 		InventoryApiResponse,
 		InventoryData,
-		MinimalAddress
+		MinimalAddress,
+		CombinedAddress
 	} from '$lib/types';
 	import { COLORS } from '$lib/utils/constants';
+	import { isCoordinatePair, searchNominatim, reverseGeocode, formatNominatimAddress } from '$lib/utils/nominatim';
+	import type { NominatimResult } from '$lib/utils/nominatim';
 
 	// Props.
 	interface Props {
@@ -30,11 +35,18 @@
 
 	let { map }: Props = $props();
 
+	// Derived colors - matching search button hue
+	const searchButtonColor = interpolateReds(0.5);
+	const highlightColor = interpolateReds(0.15); // Lighter shade for background highlight
+
 	// State.
 	let suggestions = $state<AddressWithServiceLine[]>([]);
 	let isFetchingSuggestions = $state(false);
 	let showSuggestions = $state(false);
 	let suggestionsContainer = $state<HTMLDivElement | null>(null);
+	let selectedIndex = $state<number>(-1);
+	let isSearchingNominatim = $state(false);
+	let nominatimSuggestions = $state<AddressWithServiceLine[]>([]);
 	let inventory = $state<{
 		isLoading: boolean;
 		data: InventoryData | null;
@@ -47,10 +59,72 @@
 		address: null
 	});
 
+	// Perform Nominatim search when no inventory results are found
+	async function performNominatimSearch(query: string): Promise<void> {
+		// Check if it's a coordinate pair first
+		const coords = isCoordinatePair(query);
+		
+		isSearchingNominatim = true;
+		nominatimSuggestions = [];
+		
+		try {
+			let result: NominatimResult | null = null;
+			
+			if (coords) {
+				// Reverse geocode the coordinates
+				result = await reverseGeocode(coords.lat, coords.lon);
+			} else {
+				// Search for the address
+				result = await searchNominatim(query);
+			}
+			
+			if (result) {
+				// Format the address to match inventory style
+				const formattedAddress = formatNominatimAddress(result.display_name);
+				
+				// Create a simplified suggestion for Nominatim results
+				const nominatimAddress: AddressWithServiceLine = {
+					row: -1, // Special marker for Nominatim addresses
+					fullAddress: formattedAddress,
+					isIntersection: false,
+					stnum1: 0,
+					stnum2: 0,
+					stdir: '',
+					stname: '',
+					sttype: '',
+					zip: '',
+					geocoder: 'nominatim',
+					lat: parseFloat(result.lat),
+					long: parseFloat(result.lon),
+					geoid: '',
+					leadStatus: 'UNKNOWN',
+					hasLead: false,
+					mIsIntersection: false,
+					mStnum1: 0,
+					mStnum2: 0,
+					mStdir: '',
+					mStname: '',
+					mZip: ''
+				};
+				
+				nominatimSuggestions = [nominatimAddress];
+			}
+		} catch (error) {
+			console.error('Error performing Nominatim search:', error);
+		} finally {
+			isSearchingNominatim = false;
+		}
+	}
+
 	// Event handlers.
 	const handleSearch = () => {
-		// This is now just a placeholder for the search button
-		// Address selection handles all the search functionality
+		// Enter key or search button just triggers selection if we have suggestions
+		if (showSuggestions && selectedIndex >= 0) {
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (selectedIndex < allSuggestions.length) {
+				onSuggestionClick(allSuggestions[selectedIndex]);
+			}
+		}
 	};
 
 	// Some normalization for address variants
@@ -137,6 +211,193 @@
 	function extractNumberFromQuery(query: string): number | null {
 		const match = query.match(/^\d+/);
 		return match ? parseInt(match[0]) : null;
+	}
+
+	function searchAddressesCombined(query: string): AddressWithServiceLine[] {
+		if (!query || query.length < 3) return [];
+
+		const combinedIndex = $combinedIndexStore.index;
+		if (!combinedIndex) {
+			console.log('Combined index not loaded, falling back to minimal search index');
+			return searchAddressesOptimized(query);
+		}
+
+		console.log('Using combined index:', {
+			totalAddresses: combinedIndex.addresses?.length,
+			streetNames: Object.keys(combinedIndex.streets || {}).length,
+			version: combinedIndex.metadata?.version
+		});
+
+		const normalizedQuery = normalizeAddress(query);
+		const queryNumber = extractNumberFromQuery(query.trim());
+
+		// Similar search logic but adapted for CombinedAddress structure
+		const matchingAddresses: CombinedAddress[] = [];
+		const streetPart = queryNumber !== null ? query.trim().replace(/^\d+\s*/, '') : query.trim();
+		const normalizedStreetPart = normalizeAddress(streetPart);
+
+		if (queryNumber !== null && normalizedStreetPart.length > 0) {
+			// Find addresses where the number is in range AND the street matches
+			combinedIndex.addresses.forEach((addr) => {
+				if (
+					addr.n1 > 0 &&
+					addr.n2 > 0 &&
+					queryNumber >= addr.n1 &&
+					queryNumber <= addr.n2
+				) {
+					// Only match against the street portion of the address, not the city
+					// addr.a is already in the format "1234 N CHICAGO AVE, 60601" or similar
+					// We want to exclude the zip code from matching to avoid matching "chicago" against city name
+					const streetPortion = addr.a.replace(/, \d{5}$/, ''); // Remove zip code
+					const normalizedAddr = normalizeAddress(streetPortion);
+					const addressWords = normalizedAddr.split(/\s+/);
+					const streetWords = normalizedStreetPart.split(/\s+/).filter((w) => w.length > 0);
+
+					const allStreetWordsMatch = streetWords.every((queryWord) => {
+						if (queryWord.length < 3) return true;
+						return addressWords.some(
+							(addrWord) =>
+								addrWord.startsWith(queryWord) ||
+								(queryWord.length > 2 && addrWord.includes(queryWord))
+						);
+					});
+
+					if (allStreetWordsMatch) {
+						matchingAddresses.push(addr);
+					}
+				}
+			});
+		} else if (queryNumber !== null) {
+			// Just number search
+			combinedIndex.addresses.forEach((addr) => {
+				// For single addresses (n1 === n2), match exact number
+				// For range addresses (n1 !== n2), only match if the range starts with our number
+				if (addr.n1 === addr.n2) {
+					// Single address - exact match
+					if (addr.n1 === queryNumber) {
+						matchingAddresses.push(addr);
+					}
+				} else {
+					// Range address - only match if it starts with our query number
+					if (addr.n1 === queryNumber) {
+						matchingAddresses.push(addr);
+					}
+				}
+			});
+		} else if (normalizedStreetPart.length > 0) {
+			// Street search using the index
+			const resultIds = new Set<number>();
+			const streetWords = normalizedStreetPart.split(/\s+/);
+
+			streetWords.forEach((word) => {
+				if (word.length >= 2) {
+					Object.keys(combinedIndex.streets).forEach((streetKey) => {
+						if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
+							const ids = combinedIndex.streets[streetKey];
+							if (Array.isArray(ids)) {
+								ids.forEach((id) => resultIds.add(id));
+							}
+						}
+					});
+				}
+			});
+
+			resultIds.forEach((id) => {
+				if (id >= 0 && id < combinedIndex.addresses.length) {
+					matchingAddresses.push(combinedIndex.addresses[id]);
+				}
+			});
+		}
+
+		// Sort and deduplicate
+		matchingAddresses.sort((a, b) => {
+			if (queryNumber !== null) {
+				const aExactNumber = queryNumber >= a.n1 && queryNumber <= a.n2 ? 0 : 1;
+				const bExactNumber = queryNumber >= b.n1 && queryNumber <= b.n2 ? 0 : 1;
+				if (aExactNumber !== bExactNumber) return aExactNumber - bExactNumber;
+			}
+			return 0;
+		});
+
+		const seen = new Set<string>();
+		const deduplicatedAddresses = matchingAddresses.filter((addr) => {
+			// addr.a already contains the zip code after the generator fix
+			const display = addr.a.includes(addr.z) 
+				? addr.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
+				: addr.a + ', CHICAGO, IL ' + addr.z;
+			if (seen.has(display)) {
+				return false;
+			}
+			seen.add(display);
+			return true;
+		});
+
+		const topResults = deduplicatedAddresses.slice(0, 5);
+
+		// Convert to AddressWithServiceLine format
+		return topResults.map((addr) => {
+			// addr.a already contains the zip code after the generator fix
+			const fullAddress = addr.a.includes(addr.z) 
+				? addr.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
+				: addr.a + ', CHICAGO, IL ' + addr.z;
+			
+			// Parse address components
+			const addressParts = addr.a.split(' ');
+			let stname = '';
+			let stdir = '';
+			let sttype = '';
+			
+			let startIndex = 0;
+			if (addressParts[0] && /^\d+(-\d+)?$/.test(addressParts[0])) {
+				startIndex = 1;
+			}
+			
+			if (addressParts[startIndex] && /^[NSEW]$|^(NE|NW|SE|SW)$/i.test(addressParts[startIndex])) {
+				stdir = addressParts[startIndex];
+				startIndex++;
+			}
+			
+			const remainingParts = addressParts.slice(startIndex);
+			if (remainingParts.length > 0) {
+				const lastPart = remainingParts[remainingParts.length - 1];
+				const streetTypes = ['ST', 'AVE', 'DR', 'RD', 'LN', 'CT', 'PL', 'BLVD', 'WAY', 'PKWY', 'CIR', 'TER'];
+				if (streetTypes.includes(lastPart.toUpperCase())) {
+					sttype = lastPart;
+					stname = remainingParts.slice(0, -1).join(' ');
+				} else {
+					stname = remainingParts.join(' ');
+				}
+			}
+
+			// Map material code
+			let leadStatus: 'LEAD' | 'NON_LEAD' | 'UNKNOWN' = 'UNKNOWN';
+			if (addr.m === 'L') leadStatus = 'LEAD';
+			else if (addr.m === 'N') leadStatus = 'NON_LEAD';
+
+			return {
+				row: addr.r,
+				fullAddress: fullAddress,
+				isIntersection: false,
+				stnum1: addr.n1,
+				stnum2: addr.n2,
+				stdir: stdir,
+				stname: stname,
+				sttype: sttype,
+				zip: addr.z,
+				geocoder: 'combined-index',
+				lat: addr.la,
+				long: addr.lo,
+				geoid: '',
+				leadStatus: leadStatus,
+				hasLead: leadStatus === 'LEAD',
+				mIsIntersection: false,
+				mStnum1: addr.n1,
+				mStnum2: addr.n2,
+				mStdir: stdir,
+				mStname: stname,
+				mZip: addr.z
+			} as AddressWithServiceLine;
+		});
 	}
 
 	function searchAddressesOptimized(query: string): AddressWithServiceLine[] {
@@ -535,21 +796,38 @@
 	const fetchSuggestions = debounce(async (query: string) => {
 		if (!query || query.length < 3) {
 			suggestions = [];
+			nominatimSuggestions = [];
 			showSuggestions = false;
+			search.noInventoryResults = false;
 			return;
 		}
 
 		isFetchingSuggestions = true;
 		try {
-			// Use optimized search
-			suggestions = searchAddressesOptimized(query);
+			// Use combined search if available, otherwise fall back
+			suggestions = searchAddressesCombined(query);
 			console.log(`Search for "${query}" returned ${suggestions.length} results`);
-			showSuggestions = suggestions.length > 0;
+			
+			// Track when we have no inventory results
+			search.noInventoryResults = suggestions.length === 0;
+			
+			// If no inventory results, automatically search Nominatim
+			if (search.noInventoryResults) {
+				await performNominatimSearch(query);
+			} else {
+				// Clear Nominatim suggestions if we have inventory results
+				nominatimSuggestions = [];
+			}
+			
+			// Show suggestions if we have any (inventory or Nominatim)
+			showSuggestions = suggestions.length > 0 || nominatimSuggestions.length > 0;
+			selectedIndex = -1; // Reset selection when new suggestions are loaded
 		} catch (error) {
 			console.error('Error searching addresses:', error);
 			console.error('Query was:', query);
 			console.error('Search index state:', $minimalSearchIndexStore);
 			suggestions = [];
+			search.noInventoryResults = true;
 		} finally {
 			isFetchingSuggestions = false;
 		}
@@ -577,9 +855,9 @@
 				`Loading inventory data for address: ${address}${rowId ? ` (row ID: ${rowId})` : ''}`
 			);
 
-			// Use the v2 DigitalOcean Function with address parameter for multiple service lines
+			// Use the DigitalOcean Function with address parameter for multiple service lines
 			const encodedAddress = encodeURIComponent(address);
-			const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup-v2?address=${encodedAddress}`;
+			const apiUrl = `https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-f47822c0-7b7f-4248-940b-9249f4f51915/inventory/lookup?address=${encodedAddress}`;
 
 			try {
 				const response = await fetch(apiUrl);
@@ -607,6 +885,15 @@
 				inventory.isLoading = false;
 				inventory.data = data.inventory || (data.inventoryList && data.inventoryList[0]) || null;
 				inventory.error = null;
+				
+				// If this was a clicked service line, update the displayed address
+				if (search.clickedServiceLineRow !== null && data.inventoryList && data.inventoryList.length > 0) {
+					const actualAddress = data.inventoryList[0].fullAddress || data.address || address;
+					multiServiceLineStore.update((store) => ({
+						...store,
+						address: actualAddress
+					}));
+				}
 			} catch (apiError) {
 				console.warn('API call failed, using mock data:', apiError);
 
@@ -653,6 +940,8 @@
 		search.query = event.currentTarget.value;
 		// Clear the selected address when user types.
 		search.selectedAddress = null;
+		search.selectedAddressTractId = null;
+		search.selectedAddressCommunityName = null;
 
 		fetchSuggestions(event.currentTarget.value);
 	}
@@ -660,8 +949,30 @@
 	function onKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (showSuggestions && selectedIndex >= 0 && selectedIndex < allSuggestions.length) {
+				// Select the highlighted suggestion
+				onSuggestionClick(allSuggestions[selectedIndex]);
+			} else {
+				showSuggestions = false;
+				handleSearch();
+			}
+		} else if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (showSuggestions && allSuggestions.length > 0) {
+				selectedIndex = (selectedIndex + 1) % allSuggestions.length;
+			}
+		} else if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			const allSuggestions = [...suggestions, ...nominatimSuggestions];
+			if (showSuggestions && allSuggestions.length > 0) {
+				selectedIndex = selectedIndex <= 0 ? allSuggestions.length - 1 : selectedIndex - 1;
+			}
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
 			showSuggestions = false;
-			handleSearch();
+			selectedIndex = -1;
 		}
 	}
 
@@ -675,19 +986,34 @@
 	function onSuggestionClick(suggestion: AddressWithServiceLine) {
 		search.query = suggestion.fullAddress;
 		search.selectedAddress = suggestion;
+		search.searchedAddress = suggestion; // Track this as the searched address
+		search.clickedServiceLineRow = null; // Clear any clicked dot
 
 		showSuggestions = false;
 		suggestions = []; // Clear suggestions after selection
+		nominatimSuggestions = []; // Clear Nominatim suggestions too
 
 		// Collapse the search header when an address is selected
 		ui.searchHeaderCollapsed = true;
 		ui.creditsExpanded = false;
 
-		// Load inventory data for the selected address
-		if (suggestion.row) {
-			loadInventoryForAddress(suggestion.fullAddress, suggestion.row);
+		// Check if this is a Nominatim address (row = -1)
+		if (suggestion.row === -1) {
+			// Mark this as a Nominatim address
+			search.isNominatimAddress = true;
+			// Don't load inventory data for Nominatim addresses
+			inventory.isLoading = false;
+			inventory.data = null;
+			inventory.error = null;
 		} else {
-			console.error('No row ID found for suggestion:', suggestion);
+			// Regular inventory address
+			search.isNominatimAddress = false;
+			// Load inventory data for the selected address
+			if (suggestion.row > 0) {
+				loadInventoryForAddress(suggestion.fullAddress, suggestion.row);
+			} else {
+				console.error('No row ID found for suggestion:', suggestion);
+			}
 		}
 
 		if (map && suggestion.lat && suggestion.long) {
@@ -704,7 +1030,7 @@
 
 			map.flyTo({
 				center: targetCenter,
-				zoom: 13,
+				zoom: 17,
 				duration: 1500
 			});
 
@@ -784,38 +1110,110 @@
 		return 'NL';
 	}
 
+
 	// Effects.
 	$effect(() => {
-		// Reactive update of the selected address dot color based on inventory data
-		if (map && search.selectedAddress && !inventory.isLoading) {
+		// Reactive update of the searched address dot color based on inventory data
+		// This should only update the color of the searched address, not clicked dots
+		if (map && search.searchedAddress && !inventory.isLoading && !search.isNominatimAddress) {
 			const highlightLayer = 'selected-address-highlight';
 
 			if (map.getLayer(highlightLayer)) {
-				// Get the overall code to display
-				const displayCode =
-					$multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1
-						? getWorstCode($multiServiceLineStore.inventoryList)
-						: $currentServiceLine?.OverallSL_Code || $currentServiceLine?.overallCode || 'U';
+				// Only update color if this is displaying the searched address
+				if (search.selectedAddress?.row === search.searchedAddress.row) {
+					// Get the overall code to display
+					const displayCode =
+						$multiServiceLineStore.inventoryList && $multiServiceLineStore.inventoryList.length > 1
+							? getWorstCode($multiServiceLineStore.inventoryList)
+							: $currentServiceLine?.OverallSL_Code || $currentServiceLine?.overallCode || 'U';
 
-				let dotColor: string = COLORS.EARTH; // Default
+					let dotColor: string = COLORS.EARTH; // Default
 
-				if (displayCode === 'L') {
-					dotColor = COLORS.RED;
-				} else if (displayCode === 'GRR') {
-					dotColor = COLORS.ORANGE;
-				} else if (displayCode === 'NL') {
-					dotColor = COLORS.TURQUOISE;
-				} else {
-					dotColor = COLORS.GOLD; // Unknown
+					if (displayCode === 'L') {
+						dotColor = COLORS.RED;
+					} else if (displayCode === 'GRR') {
+						dotColor = COLORS.ORANGE;
+					} else if (displayCode === 'NL') {
+						dotColor = COLORS.TURQUOISE;
+					} else {
+						dotColor = COLORS.GOLD; // Unknown
+					}
+
+					map.setPaintProperty(highlightLayer, 'circle-color', dotColor);
 				}
-
-				map.setPaintProperty(highlightLayer, 'circle-color', dotColor);
 			}
 		}
 	});
 
+	// Track the last processed clicked row to prevent infinite loops
+	let lastProcessedClickedRow = $state<number | null>(null);
+
+	// Handle clicked service line
+	$effect(() => {
+		if (search.clickedServiceLineRow !== null && 
+		    search.clickedServiceLineRow !== lastProcessedClickedRow &&
+		    search.nearbyServiceLines.length > 0) {
+			
+			// Mark this row as processed
+			lastProcessedClickedRow = search.clickedServiceLineRow;
+			
+			// Find the clicked service line in the nearby list
+			const clickedLine = search.nearbyServiceLines.find(sl => sl.row === search.clickedServiceLineRow);
+			
+			if (clickedLine && $combinedIndexStore.index) {
+				// Look up the address in the combined index by row ID
+				const addressData = $combinedIndexStore.index.addresses.find(addr => addr.r === clickedLine.row);
+				
+				if (addressData) {
+					// Reconstruct the full address
+					const fullAddress = addressData.a.includes(addressData.z) 
+						? addressData.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
+						: addressData.a + ', CHICAGO, IL ' + addressData.z;
+					
+					// Create a proper address object
+					const clickedAddress: AddressWithServiceLine = {
+						row: clickedLine.row,
+						fullAddress: fullAddress,
+						isIntersection: false,
+						stnum1: addressData.n1,
+						stnum2: addressData.n2,
+						stdir: '',
+						stname: '',
+						sttype: '',
+						zip: addressData.z,
+						geocoder: 'service-line-click',
+						lat: clickedLine.lat,
+						long: clickedLine.long,
+						geoid: '',
+						leadStatus: addressData.m === 'L' ? 'LEAD' : addressData.m === 'N' ? 'NON_LEAD' : 'UNKNOWN',
+						hasLead: addressData.m === 'L',
+						mIsIntersection: false,
+						mStnum1: addressData.n1,
+						mStnum2: addressData.n2,
+						mStdir: '',
+						mStname: '',
+						mZip: addressData.z
+					};
+					
+					// Update search state to show this as selected (but don't update the query)
+					// Important: Keep the searched address separate from clicked addresses
+					search.selectedAddress = clickedAddress;
+					search.isNominatimAddress = false; // Clear the Nominatim flag since this is a real inventory address
+					
+					// Load inventory for the clicked service line using the address
+					loadInventoryForAddress(fullAddress);
+				}
+			}
+		}
+		
+		// Reset when clicked row is cleared
+		if (search.clickedServiceLineRow === null) {
+			lastProcessedClickedRow = null;
+		}
+	});
+
 	onMount(() => {
-		loadMinimalSearchIndex();
+		// Index loading is handled in +page.svelte to avoid duplicate loads
 	});
 </script>
 
@@ -849,29 +1247,36 @@
 					placeholder="1234 N State St"
 					disabled={$isAddressDataLoading}
 				/>
-				{#if isFetchingSuggestions}
+				{#if isFetchingSuggestions || isSearchingNominatim}
 					<div class="absolute top-1/2 right-2 -translate-y-1/2">
 						<div
 							class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
 						></div>
 					</div>
 				{/if}
-				{#if showSuggestions && suggestions.length > 0}
+				{#if showSuggestions && (suggestions.length > 0 || nominatimSuggestions.length > 0)}
 					<div
 						class="absolute left-0 z-50 mt-1 max-h-[300px] w-[200%] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
 						bind:this={suggestionsContainer}
 					>
-						{#each suggestions as suggestion}
+						{#if suggestions.length === 0 && nominatimSuggestions.length > 0}
+							<div class="px-4 py-2 text-xs text-slate-500 border-b border-slate-100">
+								No inventory results found. Showing general address search:
+							</div>
+						{/if}
+						{#each [...suggestions, ...nominatimSuggestions] as suggestion, index}
 							<div
 								class="cursor-pointer border-b border-slate-100 px-4 py-2.5 text-sm last:border-b-0 hover:bg-slate-50"
+								style={selectedIndex === index ? `background-color: ${highlightColor};` : ''}
 								role="button"
 								tabindex="0"
 								onmousedown={() => onSuggestionClick(suggestion)}
 								onkeydown={(e) => onSuggestionKeyDown(e, suggestion)}
+								onmouseenter={() => selectedIndex = index}
 							>
 								<div class="font-medium break-words text-slate-800">
 									{suggestion.fullAddress}
-									{#if suggestion.serviceLineCount && suggestion.serviceLineCount > 1}
+									{#if suggestion.row !== -1 && suggestion.serviceLineCount && suggestion.serviceLineCount > 1}
 										<span class="ml-2 text-xs text-slate-500"
 											>({suggestion.serviceLineCount} service lines)</span
 										>
@@ -887,7 +1292,7 @@
 		<div class="flex flex-col justify-end">
 			<button
 				onclick={handleSearch}
-				style="background-color: {interpolateReds(0.5)}; border-color: {interpolateReds(0.6)};"
+				style="background-color: {searchButtonColor}; border-color: {interpolateReds(0.6)};"
 				class="flex w-[100px] items-center justify-center gap-2 rounded-md border p-1.5 font-sans whitespace-nowrap text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={$isAddressDataLoading || search.isSearching}
 			>

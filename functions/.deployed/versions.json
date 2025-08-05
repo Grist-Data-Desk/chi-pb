@@ -1,22 +1,18 @@
 [
-  {
-    "apihost": "https://faas-nyc1-2ef2e6cc.doserverless.co",
-    "namespace": "fn-f47822c0-7b7f-4248-940b-9249f4f51915",
-    "packageVersions": {
-      "inventory": {
-        "version": "0.0.39",
-        "digest": "c5baa82e30be567f638164a9af503d24a23923da20a069592a74aa21e8e9cbea"
-      }
-    },
-    "actionVersions": {
-      "inventory/lookup": {
-        "version": "0.0.38",
-        "digest": "0cffae5ef16f44f2929ecf025e4c53c58bdea5b99e4be570d4cd5ebb51077f3a"
-      },
-      "inventory/lookup-v2": {
-        "version": "0.0.11",
-        "digest": "1f9464e474b978838888429fd481d55bb20758280efc1b2047eb1c083452bc1e"
-      }
-    }
-  }
+	{
+		"apihost": "https://faas-nyc1-2ef2e6cc.doserverless.co",
+		"namespace": "fn-f47822c0-7b7f-4248-940b-9249f4f51915",
+		"packageVersions": {
+			"inventory": {
+				"version": "0.0.44",
+				"digest": "8137d64dec448bcbd6aa72136717d3bf7cf49247a2d77d50a93a8b1b6421054e"
+			}
+		},
+		"actionVersions": {
+			"inventory/lookup": {
+				"version": "0.0.1",
+				"digest": "db0e4f7a4e02e5f67ce9598b4eee286b9bcd6479f6310c917bbb5b9fd54645d9"
+			}
+		}
+	}
 ]

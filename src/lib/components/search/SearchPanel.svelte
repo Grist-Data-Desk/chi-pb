@@ -336,10 +336,23 @@
 
 		// Convert to AddressWithServiceLine format
 		return topResults.map((addr) => {
-			// addr.a already contains the zip code after the generator fix
-			const fullAddress = addr.a.includes(addr.z) 
-				? addr.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
-				: addr.a + ', CHICAGO, IL ' + addr.z;
+			// Check if this is a ranged address
+			let displayAddress = addr.a;
+			if (addr.n1 !== addr.n2 && addr.n1 > 0 && addr.n2 > 0) {
+				// This is a ranged address - format it as "947-959 W CHICAGO AVE"
+				// First, we need to replace the single number with the range
+				const addressParts = addr.a.split(' ');
+				if (addressParts[0] && /^\d+$/.test(addressParts[0])) {
+					// Replace the first number with the range
+					addressParts[0] = `${addr.n1}–${addr.n2}`; // Using en dash
+					displayAddress = addressParts.join(' ');
+				}
+			}
+			
+			// addr.a (or displayAddress) already contains the zip code after the generator fix
+			const fullAddress = displayAddress.includes(addr.z) 
+				? displayAddress.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
+				: displayAddress + ', CHICAGO, IL ' + addr.z;
 			
 			// Parse address components
 			const addressParts = addr.a.split(' ');
@@ -625,9 +638,21 @@
 
 		// Convert to AddressWithServiceLine format
 		return topResults.map((minimalAddr) => {
+			// Check if this is a ranged address and format accordingly
+			let displayAddress = minimalAddr.display;
+			if (minimalAddr.num1 !== minimalAddr.num2 && minimalAddr.num1 > 0 && minimalAddr.num2 > 0) {
+				// This is a ranged address - ensure it shows the full range
+				const addressParts = minimalAddr.display.split(' ');
+				if (addressParts[0] && /^\d+(-\d+)?$/.test(addressParts[0])) {
+					// Replace the first number/range with our standardized range format
+					addressParts[0] = `${minimalAddr.num1}–${minimalAddr.num2}`; // Using en dash
+					displayAddress = addressParts.join(' ');
+				}
+			}
+			
 			// Extract street components from the display address to preserve original street names
 			// The display field contains the full formatted address like "12100-14 S Front St"
-			const addressParts = minimalAddr.display.split(' ');
+			const addressParts = displayAddress.split(' ');
 			let stname = '';
 			let stdir = '';
 			let sttype = '';
@@ -689,7 +714,7 @@
 			return {
 				// Convert MinimalAddress to AddressWithServiceLine
 				row: minimalAddr.row, // Use the actual row ID from CSV
-				fullAddress: minimalAddr.display,
+				fullAddress: displayAddress,
 				isIntersection: false,
 				stnum1: minimalAddr.num1,
 				stnum2: minimalAddr.num2,
@@ -1165,10 +1190,22 @@
 				const addressData = $combinedIndexStore.index.addresses.find(addr => addr.r === clickedLine.row);
 				
 				if (addressData) {
+					// Check if this is a ranged address and format accordingly
+					let displayAddress = addressData.a;
+					if (addressData.n1 !== addressData.n2 && addressData.n1 > 0 && addressData.n2 > 0) {
+						// This is a ranged address - format it as "947-959 W CHICAGO AVE"
+						const addressParts = addressData.a.split(' ');
+						if (addressParts[0] && /^\d+$/.test(addressParts[0])) {
+							// Replace the first number with the range
+							addressParts[0] = `${addressData.n1}–${addressData.n2}`; // Using en dash
+							displayAddress = addressParts.join(' ');
+						}
+					}
+					
 					// Reconstruct the full address
-					const fullAddress = addressData.a.includes(addressData.z) 
-						? addressData.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
-						: addressData.a + ', CHICAGO, IL ' + addressData.z;
+					const fullAddress = displayAddress.includes(addressData.z) 
+						? displayAddress.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
+						: displayAddress + ', CHICAGO, IL ' + addressData.z;
 					
 					// Create a proper address object
 					const clickedAddress: AddressWithServiceLine = {

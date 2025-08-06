@@ -11,6 +11,7 @@ const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 const inputFiles = [
 	'../../scripts/data/raw/chi-tracts-filled.geojson',
 	'../../scripts/data/raw/chi-comm-areas.geojson',
+	'../../scripts/data/raw/service-lines.geojson',
 ];
 
 

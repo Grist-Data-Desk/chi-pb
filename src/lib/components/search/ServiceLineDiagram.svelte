@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { COLORS } from '$lib/utils/constants';
+	import { COLORS, getMaterialColor } from '$lib/utils/constants';
 	import { multiServiceLineStore, serviceLineCount } from '$lib/stores';
 
 	interface Props {
@@ -16,36 +16,6 @@
 	let utilityColor = $derived(getMaterialColor(utilitySideMaterial));
 	let gooseneckColor = $derived(getMaterialColor(gooseneckMaterial));
 	let customerColor = $derived(getMaterialColor(customerSideMaterial));
-
-	// Helpers.
-	function getMaterialColor(material: string): string {
-		if (!material) {
-			return COLORS.GOLD;
-		}
-
-		const materialUpper = material.toUpperCase();
-
-		switch (materialUpper) {
-			case 'L': // Lead
-				return COLORS.RED;
-			case 'GRR': // Galvanized Requiring Replacement
-			case 'CLS': // Copper with Lead Solder
-				return COLORS.ORANGE;
-			case 'C':
-			case 'P':
-			case 'NL': // Non-Lead Materials
-				return COLORS.TURQUOISE;
-			case 'G': // Galvanized (not requiring replacement)
-				return COLORS.TEAL;
-			case 'O': // Cast/Ductile Iron or Transite
-				return COLORS.COBALT;
-			case 'UNL': // Unknown (Not Lead)
-			case 'U': // Unknown
-				return COLORS.GOLD;
-			default:
-				return COLORS.GOLD;
-		}
-	}
 
 	function getMaterialLabel(material: string): string {
 		if (!material) {

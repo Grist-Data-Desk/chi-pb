@@ -1,12 +1,11 @@
 /**
  * DigitalOcean Function for Chicago Water Service Line Inventory Lookup
  *
- * This function takes a row ID or address and returns the corresponding inventory data
- * using a pre-indexed lookup file for fast responses.
+ * This function takes an address and returns all service lines at that address
+ * using a pre-indexed, address-based lookup file.
  *
  * Usage:
- *   GET /api/inventory-lookup?id=12345
- *   GET /api/inventory-lookup?address=123%20Main%20St
+ *   GET /api/inventory-lookup-lookup?address=123%20Main%20St
  */
 
 const https = require('https');
@@ -16,47 +15,12 @@ const zlib = require('zlib');
 let lookupData = null;
 let lookupLoadPromise = null;
 
-// CSV parsing function
-function parseCSVLine(line) {
-	const result = [];
-	let current = '';
-	let inQuotes = false;
-
-	for (let i = 0; i < line.length; i++) {
-		const char = line[i];
-
-		if (char === '"') {
-			inQuotes = !inQuotes;
-		} else if (char === ',' && !inQuotes) {
-			result.push(current.trim().replace(/^"|"$/g, ''));
-			current = '';
-		} else {
-			current += char;
-		}
-	}
-
-	result.push(current.trim().replace(/^"|"$/g, ''));
-	return result;
-}
-
 // Build additional notes from inventory record
-function buildAdditionalNotes(record) {
+function buildAdditionalNotes(serviceLine) {
 	const notes = [];
 
-	if (record['High Risk'] === 'Y') {
+	if (serviceLine.h === 'Y') {
 		notes.push('Marked as high risk property');
-	}
-
-	if (record['ServiceNewlyIdentified'] === 'Y') {
-		notes.push('Service line newly identified');
-	}
-
-	if (record['PreviousLeadServiceReplaced'] === 'Y') {
-		notes.push('Previous lead service line was replaced');
-	}
-
-	if (record['Customer Notified date']) {
-		notes.push(`Customer notified on: ${record['Customer Notified date']}`);
 	}
 
 	return notes.join('; ') || '';
@@ -77,7 +41,7 @@ async function loadLookupData() {
 	// Start loading
 	lookupLoadPromise = new Promise((resolve, reject) => {
 		const lookupUrl =
-			'https://grist.nyc3.cdn.digitaloceanspaces.com/chi-pb/data/search/server-inventory-lookup.json.br';
+			'https://grist.nyc3.cdn.digitaloceanspaces.com/chi-pb/data/search/inventory-lookup.json.brotli';
 
 		console.log('Loading compressed lookup data from:', lookupUrl);
 
@@ -97,10 +61,12 @@ async function loadLookupData() {
 				res.on('end', () => {
 					try {
 						// Combine all chunks into a single Buffer
-						const compressedData = Buffer.concat(chunks);
+						const data = Buffer.concat(chunks);
 
-						// Decompress the brotli data
-						zlib.brotliDecompress(compressedData, (err, decompressedData) => {
+						console.log(`Downloaded ${data.length} bytes`);
+
+						// Try to decompress as brotli (our .brotli files are always compressed)
+						zlib.brotliDecompress(data, (err, decompressedData) => {
 							if (err) {
 								reject(new Error('Failed to decompress lookup data: ' + err.message));
 								return;
@@ -109,9 +75,8 @@ async function loadLookupData() {
 							try {
 								lookupData = JSON.parse(decompressedData.toString());
 								console.log('Lookup data loaded and decompressed successfully:', {
-									totalRecords: lookupData.metadata?.totalRecords,
-									uniqueAddresses: lookupData.metadata?.uniqueAddresses,
-									compressedSize: `${(compressedData.length / 1024).toFixed(1)}KB`,
+									uniqueAddresses: Object.keys(lookupData).length,
+									compressedSize: `${(data.length / 1024 / 1024).toFixed(1)}MB`,
 									decompressedSize: `${(decompressedData.length / 1024 / 1024).toFixed(1)}MB`
 								});
 								resolve(lookupData);
@@ -132,52 +97,24 @@ async function loadLookupData() {
 	return lookupLoadPromise;
 }
 
-// Transform compact inventory record to API response format
-function transformInventoryRecord(compactRecord) {
-	// Convert compact format back to full format
-	const record = {
-		idx: compactRecord.i,
-		fullAddress: compactRecord.a,
-		PublSrvLnMatEPA: compactRecord.p,
-		PrivateSrvLnMatEPA: compactRecord.r,
-		Gooseneck: compactRecord.g,
-		OverallSL_Code: compactRecord.o,
-		HighRisk: compactRecord.h
-	};
-
+// Transform compact service line to API response format
+function transformServiceLine(compactServiceLine, fullAddress) {
 	return {
-		fullAddress: record.fullAddress,
-		serviceLineMaterial: record.PublSrvLnMatEPA || 'Unknown',
-		customerSideMaterial: record.PrivateSrvLnMatEPA || 'Unknown',
-		utilitySideMaterial: record.PublSrvLnMatEPA || 'Unknown',
-		overallCode: record.OverallSL_Code || 'Unknown',
-		gooseneck: record.Gooseneck || 'Unknown',
-		highRisk: record.HighRisk || 'N',
+		fullAddress: fullAddress,
+		serviceLineMaterial: compactServiceLine.p || 'Unknown',
+		customerSideMaterial: compactServiceLine.r || 'Unknown',
+		utilitySideMaterial: compactServiceLine.p || 'Unknown',
+		overallCode: compactServiceLine.o || 'Unknown',
+		gooseneck: compactServiceLine.g || 'Unknown',
+		highRisk: compactServiceLine.h || 'N',
 		lastUpdated: 'Data provided by City of Chicago',
-		additionalNotes: buildAdditionalNotes(record),
-		rowId: record.idx,
-		PublSrvLnMatEPA: record.PublSrvLnMatEPA,
-		PrivateSrvLnMatEPA: record.PrivateSrvLnMatEPA,
-		Gooseneck: record.Gooseneck,
-		OverallSL_Code: record.OverallSL_Code
+		additionalNotes: buildAdditionalNotes(compactServiceLine),
+		rowId: compactServiceLine.i,
+		PublSrvLnMatEPA: compactServiceLine.p,
+		PrivateSrvLnMatEPA: compactServiceLine.r,
+		Gooseneck: compactServiceLine.g,
+		OverallSL_Code: compactServiceLine.o
 	};
-}
-
-// Load specific inventory row by ID
-async function loadInventoryByRowId(rowId) {
-	try {
-		const lookup = await loadLookupData();
-		const record = lookup.byRowId[rowId];
-
-		if (!record) {
-			return null;
-		}
-
-		return transformInventoryRecord(record);
-	} catch (error) {
-		console.error('Error loading inventory data:', error);
-		throw error;
-	}
 }
 
 // Normalize address for lookup
@@ -198,11 +135,11 @@ async function loadInventoryByAddress(address) {
 		console.log('Searching for address:', address);
 		console.log('Normalized address:', normalizedAddr);
 
-		const records = lookup.byAddress[normalizedAddr] || [];
+		const serviceLines = lookup[normalizedAddr] || [];
 
-		console.log('Found', records.length, 'records');
+		console.log('Found', serviceLines.length, 'service lines');
 
-		return records.map((record) => transformInventoryRecord(record));
+		return serviceLines.map((line) => transformServiceLine(line, address));
 	} catch (error) {
 		console.error('Error loading inventory data:', error);
 		throw error;
@@ -250,89 +187,31 @@ function main(args) {
 		};
 	}
 
-	// Handle async inventory lookup
-	const rowId = params.id;
+	// Get address parameter
 	const address = params.address;
 
-	// If address is provided, get all service lines for that address
-	if (address) {
-		console.log('Address search requested for:', address);
-		return loadInventoryByAddress(address)
-			.then((inventoryDataArray) => {
-				console.log('Found', inventoryDataArray ? inventoryDataArray.length : 0, 'records');
-				if (!inventoryDataArray || inventoryDataArray.length === 0) {
-					return {
-						headers: responseHeaders,
-						body: {
-							error: 'Address not found in inventory',
-							address: address,
-							searchedFor: address,
-							suggestion: 'Please verify the address format and try again'
-						}
-					};
-				}
+	if (!address) {
+		return {
+			headers: responseHeaders,
+			body: {
+				error: 'Address parameter is required',
+				usage: 'GET /api/inventory-lookup-lookup?address=123%20Main%20St'
+			}
+		};
+	}
 
+	// Handle async inventory lookup
+	return loadInventoryByAddress(address)
+		.then((inventoryDataArray) => {
+			console.log('Found', inventoryDataArray ? inventoryDataArray.length : 0, 'service lines');
+			if (!inventoryDataArray || inventoryDataArray.length === 0) {
 				return {
 					headers: responseHeaders,
 					body: {
-						success: true,
+						error: 'Address not found in inventory',
 						address: address,
-						count: inventoryDataArray.length,
-						inventory: inventoryDataArray.length === 1 ? inventoryDataArray[0] : null,
-						inventoryList: inventoryDataArray,
-						metadata: {
-							timestamp: new Date().toISOString(),
-							source: 'City of Chicago Water Service Line Inventory'
-						}
-					}
-				};
-			})
-			.catch((error) => {
-				console.error('Function error:', error);
-				return {
-					headers: responseHeaders,
-					body: {
-						error: 'Internal server error',
-						message: error.message,
-						stack: error.stack
-					}
-				};
-			});
-	}
-
-	// If rowId is provided, get single service line by ID (legacy support)
-	if (!rowId) {
-		return {
-			headers: responseHeaders,
-			body: {
-				error: 'Row ID or address parameter is required',
-				usage:
-					'GET /api/inventory-lookup?id=12345 OR GET /api/inventory-lookup?address=123%20Main%20St'
-			}
-		};
-	}
-
-	const rowIndex = parseInt(rowId);
-	if (isNaN(rowIndex) || rowIndex < 0) {
-		return {
-			headers: responseHeaders,
-			body: {
-				error: 'Invalid row ID - must be a positive integer',
-				provided: rowId
-			}
-		};
-	}
-
-	// For async operations, return a Promise
-	return loadInventoryByRowId(rowIndex)
-		.then((inventoryData) => {
-			if (!inventoryData) {
-				return {
-					headers: responseHeaders,
-					body: {
-						error: 'Row ID not found in inventory',
-						rowId: rowIndex,
-						suggestion: 'Please verify the row ID is valid'
+						searchedFor: address,
+						suggestion: 'Please verify the address format and try again'
 					}
 				};
 			}
@@ -341,10 +220,10 @@ function main(args) {
 				headers: responseHeaders,
 				body: {
 					success: true,
-					rowId: rowIndex,
-					inventory: inventoryData,
-					count: 1,
-					inventoryList: [inventoryData],
+					address: address,
+					count: inventoryDataArray.length,
+					inventory: inventoryDataArray.length === 1 ? inventoryDataArray[0] : null,
+					inventoryList: inventoryDataArray,
 					metadata: {
 						timestamp: new Date().toISOString(),
 						source: 'City of Chicago Water Service Line Inventory'
@@ -358,7 +237,8 @@ function main(args) {
 				headers: responseHeaders,
 				body: {
 					error: 'Internal server error',
-					message: error.message
+					message: error.message,
+					stack: error.stack
 				}
 			};
 		});

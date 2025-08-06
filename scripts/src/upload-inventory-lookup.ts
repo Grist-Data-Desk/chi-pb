@@ -24,7 +24,7 @@ async function main(): Promise<void> {
 	
 	// Upload main lookup files
 	const lookupFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => file.startsWith('inventory-lookup.json') || file === 'inventory-lookup.json.brotli');
+		.filter((file) => file.startsWith('inventory-lookup.json'));
 
 	for (const file of lookupFiles) {
 		console.log(`Uploading ${file}`);
@@ -40,9 +40,14 @@ async function main(): Promise<void> {
 			contentType = 'application/octet-stream';
 		}
 
+		// Rename .br to .brotli for DO Spaces compatibility
+		const uploadKey = file === 'inventory-lookup.json.br' 
+			? `${SEARCH_INDEX_PATH}/inventory-lookup.json.brotli`
+			: `${SEARCH_INDEX_PATH}/${file}`;
+
 		const putObjectCommand = new PutObjectCommand({
 			Bucket: 'grist',
-			Key: `${SEARCH_INDEX_PATH}/${file}`,
+			Key: uploadKey,
 			Body: fileContent,
 			ACL: 'public-read',
 			ContentType: contentType,
@@ -51,8 +56,8 @@ async function main(): Promise<void> {
 
 		try {
 			const response = await s3Client.send(putObjectCommand);
-			console.log(`Successfully uploaded ${file}`);
-			console.log(`  URL: https://grist.nyc3.cdn.digitaloceanspaces.com/${SEARCH_INDEX_PATH}/${file}`);
+			console.log(`Successfully uploaded ${file} as ${uploadKey}`);
+			console.log(`  URL: https://grist.nyc3.cdn.digitaloceanspaces.com/${uploadKey}`);
 		} catch (error) {
 			console.error(`Failed to upload ${file}:`, error);
 		}
@@ -76,9 +81,14 @@ async function main(): Promise<void> {
 			contentType = 'application/octet-stream';
 		}
 
+		// Rename .br to .brotli for DO Spaces compatibility  
+		const uploadKey = file === 'inventory-lookup-metadata.json.br'
+			? `${SEARCH_INDEX_PATH}/inventory-lookup-metadata.json.brotli`
+			: `${SEARCH_INDEX_PATH}/${file}`;
+			
 		const putObjectCommand = new PutObjectCommand({
 			Bucket: 'grist',
-			Key: `${SEARCH_INDEX_PATH}/${file}`,
+			Key: uploadKey,
 			Body: fileContent,
 			ACL: 'public-read',
 			ContentType: contentType,

@@ -1,0 +1,101 @@
+<h3 class="m-0 mb-2 text-lg font-medium">${formatTitle(data)}</h3>
+<div>
+	<ul class="-mx-3 mb-0 flex list-none gap-4 border-b border-slate-500 px-3">
+		<li class="active-tab border-b-2 border-b-transparent pb-1 transition-all">
+			<button
+				class="border-0 bg-transparent p-0 text-xs tracking-wider text-slate-500 uppercase"
+				data-popup-tab="service-line-inventory"
+			>
+				Service Line Inventory
+			</button>
+		</li>
+		<li class="border-b-2 border-b-transparent pb-1 transition-all">
+			<button
+				class="border-0 bg-transparent p-0 text-xs tracking-wider text-slate-500 uppercase"
+				data-popup-tab="demographics"
+			>
+				Demographics
+			</button>
+		</li>
+	</ul>
+	<div data-popup-tabcontent="service-line-inventory" class="mt-2">
+		<table class="table-fixed border-collapse font-sans text-xs text-slate-500">
+			<colgroup>
+				<col class="w-60" />
+				<col class="w-20" />
+				<col class="w-20" />
+			</colgroup>
+			<tbody>
+				<tr>
+					<td class="p-1">Lead</td>
+					<td class="text-earth p-1 text-right font-medium">${formatCount(data.L)}</td>
+					<td class="p-1 text-right">${formatPercent(data.pct_lead)}</td>
+				</tr>
+				<tr>
+					<td class="p-1">Galvanized (Replace)</td>
+					<td class="text-earth p-1 text-right font-medium">${formatCount(data.GRR)}</td>
+					<td class="p-1 text-right">${formatPercent(data.pct_grr)}</td>
+				</tr>
+				<tr>
+					<td class="p-1">Unknown (Suspected Lead)</td>
+					<td class="text-earth p-1 text-right font-medium">${formatCount(data.U)}</td>
+					<td class="p-1 text-right">${formatPercent(data.pct_suspected_lead)}</td>
+				</tr>
+				<tr>
+					<td class="p-1">Non-Lead</td>
+					<td class="text-earth p-1 text-right font-medium">${formatCount(data.NL)}</td>
+					<td class="p-1 text-right">${formatPercent(data.pct_not_lead)}</td>
+				</tr>
+			</tbody>
+			<tfoot class="border-t border-slate-300">
+				<tr>
+					<td class="p-1">Total</td>
+					<td class="text-earth p-1 text-right font-medium">${formatCount(data.total)}</td>
+				</tr>
+				<tr class="rounded bg-red-100 text-red-600">
+					<td class="p-1">Requires Replacement</td>
+					<td class="p-1 text-right font-medium">${formatCount(data.requires_replacement || 0)}</td>
+					<td class="p-1 text-right font-medium">
+						${formatPercent(data.pct_requires_replacement || 0)}
+					</td>
+				</tr>
+			</tfoot>
+		</table>
+	</div>
+	<div data-popup-tabcontent="demographics" style="display: none" class="mt-2">
+		<table class="w-full table-fixed border-collapse text-xs">
+			<tr>
+				<td class="p-1 text-slate-500">Median Income</td>
+				<td class="text-earth p-1 text-right font-medium">
+					${formatCurrency(data.median_household_income)}
+				</td>
+			</tr>
+			<tr>
+				<td class="p-1 text-slate-500">Poverty Rate</td>
+				<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_poverty)}</td>
+			</tr>
+			<tr>
+				<td class="p-1 text-slate-500">Black Population</td>
+				<td class="text-earth p-1 text-right font-medium">
+					${formatPercent(data.pct_black_nonhispanic || data.pct_black)}
+				</td>
+			</tr>
+			<tr>
+				<td class="p-1 text-slate-500">White Population</td>
+				<td class="text-earth p-1 text-right font-medium">
+					${formatPercent(data.pct_white_nonhispanic)}
+				</td>
+			</tr>
+			<tr>
+				<td class="p-1 text-slate-500">Asian Population</td>
+				<td class="text-earth p-1 text-right font-medium">
+					${formatPercent(data.pct_asian_nonhispanic)}
+				</td>
+			</tr>
+			<tr class="border-b border-transparent">
+				<td class="p-1 text-slate-500">Minority Population</td>
+				<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_minority)}</td>
+			</tr>
+		</table>
+	</div>
+</div>

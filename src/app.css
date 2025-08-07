@@ -51,24 +51,6 @@
 	.maplibregl-popup {
 		@apply z-100;
 	}
-
-	.logo-container {
-		@apply fixed right-[calc(3%+2rem)] bottom-6 z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200;
-	}
-
-	@media (min-width: 768px) {
-		.logo-container {
-			@apply right-4 bottom-12;
-		}
-	}
-
-	.logo-container:hover {
-		@apply opacity-100;
-	}
-
-	.logo-container img {
-		@apply h-full w-full object-contain;
-	}
 }
 
 @layer base {
@@ -145,7 +127,15 @@
 }
 
 #map-root .maplibregl-popup-content {
-	@apply border-earth bg-smog rounded-sm border border-solid p-2 shadow-md backdrop-blur-sm;
+	@apply border-earth bg-smog rounded-sm border border-solid p-3 shadow-md backdrop-blur-sm;
+}
+
+#map-root .maplibregl-popup-content .active-tab {
+	@apply border-b-slate-500;
+}
+
+#map-root .maplibregl-popup-content .active-tab button {
+	@apply font-bold;
 }
 
 #map-root .maplibregl-ctrl-bottom-right {

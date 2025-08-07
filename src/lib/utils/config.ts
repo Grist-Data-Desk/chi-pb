@@ -1,4 +1,9 @@
-import type { AddLayerObject, SourceSpecification } from 'maplibre-gl';
+import type {
+	FillLayerSpecification,
+	LineLayerSpecification,
+	CircleLayerSpecification,
+	SourceSpecification
+} from 'maplibre-gl';
 
 import { COLORS, SERVICE_LINE_COLOR_EXPRESSION } from '$lib/utils/constants';
 
@@ -31,14 +36,16 @@ export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecifica
 		id: 'census-tracts',
 		config: {
 			type: 'vector',
-			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/chi-tracts-filled.pmtiles?v=${Date.now()}`
+			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/chi-tracts-filled.pmtiles?v=${Date.now()}`,
+			promoteId: 'geoid'
 		}
 	},
 	communityAreas: {
 		id: 'community-areas',
 		config: {
 			type: 'vector',
-			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/chi-comm-areas.pmtiles?v=${Date.now()}`
+			url: `pmtiles://${DO_SPACES_URL}/${PMTILES_PATH}/chi-comm-areas.pmtiles?v=${Date.now()}`,
+			promoteId: 'community'
 		}
 	},
 	serviceLines: {
@@ -50,7 +57,10 @@ export const SOURCE_CONFIG: Record<string, { id: string; config: SourceSpecifica
 	}
 };
 
-export const LAYER_CONFIG: Record<string, AddLayerObject> = {
+export const LAYER_CONFIG: Record<
+	string,
+	FillLayerSpecification | LineLayerSpecification | CircleLayerSpecification
+> = {
 	censusTractsFill: {
 		id: 'census-tracts-fill',
 		source: 'census-tracts',
@@ -78,7 +88,15 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		},
 		paint: {
 			'line-color': '#ffffff',
-			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.25, 12, 1],
+			'line-width': [
+				'interpolate',
+				['linear'],
+				['zoom'],
+				8,
+				['case', ['boolean', ['feature-state', 'selected'], false], 1, 0.25],
+				12,
+				['case', ['boolean', ['feature-state', 'selected'], false], 3, 1]
+			],
 			'line-opacity': 0.8
 		}
 	},
@@ -109,7 +127,15 @@ export const LAYER_CONFIG: Record<string, AddLayerObject> = {
 		},
 		paint: {
 			'line-color': '#ffffff',
-			'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.5, 12, 1],
+			'line-width': [
+				'interpolate',
+				['linear'],
+				['zoom'],
+				8,
+				['case', ['boolean', ['feature-state', 'selected'], false], 1, 0.25],
+				12,
+				['case', ['boolean', ['feature-state', 'selected'], false], 3, 1]
+			],
 			'line-opacity': 0
 		}
 	},

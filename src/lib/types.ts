@@ -22,12 +22,36 @@ export interface Address {
 	mZip: string;
 }
 
-export interface CensusTract {
-	geoid: string;
+interface ServiceLineStatistics {
+	GRR: number;
+	L: number;
+	NL: number;
+	pct_grr: number;
+	pct_lead: number;
+	pct_not_lead: number;
+	pct_requires_replacement: number;
+	pct_suspected_lead: number;
+	requires_replacement: number;
+	total: number;
+	U: number;
+}
+
+interface DemographicStatistics {
 	median_household_income: number;
-	pct_black: number;
+	pct_asian_nonhispanic: number;
+	pct_black_nonhispanic: number;
 	pct_minority: number;
 	pct_poverty: number;
+	pct_white_nonhispanic: number;
+}
+
+export interface CensusTract extends ServiceLineStatistics, DemographicStatistics {
+	geoid: string;
+}
+
+export interface CommunityArea extends ServiceLineStatistics, DemographicStatistics {
+	communityArea: string;
+	area_num_1: string;
 }
 
 export interface AddressWithServiceLine extends Address {

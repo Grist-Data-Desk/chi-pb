@@ -1,31 +1,89 @@
 import maplibregl from 'maplibre-gl';
 
+import type { CensusTract, CommunityArea } from '$lib/types';
+
 export class Popup {
 	private map: maplibregl.Map;
 	private popup: maplibregl.Popup | null = null;
+	private isTabletOrAbove: boolean;
 
-	constructor(map: maplibregl.Map) {
+	constructor(map: maplibregl.Map, isTabletOrAbove: boolean) {
 		this.map = map;
+		this.isTabletOrAbove = isTabletOrAbove;
 	}
 
-	showPopup(lngLat: maplibregl.LngLat, data: any): maplibregl.Popup {
+	showPopup(lngLat: maplibregl.LngLat, data: CensusTract | CommunityArea): maplibregl.Popup {
 		if (this.popup) {
 			this.popup.remove();
 		}
 
-		const clickPoint = this.map.project(lngLat);
+		const { x, y } = this.map.project(lngLat);
 		const mapHeight = this.map.getContainer().offsetHeight;
-		const anchor = clickPoint.y < mapHeight / 2 ? 'top' : 'bottom';
+		const mapWidth = this.map.getContainer().offsetWidth;
+		const popupWidth = 318;
+		const popupHeight = 246;
+
+		let anchor: maplibregl.PositionAnchor = 'top';
+		let position: maplibregl.LngLatLike = lngLat;
+
+		// On tablet or desktop, position
+		if (this.isTabletOrAbove) {
+			let verticalAnchor = 'bottom';
+			let horizontalAnchor = '';
+
+			if (y < mapHeight - popupHeight) {
+				verticalAnchor = 'top';
+			}
+
+			if (x < popupWidth) {
+				horizontalAnchor = 'left';
+			} else if (x > mapWidth - popupWidth) {
+				horizontalAnchor = 'right';
+			}
+
+			anchor =
+				`${verticalAnchor}${horizontalAnchor ? '-' + horizontalAnchor : ''}` as maplibregl.PositionAnchor;
+		} else {
+			anchor = 'top-left';
+			position = this.map.unproject([(mapWidth / 100) * 3, mapHeight - popupHeight - 24 - 34 - 8]);
+		}
 
 		this.popup = new maplibregl.Popup({
-			closeButton: true,
+			closeButton: false,
 			closeOnClick: true,
-			maxWidth: '320px',
+			maxWidth: `${popupWidth}px`,
 			anchor
 		})
-			.setLngLat(lngLat)
+			.setLngLat(position)
 			.setHTML(this.generatePopupContent(data))
 			.addTo(this.map);
+
+		// Add tab event listeners.
+		const tabs = document.querySelectorAll<HTMLButtonElement>('[data-popup-tab]');
+		const tabsContent = document.querySelectorAll<HTMLDivElement>('[data-popup-tabcontent]');
+
+		tabs.forEach((tab) => {
+			tab.addEventListener('click', () => {
+				// Reset all tabs to normal weight.
+				tabs.forEach((tab) => {
+					tab.parentElement?.classList.remove('active-tab');
+				});
+
+				tabsContent.forEach((content) => {
+					content.style.display = 'none';
+				});
+
+				tab.parentElement?.classList.add('active-tab');
+
+				const targetContent = document.querySelector<HTMLDivElement>(
+					`[data-popup-tabcontent="${tab.getAttribute('data-popup-tab')}"]`
+				);
+
+				if (targetContent) {
+					targetContent.style.display = 'block';
+				}
+			});
+		});
 
 		return this.popup;
 	}
@@ -37,7 +95,7 @@ export class Popup {
 		}
 	}
 
-	private generatePopupContent(data: any): string {
+	private generatePopupContent(data: CensusTract | CommunityArea): string {
 		const formatCurrency = (value: number | null | undefined) => {
 			if (!value || value === null || value === undefined) return 'N/A';
 			return new Intl.NumberFormat('en-US', {
@@ -58,222 +116,116 @@ export class Popup {
 			return value.toLocaleString();
 		};
 
-		const isCommunityArea = data.community !== undefined;
+		const formatTitle = (data: CensusTract | CommunityArea) => {
+			if ('community' in data) {
+				return data.community;
+			} else if ('geoid' in data) {
+				return `Census Tract ${data.geoid}`;
+			}
+		};
 
-		if (isCommunityArea) {
-			// Community area popup
-			return `
-				<div style="padding: 4px 12px 12px 12px;">
-					<h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px; margin-top: 0;">${data.community || 'Unknown Community'}</h3>
-					
-					<div style="font-size: 11px;">
-						<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 0;">Service Line Inventory</p>
-						
-						<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px; margin-bottom: 12px;">
-							<table style="width: 100%; font-size: 11px; table-layout: fixed;">
-								<colgroup>
-									<col style="width: 60%;">
-									<col style="width: 20%;">
-									<col style="width: 20%;">
-								</colgroup>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Lead</td>
-									<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.L)}</td>
-									<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_lead)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Galvanized (Replace)</td>
-									<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.GRR)}</td>
-									<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_grr)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Unknown (Suspected Lead)</td>
-									<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.U)}</td>
-									<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_suspected_lead)}</td>
-								</tr>
-								<tr>
-									<td style="padding: 4px 0; color: #6b7280;">Non-Lead</td>
-									<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.NL)}</td>
-									<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_not_lead)}</td>
-								</tr>
-							</table>
-							
-							<div style="padding: 0 8px;">
-								<table style="width: 100%; font-size: 11px; table-layout: fixed; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-									<colgroup>
-										<col style="width: 60%;">
-										<col style="width: 20%;">
-										<col style="width: 20%;">
-									</colgroup>
-									<tr>
-										<td style="padding: 4px 0; color: #4b5563;">Total</td>
-										<td style="padding: 4px 4px; text-align: right; font-weight: bold;">${formatCount(data.total)}</td>
-										<td style="padding: 4px 0;"></td>
-									</tr>
-								</table>
-							</div>
-							
-							<div style="margin-top: 8px; padding: 8px; background-color: #f3e8ff; border-radius: 4px;">
-								<table style="width: 100%; font-size: 11px; table-layout: fixed;">
-									<colgroup>
-										<col style="width: 60%;">
-										<col style="width: 20%;">
-										<col style="width: 20%;">
-									</colgroup>
-									<tr>
-										<td style="padding: 0; color: #6b21a8; font-weight: 500;">Requires Replacement</td>
-										<td style="padding: 0 4px; text-align: right; font-weight: bold; color: #581c87;">${formatCount(data.requires_replacement || 0)}</td>
-										<td style="padding: 0; text-align: right; font-weight: bold; color: #581c87;">${formatPercent(data.pct_requires_replacement || 0)}</td>
-									</tr>
-								</table>
-							</div>
-						</div>
-						
-						<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 12px;">Demographics</p>
-						<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px;">
-							<table style="width: 100%; font-size: 11px;">
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Median Income</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatCurrency(data.median_household_income)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Poverty Rate</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_poverty)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Black Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_black_nonhispanic || data.pct_black)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">White Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_white_nonhispanic)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Asian Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_asian_nonhispanic)}</td>
-								</tr>
-								<tr>
-									<td style="padding: 4px 0; color: #6b7280;">Minority Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_minority)}</td>
-								</tr>
-							</table>
-						</div>
-					</div>
+		return `
+			<h3 class="m-0 mb-2 text-lg font-medium">${formatTitle(data)}</h3>
+			<div>
+				<ul class="-mx-3 mb-0 flex list-none gap-4 border-b border-slate-500 px-3">
+					<li class="active-tab border-b-2 border-b-transparent pb-1 transition-all">
+						<button
+							class="border-0 bg-transparent p-0 text-xs tracking-wider text-slate-500 uppercase"
+							data-popup-tab="service-line-inventory"
+						>
+							Service Line Inventory
+						</button>
+					</li>
+					<li class="border-b-2 border-b-transparent pb-1 transition-all">
+						<button
+							class="border-0 bg-transparent p-0 text-xs tracking-wider text-slate-500 uppercase"
+							data-popup-tab="demographics"
+						>
+							Demographics
+						</button>
+					</li>
+				</ul>
+				<div data-popup-tabcontent="service-line-inventory" class="mt-2">
+					<table class="table-fixed border-collapse font-sans text-xs text-slate-500">
+						<colgroup>
+							<col class="w-60" />
+							<col class="w-20" />
+							<col class="w-20" />
+						</colgroup>
+						<tbody>
+							<tr>
+								<td class="p-1">Lead</td>
+								<td class="text-earth p-1 text-right font-medium">${formatCount(data.L)}</td>
+								<td class="p-1 text-right">${formatPercent(data.pct_lead)}</td>
+							</tr>
+							<tr>
+								<td class="p-1">Galvanized (Replace)</td>
+								<td class="text-earth p-1 text-right font-medium">${formatCount(data.GRR)}</td>
+								<td class="p-1 text-right">${formatPercent(data.pct_grr)}</td>
+							</tr>
+							<tr>
+								<td class="p-1">Unknown (Suspected Lead)</td>
+								<td class="text-earth p-1 text-right font-medium">${formatCount(data.U)}</td>
+								<td class="p-1 text-right">${formatPercent(data.pct_suspected_lead)}</td>
+							</tr>
+							<tr>
+								<td class="p-1">Non-Lead</td>
+								<td class="text-earth p-1 text-right font-medium">${formatCount(data.NL)}</td>
+								<td class="p-1 text-right">${formatPercent(data.pct_not_lead)}</td>
+							</tr>
+						</tbody>
+						<tfoot class="border-t border-slate-300">
+							<tr>
+								<td class="p-1">Total</td>
+								<td class="text-earth p-1 text-right font-medium">${formatCount(data.total)}</td>
+							</tr>
+							<tr class="rounded bg-red-100 text-red-600">
+								<td class="p-1">Requires Replacement</td>
+								<td class="p-1 text-right font-medium">${formatCount(data.requires_replacement || 0)}</td>
+								<td class="p-1 text-right font-medium">
+									${formatPercent(data.pct_requires_replacement || 0)}
+								</td>
+							</tr>
+						</tfoot>
+					</table>
 				</div>
-			`;
-		} else {
-			// Census tract popup
-			return `
-				<div style="padding: 4px 12px 12px 12px;">
-					<h3 style="font-weight: bold; margin-bottom: 8px; font-size: 14px; margin-top: 0;">Census Tract ${data.geoid || 'Unknown'}</h3>
-					
-					<div style="font-size: 11px;">
-						${
-							data.total !== undefined
-								? `
-							<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 0;">Service Line Inventory</p>
-							
-							<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px; margin-bottom: 12px;">
-								<table style="width: 100%; font-size: 11px; table-layout: fixed;">
-									<colgroup>
-										<col style="width: 60%;">
-										<col style="width: 20%;">
-										<col style="width: 20%;">
-									</colgroup>
-									<tr style="border-bottom: 1px solid #e5e7eb;">
-										<td style="padding: 4px 0; color: #6b7280;">Lead</td>
-										<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.L)}</td>
-										<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_lead)}</td>
-									</tr>
-									<tr style="border-bottom: 1px solid #e5e7eb;">
-										<td style="padding: 4px 0; color: #6b7280;">Galvanized (Replace)</td>
-										<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.GRR)}</td>
-										<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_grr)}</td>
-									</tr>
-									<tr style="border-bottom: 1px solid #e5e7eb;">
-										<td style="padding: 4px 0; color: #6b7280;">Unknown (Suspected Lead)</td>
-										<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.U)}</td>
-										<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_suspected_lead)}</td>
-									</tr>
-									<tr>
-										<td style="padding: 4px 0; color: #6b7280;">Non-Lead</td>
-										<td style="padding: 4px 4px; text-align: right; font-weight: 500;">${formatCount(data.NL)}</td>
-										<td style="padding: 4px 0; text-align: right; color: #6b7280;">${formatPercent(data.pct_not_lead)}</td>
-									</tr>
-								</table>
-								
-								<div style="padding: 0 8px;">
-									<table style="width: 100%; font-size: 11px; table-layout: fixed; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-										<colgroup>
-											<col style="width: 60%;">
-											<col style="width: 20%;">
-											<col style="width: 20%;">
-										</colgroup>
-										<tr>
-											<td style="padding: 4px 0; color: #4b5563;">Total</td>
-											<td style="padding: 4px 4px; text-align: right; font-weight: bold;">${formatCount(data.total)}</td>
-											<td style="padding: 4px 0;"></td>
-										</tr>
-									</table>
-								</div>
-								
-								${
-									data.requires_replacement !== undefined
-										? `
-									<div style="margin-top: 8px; padding: 8px; background-color: #f3e8ff; border-radius: 4px;">
-										<table style="width: 100%; font-size: 11px; table-layout: fixed;">
-											<colgroup>
-												<col style="width: 60%;">
-												<col style="width: 20%;">
-												<col style="width: 20%;">
-											</colgroup>
-											<tr>
-												<td style="padding: 0; color: #6b21a8; font-weight: 500;">Requires Replacement</td>
-												<td style="padding: 0 4px; text-align: right; font-weight: bold; color: #581c87;">${formatCount(data.requires_replacement || 0)}</td>
-												<td style="padding: 0; text-align: right; font-weight: bold; color: #581c87;">${formatPercent(data.pct_requires_replacement || 0)}</td>
-											</tr>
-										</table>
-									</div>
-								`
-										: ''
-								}
-							</div>
-						`
-								: ''
-						}
-						
-						<p style="font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; margin-top: 12px;">Demographics</p>
-						<div style="background-color: #f9fafb; border-radius: 4px; padding: 8px;">
-							<table style="width: 100%; font-size: 11px;">
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Median Income</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatCurrency(data.median_household_income)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Poverty Rate</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_poverty)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Black Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_black_nonhispanic || data.pct_black)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">White Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_white_nonhispanic)}</td>
-								</tr>
-								<tr style="border-bottom: 1px solid #e5e7eb;">
-									<td style="padding: 4px 0; color: #6b7280;">Asian Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_asian_nonhispanic)}</td>
-								</tr>
-								<tr>
-									<td style="padding: 4px 0; color: #6b7280;">Minority Population</td>
-									<td style="padding: 4px 0; text-align: right; font-weight: 500;">${formatPercent(data.pct_minority)}</td>
-								</tr>
-							</table>
-						</div>
-					</div>
+				<div data-popup-tabcontent="demographics" style="display: none" class="mt-2">
+					<table class="w-full table-fixed border-collapse text-xs">
+						<tr>
+							<td class="p-1 text-slate-500">Median Income</td>
+							<td class="text-earth p-1 text-right font-medium">
+								${formatCurrency(data.median_household_income)}
+							</td>
+						</tr>
+						<tr>
+							<td class="p-1 text-slate-500">Poverty Rate</td>
+							<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_poverty)}</td>
+						</tr>
+						<tr>
+							<td class="p-1 text-slate-500">Black Population</td>
+							<td class="text-earth p-1 text-right font-medium">
+								${formatPercent(data.pct_black_nonhispanic)}
+							</td>
+						</tr>
+						<tr>
+							<td class="p-1 text-slate-500">White Population</td>
+							<td class="text-earth p-1 text-right font-medium">
+								${formatPercent(data.pct_white_nonhispanic)}
+							</td>
+						</tr>
+						<tr>
+							<td class="p-1 text-slate-500">Asian Population</td>
+							<td class="text-earth p-1 text-right font-medium">
+								${formatPercent(data.pct_asian_nonhispanic)}
+							</td>
+						</tr>
+						<tr class="border-b border-transparent">
+							<td class="p-1 text-slate-500">Minority Population</td>
+							<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_minority)}</td>
+						</tr>
+					</table>
 				</div>
-			`;
-		}
+			</div>
+		`;
 	}
 }

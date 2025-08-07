@@ -1,15 +1,18 @@
 <script lang="ts">
+	import type { FillLayerSpecification } from 'maplibre-gl';
+
+	import { removeSelectedFeatureState } from '$lib/state/feature.svelte';
 	import { mapState } from '$lib/state/map.svelte';
+	import { popup } from '$lib/state/popup.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { AggregationLevel, ChoroplethMode } from '$lib/types';
-	import { CHOROPLETH_CATEGORIES } from '$lib/utils/config';
+	import { CHOROPLETH_CATEGORIES, LAYER_CONFIG, SOURCE_CONFIG } from '$lib/utils/config';
 	import {
 		fetchQuantileData,
 		formatQuantileValue,
 		getQuantileColorExpression
 	} from '$lib/utils/quantiles';
-
 	// Constants.
 	const CHOROPLETH_MODES = Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => ({
 		value: key,
@@ -75,6 +78,8 @@
 		visualization.aggregationLevel = target.value as AggregationLevel;
 
 		updateLayers();
+		popup.node?.removePopup();
+		removeSelectedFeatureState();
 	}
 </script>
 

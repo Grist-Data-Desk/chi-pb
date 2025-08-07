@@ -1,6 +1,4 @@
 <script lang="ts">
-	import type { FillLayerSpecification } from 'maplibre-gl';
-
 	import { removeSelectedFeatureState } from '$lib/state/feature.svelte';
 	import { mapState } from '$lib/state/map.svelte';
 	import { popup } from '$lib/state/popup.svelte';

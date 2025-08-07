@@ -26,7 +26,8 @@ export class Popup {
 		let anchor: maplibregl.PositionAnchor = 'top';
 		let position: maplibregl.LngLatLike = lngLat;
 
-		// On tablet or desktop, position
+		// On tablet or desktop, position the tooltip dynamically to prevent it from
+		// rendering offscreen.
 		if (this.isTabletOrAbove) {
 			let verticalAnchor = 'bottom';
 			let horizontalAnchor = '';
@@ -44,6 +45,8 @@ export class Popup {
 			anchor =
 				`${verticalAnchor}${horizontalAnchor ? '-' + horizontalAnchor : ''}` as maplibregl.PositionAnchor;
 		} else {
+			// On mobile, use a fixed position in the bottom left of the screen,
+			// accounting for the Filters button.
 			anchor = 'top-left';
 			position = this.map.unproject([(mapWidth / 100) * 3, mapHeight - popupHeight - 24 - 34 - 8]);
 		}

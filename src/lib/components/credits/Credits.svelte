@@ -35,7 +35,7 @@
 	<div class="maplibregl-ctrl maplibregl-ctrl-group">
 		<button
 			type="button"
-			class="flex h-[29px] w-[29px] items-center justify-center bg-white transition-colors hover:bg-slate-50"
+			class="flex! h-[29px] w-[29px] items-center justify-center"
 			onclick={toggleCredits}
 			aria-label={ui.creditsExpanded ? 'Collapse credits' : 'Expand credits'}
 		>

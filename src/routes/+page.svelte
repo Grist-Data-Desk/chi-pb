@@ -463,7 +463,9 @@
 		<div id="map-container" class="relative h-full">
 			<ExpandLegend />
 			<Legend />
-			<div class="floating-panel absolute top-4 left-[3%] z-10 w-[94%] p-4 md:left-4 md:w-[400px]">
+			<div
+				class="floating-panel absolute top-4 left-[3%] z-10 w-[94%] p-3 sm:left-4 sm:w-[400px] sm:p-4"
+			>
 				<SearchPanel map={mapState.map} />
 				<Credits />
 			</div>
@@ -471,7 +473,7 @@
 	</div>
 </main>
 <div
-	class="fixed right-[3%] bottom-16 z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200 hover:opacity-100 md:right-4 md:bottom-12"
+	class="fixed right-[calc(3%+2rem)] bottom-6 z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200 hover:opacity-100 sm:right-4 sm:bottom-12"
 >
 	<a href="https://grist.org" target="_blank" rel="noopener noreferrer">
 		<img

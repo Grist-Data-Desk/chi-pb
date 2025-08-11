@@ -65,10 +65,12 @@
 				<button
 					onclick={previousServiceLine}
 					disabled={$multiServiceLineStore.currentIndex === 0}
-					class="flex w-20 items-center justify-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex ===
-					0
-						? 'cursor-not-allowed text-slate-400'
-						: 'text-slate-600 hover:bg-slate-200'}"
+					class={[
+						'border-earth flex w-20 items-center justify-center gap-1 rounded-xs border px-2 py-1 text-xs font-medium transition-colors',
+						$multiServiceLineStore.currentIndex === $serviceLineCount - 1
+							? 'cursor-not-allowed text-slate-400'
+							: 'text-slate-600 hover:bg-slate-200'
+					]}
 				>
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -86,10 +88,12 @@
 				<button
 					onclick={nextServiceLine}
 					disabled={$multiServiceLineStore.currentIndex === $serviceLineCount - 1}
-					class="flex w-20 items-center justify-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex ===
-					$serviceLineCount - 1
-						? 'cursor-not-allowed text-slate-400'
-						: 'text-slate-600 hover:bg-slate-200'}"
+					class={[
+						'border-earth flex w-20 items-center justify-center gap-1 rounded-xs border px-2 py-1 text-xs font-medium transition-colors',
+						$multiServiceLineStore.currentIndex === $serviceLineCount - 1
+							? 'cursor-not-allowed text-slate-400'
+							: 'text-slate-600 hover:bg-slate-200'
+					]}
 				>
 					Next
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

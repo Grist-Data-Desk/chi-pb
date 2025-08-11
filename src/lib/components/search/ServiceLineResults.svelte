@@ -295,8 +295,10 @@
 </script>
 
 {#if address}
-	<div class="scrollbar-thin scrollbar-position mt-4 flex flex-col gap-6 overflow-y-auto">
-		<div class="flex flex-col gap-2 font-sans">
+	<div
+		class="scrollbar-thin scrollbar-position flex max-h-[40svh] flex-col gap-3 overflow-y-auto sm:max-h-none sm:gap-6"
+	>
+		<div class="flex flex-col gap-1 font-sans sm:gap-2">
 			<h3 class="font-sans-secondary mt-0 mb-0 text-base font-medium text-slate-800 sm:text-lg">
 				Selected address
 			</h3>
@@ -316,7 +318,7 @@
 					</div>
 				</div>
 			{:else}
-				<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+				<div class="flex items-center gap-1 sm:gap-2">
 					<span class="text-xs text-slate-600 sm:text-sm">Lead Status:</span>
 					{#if isLoading}
 						<span

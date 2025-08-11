@@ -7,7 +7,7 @@
 	}
 </script>
 
-<div class="relative">
+<div class="relative font-sans">
 	{#if ui.creditsExpanded}
 		<div class="text-2xs mt-2 flex flex-col gap-2 leading-tight text-slate-500">
 			<p class="m-0">

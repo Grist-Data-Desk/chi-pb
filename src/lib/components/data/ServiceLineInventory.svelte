@@ -16,7 +16,7 @@
 	<AreaContextLoading />
 {:else}
 	<AreaContext {data} />
-	<table class="w-full border-collapse text-xs">
+	<table class="text-2xs w-full border-collapse sm:text-xs">
 		<colgroup>
 			<col class="w-3/5" />
 			<col class="w-1/5" />
@@ -24,36 +24,41 @@
 		</colgroup>
 		<tbody>
 			<tr>
-				<td class="p-1 text-slate-500">Lead</td>
-				<td class="p-1 text-right font-medium">{formatCount(data.L)}</td>
-				<td class="p-1 text-right text-slate-500">{formatPercent(data.pct_lead)}</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">Lead</td>
+				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.L)}</td>
+				<td class="p-0.5 text-right text-slate-500 sm:p-1">{formatPercent(data.pct_lead)}</td>
 			</tr>
 			<tr>
-				<td class="p-1 text-slate-500">Galvanized (Replace)</td>
-				<td class="p-1 text-right font-medium">{formatCount(data.GRR)}</td>
-				<td class="p-1 text-right text-slate-500">{formatPercent(data.pct_grr)}</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">Galvanized (Replace)</td>
+				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.GRR)}</td>
+				<td class="p-0.5 text-right text-slate-500 sm:p-1">{formatPercent(data.pct_grr)}</td>
 			</tr>
 			<tr>
-				<td class="p-1 text-slate-500">Unknown (Suspected Lead)</td>
-				<td class="p-1 text-right font-medium">{formatCount(data.U)}</td>
-				<td class="p-1 text-right text-slate-500">{formatPercent(data.pct_suspected_lead)}</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">Unknown (Suspected Lead)</td>
+				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.U)}</td>
+				<td class="p-0.5 text-right text-slate-500 sm:p-1"
+					>{formatPercent(data.pct_suspected_lead)}</td
+				>
 			</tr>
 			<tr>
-				<td class="p-1 text-slate-500">Non-Lead</td>
-				<td class="p-1 text-right font-medium">{formatCount(data.NL)}</td>
-				<td class="p-1 text-right text-slate-500">{formatPercent(data.pct_not_lead)}</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">Non-Lead</td>
+				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.NL)}</td>
+				<td class="p-0.5 text-right text-slate-500 sm:p-1">{formatPercent(data.pct_not_lead)}</td>
 			</tr>
 		</tbody>
 		<tfoot>
 			<tr class="border-t border-slate-300">
-				<td class="p-1 text-slate-500">Total</td>
-				<td class="p-1 text-right font-medium">{formatCount(data.total)}</td>
-				<td class="p-1"></td>
+				<td class="p-0.5 text-slate-500 sm:p-1">Total</td>
+				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.total)}</td>
+				<td class="p-0.5 sm:p-1"></td>
 			</tr>
 			<tr class="bg-red-100 text-red-600">
-				<td class="p-1 font-medium">Requires Replacement</td>
-				<td class="p-1 text-right font-medium">{formatCount(data.requires_replacement)}</td>
-				<td class="p-1 text-right font-medium">{formatPercent(data.pct_requires_replacement)}</td>
+				<td class="p-0.5 font-medium sm:p-1">Requires Replacement</td>
+				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.requires_replacement)}</td
+				>
+				<td class="p-0.5 text-right font-medium sm:p-1"
+					>{formatPercent(data.pct_requires_replacement)}</td
+				>
 			</tr>
 		</tfoot>
 	</table>

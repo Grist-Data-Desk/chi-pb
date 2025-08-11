@@ -16,31 +16,39 @@
 	<AreaContextLoading />
 {:else}
 	<AreaContext {data} />
-	<table class="w-full border-collapse text-xs">
+	<table class="text-2xs w-full border-collapse sm:text-xs">
 		<tbody>
 			<tr>
-				<td class="py-1 text-slate-500">Median Income</td>
-				<td class="py-1 text-right font-medium">{formatCurrency(data.median_household_income)}</td>
+				<td class="py-0.5 text-slate-500 sm:py-1">Median Income</td>
+				<td class="py-0.5 text-right font-medium sm:py-1"
+					>{formatCurrency(data.median_household_income)}</td
+				>
 			</tr>
 			<tr>
-				<td class="py-1 text-slate-500">Poverty Rate</td>
-				<td class="py-1 text-right font-medium">{formatPercent(data.pct_poverty)}</td>
+				<td class="py-0.5 text-slate-500 sm:py-1">Poverty Rate</td>
+				<td class="py-0.5 text-right font-medium sm:py-1">{formatPercent(data.pct_poverty)}</td>
 			</tr>
 			<tr>
-				<td class="py-1 text-slate-500">Black Population</td>
-				<td class="py-1 text-right font-medium">{formatPercent(data.pct_black_nonhispanic)}</td>
+				<td class="py-0.5 text-slate-500 sm:py-1">Black Population</td>
+				<td class="py-0.5 text-right font-medium sm:py-1"
+					>{formatPercent(data.pct_black_nonhispanic)}</td
+				>
 			</tr>
 			<tr>
-				<td class="py-1 text-slate-500">White Population</td>
-				<td class="py-1 text-right font-medium">{formatPercent(data.pct_white_nonhispanic)}</td>
+				<td class="py-0.5 text-slate-500 sm:py-1">White Population</td>
+				<td class="py-0.5 text-right font-medium sm:py-1"
+					>{formatPercent(data.pct_white_nonhispanic)}</td
+				>
 			</tr>
 			<tr>
-				<td class="py-1 text-slate-500">Asian Population</td>
-				<td class="py-1 text-right font-medium">{formatPercent(data.pct_asian_nonhispanic)}</td>
+				<td class="py-0.5 text-slate-500 sm:py-1">Asian Population</td>
+				<td class="py-0.5 text-right font-medium sm:py-1"
+					>{formatPercent(data.pct_asian_nonhispanic)}</td
+				>
 			</tr>
-			<tr>
-				<td class="py-1 text-slate-500">Minority Population</td>
-				<td class="py-1 text-right font-medium">{formatPercent(data.pct_minority)}</td>
+			<tr class="border-b border-transparent">
+				<td class="py-0.5 text-slate-500 sm:py-1">Minority Population</td>
+				<td class="py-0.5 text-right font-medium sm:py-1">{formatPercent(data.pct_minority)}</td>
 			</tr>
 		</tbody>
 	</table>

@@ -11,7 +11,7 @@
 	let isCommunityArea = $derived(visualization.aggregationLevel === 'community');
 </script>
 
-<p class="mt-1 text-xs text-slate-500 italic">
+<p class="text-2xs mt-0 mb-1 text-slate-500 italic sm:text-xs">
 	This address is located in {isCommunityArea
 		? (data as CommunityArea).community
 		: `census tract ${(data as CensusTract).geoid}`}. Statistics on this

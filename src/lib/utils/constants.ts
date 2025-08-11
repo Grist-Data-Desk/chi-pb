@@ -67,7 +67,5 @@ export const SERVICE_LINE_COLOR_EXPRESSION: ExpressionSpecification = [
 	...Object.entries(DISPLAY_CODES_TO_MATERIAL_COLORS)
 		.slice(1)
 		.flatMap(([material, color]) => [material, color]),
-	DEFAULT_MATERIAL_COLOR // Default
+	DEFAULT_MATERIAL_COLOR
 ];
-
-console.log(SERVICE_LINE_COLOR_EXPRESSION);

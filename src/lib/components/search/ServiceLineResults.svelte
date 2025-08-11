@@ -2,19 +2,16 @@
 	import type { Map } from 'maplibre-gl';
 	import { onDestroy } from 'svelte';
 
-	import ServiceLineDiagram from '$lib/components/search/ServiceLineDiagram.svelte';
-	import ServiceLineDiagramLoading from '$lib/components/search/ServiceLineDiagramLoading.svelte';
-	import {
-		multiServiceLineStore,
-		currentServiceLine,
-		serviceLineCount,
-		nextServiceLine,
-		previousServiceLine
-	} from '$lib/stores';
+	import Tabs from '$lib/components/shared/tabs/Tabs.svelte';
+	import TabItem from '$lib/components/shared/tabs/TabItem.svelte';
+	import { multiServiceLineStore, currentServiceLine, serviceLineCount } from '$lib/stores';
 	import { search } from '$lib/state/search.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { AddressWithServiceLine, CensusTract } from '$lib/types';
-	import { COLORS } from '$lib/utils/constants';
+	import { DISPLAY_CODES_TO_MATERIAL_LABELS, getMaterialColor } from '$lib/utils/constants';
+	import ServiceLineDetails from '../data/ServiceLineDetails.svelte';
+	import Demographics from '../data/Demographics.svelte';
+	import ServiceLineInventory from '../data/ServiceLineInventory.svelte';
 
 	// Props.
 	interface Props {
@@ -55,7 +52,7 @@
 			}
 		}, 100);
 	}
-	
+
 	async function queryCommunityDataWithRetry(lng: number, lat: number) {
 		setTimeout(() => {
 			if (!map?.isMoving()) {
@@ -132,7 +129,7 @@
 				isTractDataLoading = false;
 				pendingTractQuery = null;
 				console.log('Tract data loaded:', tractData.geoid);
-				
+
 				// Update search state with the tract ID for the selected address
 				if (search.selectedAddress) {
 					search.selectedAddressTractId = tractData.geoid;
@@ -162,7 +159,7 @@
 			}
 		}
 	}
-	
+
 	async function getCommunityDataAtPoint(lng: number, lat: number, retryCount = 0) {
 		if (!map || !pendingCommunityQuery) {
 			isCommunityDataLoading = false;
@@ -205,7 +202,7 @@
 				communityData = features[0].properties;
 				isCommunityDataLoading = false;
 				pendingCommunityQuery = null;
-				
+
 				// Update search state with the community name for the selected address
 				if (search.selectedAddress && communityData.community) {
 					search.selectedAddressCommunityName = communityData.community;
@@ -244,26 +241,6 @@
 		return 'NL';
 	}
 
-	function formatCurrency(value: number | null | undefined): string {
-		if (!value || value === null || value === undefined) return 'N/A';
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0
-		}).format(value);
-	}
-
-	function formatPercent(value: number | null | undefined): string {
-		if (value === null || value === undefined) return 'N/A';
-		return `${value.toFixed(1)}%`;
-	}
-
-	function formatCount(value: number | null | undefined): string {
-		if (value === null || value === undefined) return 'N/A';
-		return value.toLocaleString();
-	}
-
 	// Effects.
 	$effect(() => {
 		if (!address) {
@@ -285,7 +262,7 @@
 			tractData = null;
 			pendingTractQuery = { lng: address.long, lat: address.lat };
 			queryTractDataWithRetry(address.long, address.lat);
-			
+
 			// Also query for community area data
 			isCommunityDataLoading = true;
 			communityData = null;
@@ -318,570 +295,99 @@
 </script>
 
 {#if address}
-	<div class="scrollbar-thin scrollbar-position mt-4 max-h-[calc(100vh-29rem)] overflow-y-auto">
-		<div class="space-y-3 sm:space-y-4">
+	<div class="scrollbar-thin scrollbar-position mt-4 flex flex-col gap-6 overflow-y-auto">
+		<div class="flex flex-col gap-2 font-sans">
+			<h3 class="font-sans-secondary mt-0 mb-0 text-base font-medium text-slate-800 sm:text-lg">
+				Selected address
+			</h3>
+			<p class="m-0 text-sm font-medium break-words text-slate-800 sm:text-base">
+				{address.fullAddress}
+			</p>
 			{#if search.isNominatimAddress}
-				<!-- Placeholder for Nominatim addresses -->
-				<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
-					<h3 class="font-sans-secondary mt-0 mb-2 text-base font-medium text-slate-800 sm:text-lg">
-						Selected address
-					</h3>
-					<p class="text-sm break-words text-slate-800 sm:text-base mb-3">
-						{address.fullAddress}
-					</p>
-					<div class="rounded-md border border-amber-200 bg-amber-50 pl-3 pr-3">
-						<div class="flex items-start gap-2">
-							<div>
-								<p class="font-sans text-sm text-amber-800 font-medium">
-									The address you searched is not in the City of Chicago's water service line inventory. However, you can click on a nearby service line dot to view its corresponding inventory entry.
-								</p>
-							</div>
+				<div class="rounded-md border border-amber-200 bg-amber-50 pr-3 pl-3">
+					<div class="flex items-start gap-2">
+						<div>
+							<p class="font-sans text-sm font-medium text-amber-800">
+								The address you searched is not in the City of Chicago's water service line
+								inventory. However, you can click on a nearby service line dot to view its
+								corresponding inventory entry.
+							</p>
 						</div>
 					</div>
 				</div>
 			{:else}
-				<!-- Normal address display -->
-				<!-- Address Information -->
-				<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
-					<h3 class="font-sans-secondary mt-0 mb-0 text-base font-medium text-slate-800 sm:text-lg">
-						Selected address
-					</h3>
-					<div class="space-y-2 font-sans">
-						<div>
-							<p class="text-sm font-medium break-words text-slate-800 sm:text-base">
-								{address.fullAddress}
-							</p>
-						</div>
-
-					<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-						<span class="text-xs text-slate-600 sm:text-sm">Lead Status:</span>
-						{#if isLoading}
-							<span
-								class="inline-flex items-center self-start rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 sm:px-2.5 sm:text-sm"
-							>
-								<svg class="mr-1 h-3 w-3 animate-spin" viewBox="0 0 24 24">
-									<circle
-										class="opacity-25"
-										cx="12"
-										cy="12"
-										r="10"
-										stroke="currentColor"
-										stroke-width="4"
-										fill="none"
-									></circle>
-									<path
-										class="opacity-75"
-										fill="currentColor"
-										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-									></path>
-								</svg>
-								Loading...
-							</span>
-						{:else if displayCode === 'L'}
-							<span
-								class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
-								style="background-color: {COLORS.RED}"
-							>
-								Lead
-							</span>
-						{:else if displayCode === 'GRR'}
-							<span
-								class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
-								style="background-color: {COLORS.ORANGE}"
-							>
-								Galvanized (Replace)
-							</span>
-						{:else if displayCode === 'NL'}
-							<span
-								class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
-								style="background-color: {COLORS.TURQUOISE}"
-							>
-								Non-Lead
-							</span>
-						{:else}
-							<span
-								class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
-								style="background-color: {COLORS.GOLD}"
-							>
-								Unknown (Suspected Lead)
-							</span>
-						{/if}
-					</div>
-
-					{#if $serviceLineCount > 1}
-						<p class="mt-1 text-xs text-slate-500 italic">
-							This address is associated with {$serviceLineCount} service line records. The status shown
-							above represents the 'worst-case' scenario across all lines: If suspected lead appears
-							in any of the service lines, it'll be noted here. See individual line details below.
-						</p>
+				<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+					<span class="text-xs text-slate-600 sm:text-sm">Lead Status:</span>
+					{#if isLoading}
+						<span
+							class="inline-flex items-center self-start rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 sm:px-2.5 sm:text-sm"
+						>
+							<svg class="mr-1 h-3 w-3 animate-spin" viewBox="0 0 24 24">
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+									fill="none"
+								></circle>
+								<path
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								></path>
+							</svg>
+							Loading...
+						</span>
+					{:else if displayCode === 'L' || displayCode === 'GRR' || displayCode === 'NL'}
+						<span
+							class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
+							style="background-color: {getMaterialColor(displayCode)}"
+						>
+							{DISPLAY_CODES_TO_MATERIAL_LABELS[displayCode]}
+						</span>
+					{:else}
+						<span
+							class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
+							style="background-color: {getMaterialColor('U')}"
+						>
+							Unknown (Suspected Lead)
+						</span>
 					{/if}
 				</div>
-			</div>
-
-			<!-- Service Line Details -->
-			<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
-				<h3 class="font-sans-secondary mt-0 text-base font-medium text-slate-800 sm:text-lg">
-					Service line information
-					{#if $serviceLineCount > 1}
-						<br /><span class="text-sm font-normal text-slate-600"
-							>↳ {$serviceLineCount} lines found at this address</span
-						>
-					{/if}
-				</h3>
-
-				{#if isLoading}
-					<ServiceLineDiagramLoading />
-				{:else if error}
-					<div class="rounded-md border border-orange-200 bg-orange-50 p-2 sm:p-3">
-						<div class="flex items-start gap-2">
-							<svg
-								class="mt-0.5 h-4 w-4 shrink-0 text-orange-500"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							<p class="font-sans text-xs break-words text-orange-700 sm:text-sm">{error}</p>
-						</div>
-					</div>
-				{:else if currentInventoryData}
-					<!-- Navigation controls for multiple service lines -->
-					{#if $serviceLineCount > 1}
-						<div
-							class="mb-3 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2"
-						>
-							<button
-								onclick={previousServiceLine}
-								disabled={$multiServiceLineStore.currentIndex === 0}
-								class="flex w-20 items-center justify-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex ===
-								0
-									? 'cursor-not-allowed text-slate-400'
-									: 'text-slate-600 hover:bg-slate-200'}"
-							>
-								<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M15 19l-7-7 7-7"
-									/>
-								</svg>
-								Previous
-							</button>
-
-							<span class="text-xs font-medium text-slate-700">
-								Line {$multiServiceLineStore.currentIndex + 1} of {$serviceLineCount}
-							</span>
-
-							<button
-								onclick={nextServiceLine}
-								disabled={$multiServiceLineStore.currentIndex === $serviceLineCount - 1}
-								class="flex w-20 items-center justify-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors {$multiServiceLineStore.currentIndex ===
-								$serviceLineCount - 1
-									? 'cursor-not-allowed text-slate-400'
-									: 'text-slate-600 hover:bg-slate-200'}"
-							>
-								Next
-								<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M9 5l7 7-7 7"
-									/>
-								</svg>
-							</button>
-						</div>
-					{/if}
-
-					<!-- Visual Service Line Diagram -->
-					<div class="mb-0">
-						<ServiceLineDiagram
-							utilitySideMaterial={currentInventoryData.PublSrvLnMatEPA ||
-								currentInventoryData.utilitySideMaterial ||
-								'U'}
-							gooseneckMaterial={currentInventoryData.Gooseneck ||
-								currentInventoryData.gooseneck ||
-								'U'}
-							customerSideMaterial={currentInventoryData.PrivateSrvLnMatEPA ||
-								currentInventoryData.customerSideMaterial ||
-								'U'}
-							overallCode={currentInventoryData.OverallSL_Code ||
-								currentInventoryData.overallCode ||
-								'U'}
-						/>
-					</div>
-
-					<!-- Additional inventory details if needed -->
-					{#if currentInventoryData.highRisk === 'Y'}
-						<div class="mt-2 space-y-2 font-sans text-xs sm:text-sm">
-							<div class="flex items-start gap-2">
-								<span class="font-medium text-red-700"
-									>⚠️ This address is considered a high-risk property by the City of Chicago</span
-								>
-							</div>
-						</div>
-					{/if}
-				{:else}
-					<div class="rounded-md border border-slate-200 bg-slate-50 p-2 sm:p-3">
-						<div class="flex items-start gap-2">
-							<svg
-								class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							<div>
-								<p class="font-sans text-xs text-slate-500 sm:text-sm">
-									Detailed inventory information is not available for this address.
-								</p>
-								<p class="mt-1 font-sans text-xs text-slate-400">
-									The basic lead status shown above is based on available data from the geocoded
-									address database.
-								</p>
-							</div>
-						</div>
-					</div>
+				{#if $serviceLineCount > 1}
+					<p class="m-0 text-xs text-slate-500 italic">
+						This address is associated with {$serviceLineCount} service line records. The status shown
+						above represents the 'worst-case' scenario across all lines: If suspected lead appears in
+						any of the service lines, it'll be noted here. See individual line details below.
+					</p>
 				{/if}
-			</div>
-
-			<!-- Census Tract/Community Area Information -->
-			<div class="rounded-lg border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
-				<h3 class="font-sans-secondary mt-0 text-base font-medium text-slate-800 sm:text-lg">
-					{visualization.aggregationLevel === 'community' ? 'Community area' : 'Census tract'} context
-				</h3>
-				{#if !address}
-					<div class="font-sans text-xs text-slate-500 sm:text-sm">
-						<p>Select an address to view {visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'} information.</p>
-					</div>
-				{:else if visualization.aggregationLevel === 'community' && communityData}
-					<div class="font-sans text-xs sm:text-sm">
-						<p class="mt-1 text-xs text-slate-500 italic">
-							This address is located in {communityData.community}. Statistics on this community area
-							appear below.
-						</p>
-
-						{#if communityData.total !== undefined}
-							<p class="mb-1 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
-								Service Line Inventory
-							</p>
-
-							<div class="mb-3 rounded-sm bg-gray-50 p-2">
-								<table class="w-full text-xs">
-									<colgroup>
-										<col class="w-3/5" />
-										<col class="w-1/5" />
-										<col class="w-1/5" />
-									</colgroup>
-									<tbody>
-										<tr class="border-b border-gray-200">
-											<td class="py-1 text-gray-600">Lead</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount(communityData.L)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent(communityData.pct_lead)}</td
-											>
-										</tr>
-										<tr class="border-b border-gray-200">
-											<td class="py-1 text-gray-600">Galvanized (Replace)</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount(communityData.GRR)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent(communityData.pct_grr)}</td
-											>
-										</tr>
-										<tr class="border-b border-gray-200">
-											<td class="py-1 text-gray-600">Unknown (Suspected Lead)</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount(communityData.U)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent(communityData.pct_suspected_lead)}</td
-											>
-										</tr>
-										<tr>
-											<td class="py-1 text-gray-600">Non-Lead</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount(communityData.NL)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent(communityData.pct_not_lead)}</td
-											>
-										</tr>
-									</tbody>
-								</table>
-
-								<div class="px-2">
-									<table class="mt-2 w-full border-t border-gray-200 pt-2 text-xs">
-										<colgroup>
-											<col class="w-3/5" />
-											<col class="w-1/5" />
-											<col class="w-1/5" />
-										</colgroup>
-										<tbody>
-											<tr>
-												<td class="py-1 text-gray-700">Total</td>
-												<td class="px-2 py-1 text-right font-bold"
-													>{formatCount(communityData.total)}</td
-												>
-												<td class="py-1"></td>
-											</tr>
-										</tbody>
-									</table>
-								</div>
-
-								{#if communityData.requires_replacement !== undefined}
-									<div class="mt-2 rounded-sm bg-purple-50 p-2">
-										<table class="w-full text-xs">
-											<colgroup>
-												<col class="w-3/5" />
-												<col class="w-1/5" />
-												<col class="w-1/5" />
-											</colgroup>
-											<tbody>
-												<tr>
-													<td class="font-medium text-purple-700">Requires Replacement</td>
-													<td class="px-2 text-right font-bold text-purple-900"
-														>{formatCount(communityData.requires_replacement)}</td
-													>
-													<td class="text-right font-bold text-purple-900"
-														>{formatPercent(communityData.pct_requires_replacement)}</td
-													>
-												</tr>
-											</tbody>
-										</table>
-									</div>
-								{/if}
-							</div>
-						{/if}
-
-						<p class="mb-1 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
-							Demographics
-						</p>
-						<div class="rounded-sm bg-gray-50 p-2">
-							<table class="w-full text-xs">
-								<tbody>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Median Income</td>
-										<td class="py-1 text-right font-medium"
-											>{formatCurrency(communityData.median_household_income)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Poverty Rate</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(communityData.pct_poverty)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Black Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(
-												communityData.pct_black_nonhispanic || communityData.pct_black
-											)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">White Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(communityData.pct_white_nonhispanic)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Asian Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(communityData.pct_asian_nonhispanic)}</td
-										>
-									</tr>
-									<tr>
-										<td class="py-1 text-gray-600">Minority Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(communityData.pct_minority)}</td
-										>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
-				{:else if tractData}
-					<div class="font-sans text-xs sm:text-sm">
-						<p class="mt-1 text-xs text-slate-500 italic">
-							This address is located in Census tract {tractData.geoid}. Statistics on this tract
-							appear below.
-						</p>
-
-						{#if (tractData as any).total !== undefined}
-							<p class="mb-1 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
-								Service Line Inventory
-							</p>
-
-							<div class="mb-3 rounded-sm bg-gray-50 p-2">
-								<table class="w-full text-xs">
-									<colgroup>
-										<col class="w-3/5" />
-										<col class="w-1/5" />
-										<col class="w-1/5" />
-									</colgroup>
-									<tbody>
-										<tr class="border-b border-gray-200">
-											<td class="py-1 text-gray-600">Lead</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount((tractData as any).L)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent((tractData as any).pct_lead)}</td
-											>
-										</tr>
-										<tr class="border-b border-gray-200">
-											<td class="py-1 text-gray-600">Galvanized (Replace)</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount((tractData as any).GRR)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent((tractData as any).pct_grr)}</td
-											>
-										</tr>
-										<tr class="border-b border-gray-200">
-											<td class="py-1 text-gray-600">Unknown (Suspected Lead)</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount((tractData as any).U)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent((tractData as any).pct_suspected_lead)}</td
-											>
-										</tr>
-										<tr>
-											<td class="py-1 text-gray-600">Non-Lead</td>
-											<td class="px-2 py-1 text-right font-medium"
-												>{formatCount((tractData as any).NL)}</td
-											>
-											<td class="py-1 text-right text-gray-600"
-												>{formatPercent((tractData as any).pct_not_lead)}</td
-											>
-										</tr>
-									</tbody>
-								</table>
-
-								<div class="px-2">
-									<table class="mt-2 w-full border-t border-gray-200 pt-2 text-xs">
-										<colgroup>
-											<col class="w-3/5" />
-											<col class="w-1/5" />
-											<col class="w-1/5" />
-										</colgroup>
-										<tbody>
-											<tr>
-												<td class="py-1 text-gray-700">Total</td>
-												<td class="px-2 py-1 text-right font-bold"
-													>{formatCount((tractData as any).total)}</td
-												>
-												<td class="py-1"></td>
-											</tr>
-										</tbody>
-									</table>
-								</div>
-
-								{#if (tractData as any).requires_replacement !== undefined}
-									<div class="mt-2 rounded-sm bg-purple-50 p-2">
-										<table class="w-full text-xs">
-											<colgroup>
-												<col class="w-3/5" />
-												<col class="w-1/5" />
-												<col class="w-1/5" />
-											</colgroup>
-											<tbody>
-												<tr>
-													<td class="font-medium text-purple-700">Requires Replacement</td>
-													<td class="px-2 text-right font-bold text-purple-900"
-														>{formatCount((tractData as any).requires_replacement)}</td
-													>
-													<td class="text-right font-bold text-purple-900"
-														>{formatPercent((tractData as any).pct_requires_replacement)}</td
-													>
-												</tr>
-											</tbody>
-										</table>
-									</div>
-								{/if}
-							</div>
-						{/if}
-
-						<p class="mb-1 text-[10px] font-semibold tracking-wider text-gray-500 uppercase">
-							Demographics
-						</p>
-						<div class="rounded-sm bg-gray-50 p-2">
-							<table class="w-full text-xs">
-								<tbody>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Median Income</td>
-										<td class="py-1 text-right font-medium"
-											>{formatCurrency(tractData.median_household_income)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Poverty Rate</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(tractData.pct_poverty)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Black Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(
-												(tractData as any).pct_black_nonhispanic || tractData.pct_black
-											)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">White Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent((tractData as any).pct_white_nonhispanic)}</td
-										>
-									</tr>
-									<tr class="border-b border-gray-200">
-										<td class="py-1 text-gray-600">Asian Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent((tractData as any).pct_asian_nonhispanic)}</td
-										>
-									</tr>
-									<tr>
-										<td class="py-1 text-gray-600">Minority Population</td>
-										<td class="py-1 text-right font-medium"
-											>{formatPercent(tractData.pct_minority)}</td
-										>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
-				{:else if (visualization.aggregationLevel === 'tract' && isTractDataLoading) || (visualization.aggregationLevel === 'community' && isCommunityDataLoading)}
-					<div class="font-sans text-xs text-slate-500 sm:text-sm">
-						<div class="flex items-center gap-2">
-							<div
-								class="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"
-							></div>
-							<p>Loading {visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'} information...</p>
-						</div>
-					</div>
-				{:else}
-					<div class="font-sans text-xs text-slate-500 sm:text-sm">
-						<p>{visualization.aggregationLevel === 'community' ? 'Community area' : 'Census tract'} information is not available for this location.</p>
-					</div>
-				{/if}
-			</div>
 			{/if}
 		</div>
+		{#if !search.isNominatimAddress}
+			<Tabs>
+				<TabItem title="Service line information" open={true}>
+					<ServiceLineDetails {isLoading} {error} {currentInventoryData} />
+				</TabItem>
+				<TabItem title="Service line inventory" open={false}>
+					<ServiceLineInventory
+						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
+						loading={visualization.aggregationLevel === 'tract'
+							? isTractDataLoading
+							: isCommunityDataLoading}
+					/>
+				</TabItem>
+				<TabItem title="Demographics" open={false}>
+					<Demographics
+						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
+						loading={visualization.aggregationLevel === 'tract'
+							? isTractDataLoading
+							: isCommunityDataLoading}
+					/>
+				</TabItem>
+			</Tabs>
+		{/if}
 	</div>
 {/if}
 

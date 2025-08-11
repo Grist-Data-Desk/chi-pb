@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 
 import type { CensusTract, CommunityArea } from '$lib/types';
+import { formatCurrency, formatPercent, formatCount } from '$lib/utils/formatters';
 
 export class Popup {
 	private map: maplibregl.Map;
@@ -99,26 +100,6 @@ export class Popup {
 	}
 
 	private generatePopupContent(data: CensusTract | CommunityArea): string {
-		const formatCurrency = (value: number | null | undefined) => {
-			if (!value || value === null || value === undefined) return 'N/A';
-			return new Intl.NumberFormat('en-US', {
-				style: 'currency',
-				currency: 'USD',
-				minimumFractionDigits: 0,
-				maximumFractionDigits: 0
-			}).format(value);
-		};
-
-		const formatPercent = (value: number | null | undefined) => {
-			if (value === null || value === undefined) return 'N/A';
-			return `${value.toFixed(1)}%`;
-		};
-
-		const formatCount = (value: number | null | undefined) => {
-			if (value === null || value === undefined) return 'N/A';
-			return value.toLocaleString();
-		};
-
 		const formatTitle = (data: CensusTract | CommunityArea) => {
 			if ('community' in data) {
 				return data.community;
@@ -184,9 +165,9 @@ export class Popup {
 							</tr>
 							<tr class="rounded bg-red-100 text-red-600">
 								<td class="p-1">Requires Replacement</td>
-								<td class="p-1 text-right font-medium">${formatCount(data.requires_replacement || 0)}</td>
+								<td class="p-1 text-right font-medium">${formatCount(data.requires_replacement)}</td>
 								<td class="p-1 text-right font-medium">
-									${formatPercent(data.pct_requires_replacement || 0)}
+									${formatPercent(data.pct_requires_replacement)}
 								</td>
 							</tr>
 						</tfoot>

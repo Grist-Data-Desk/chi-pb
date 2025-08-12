@@ -50,8 +50,8 @@ export interface CensusTract extends ServiceLineStatistics, DemographicStatistic
 }
 
 export interface CommunityArea extends ServiceLineStatistics, DemographicStatistics {
-	communityArea: string;
 	area_num_1: string;
+	community: string;
 }
 
 export interface AddressWithServiceLine extends Address {

@@ -1,3 +1,5 @@
+import type { ExpressionSpecification } from 'maplibre-gl';
+
 // Grist brand colors
 export const COLORS = {
 	ORANGE: '#F79945',
@@ -20,38 +22,50 @@ export const COLORS = {
 export const TABLET_BREAKPOINT = 640;
 
 // Service line material to color mapping
-export const MATERIAL_COLORS = {
-	'L': COLORS.RED, // Lead
-	'GRR': COLORS.ORANGE, // Galvanized Requiring Replacement
-	'CLS': COLORS.ORANGE, // Copper with Lead Solder
-	'C': COLORS.TURQUOISE, // Copper
-	'P': COLORS.TURQUOISE, // Plastic
-	'NL': COLORS.TURQUOISE, // Non-Lead
-	'G': COLORS.TEAL, // Galvanized (not requiring replacement)
-	'O': COLORS.COBALT, // Cast/Ductile Iron or Transite
-	'UNL': COLORS.GOLD, // Unknown (Not Lead)
-	'U': COLORS.GOLD, // Unknown
+export const DISPLAY_CODES_TO_MATERIAL_COLORS = {
+	L: COLORS.RED, // Lead
+	GRR: COLORS.ORANGE, // Galvanized Requiring Replacement
+	CLS: COLORS.ORANGE, // Copper with Lead Solder
+	C: COLORS.TURQUOISE, // Copper
+	P: COLORS.TURQUOISE, // Plastic
+	NL: COLORS.TURQUOISE, // Non-Lead
+	G: COLORS.TEAL, // Galvanized (not requiring replacement)
+	O: COLORS.COBALT, // Cast/Ductile Iron or Transite
+	UNL: COLORS.GOLD, // Unknown (Not Lead)
+	U: COLORS.GOLD // Unknown
 } as const;
 
 // Default color for unknown materials
 export const DEFAULT_MATERIAL_COLOR = COLORS.GOLD;
+
+export const DISPLAY_CODES_TO_MATERIAL_LABELS = {
+	L: 'Lead',
+	GRR: 'Galvanized (Replace)',
+	NL: 'Non-Lead'
+} as const;
 
 // Function to get material color (for use in Svelte components)
 export function getMaterialColor(material: string): string {
 	if (!material) {
 		return DEFAULT_MATERIAL_COLOR;
 	}
-	
+
 	const materialUpper = material.toUpperCase();
-	return MATERIAL_COLORS[materialUpper as keyof typeof MATERIAL_COLORS] || DEFAULT_MATERIAL_COLOR;
+	return (
+		DISPLAY_CODES_TO_MATERIAL_COLORS[
+			materialUpper as keyof typeof DISPLAY_CODES_TO_MATERIAL_COLORS
+		] || DEFAULT_MATERIAL_COLOR
+	);
 }
 
 // MapLibre expression for service line colors (generated from MATERIAL_COLORS)
-export const SERVICE_LINE_COLOR_EXPRESSION: any = [
-	'case',
-	...Object.entries(MATERIAL_COLORS).flatMap(([material, color]) => [
-		['==', ['get', 'material'], material], color
-	]),
-	DEFAULT_MATERIAL_COLOR // Default
+export const SERVICE_LINE_COLOR_EXPRESSION: ExpressionSpecification = [
+	'match',
+	['get', 'material'],
+	Object.keys(DISPLAY_CODES_TO_MATERIAL_COLORS)[0],
+	Object.values(DISPLAY_CODES_TO_MATERIAL_COLORS)[0],
+	...Object.entries(DISPLAY_CODES_TO_MATERIAL_COLORS)
+		.slice(1)
+		.flatMap(([material, color]) => [material, color]),
+	DEFAULT_MATERIAL_COLOR
 ];
-

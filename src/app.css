@@ -118,8 +118,16 @@
 	@apply h-8 w-8;
 }
 
+#map-root .maplibregl-ctrl-attrib {
+	@apply m-0;
+}
+
 #map-root .maplibregl-ctrl-top-right {
-	@apply top-auto right-[3%] bottom-[100px] flex flex-col items-end md:top-4 md:right-4 md:bottom-auto;
+	@apply top-auto right-[3%] bottom-12 flex flex-col items-end sm:bottom-[100px] md:top-4 md:right-4 md:bottom-auto;
+}
+
+#map-root .maplibregl-ctrl-bottom-right {
+	@apply right-[3%] bottom-6 z-20 translate-x-0.5 sm:right-4 sm:translate-x-1;
 }
 
 #map-root .maplibregl-popup-tip {
@@ -136,10 +144,6 @@
 
 #map-root .maplibregl-popup-content .active-tab button {
 	@apply font-bold;
-}
-
-#map-root .maplibregl-ctrl-bottom-right {
-	@apply bottom-4 z-20;
 }
 
 div.observer-pixel-14 {

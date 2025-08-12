@@ -25,7 +25,12 @@
 		CombinedAddress
 	} from '$lib/types';
 	import { COLORS } from '$lib/utils/constants';
-	import { isCoordinatePair, searchNominatim, reverseGeocode, formatNominatimAddress } from '$lib/utils/nominatim';
+	import {
+		isCoordinatePair,
+		searchNominatim,
+		reverseGeocode,
+		formatNominatimAddress
+	} from '$lib/utils/nominatim';
 	import type { NominatimResult } from '$lib/utils/nominatim';
 
 	// Props.
@@ -63,13 +68,13 @@
 	async function performNominatimSearch(query: string): Promise<void> {
 		// Check if it's a coordinate pair first
 		const coords = isCoordinatePair(query);
-		
+
 		isSearchingNominatim = true;
 		nominatimSuggestions = [];
-		
+
 		try {
 			let result: NominatimResult | null = null;
-			
+
 			if (coords) {
 				// Reverse geocode the coordinates
 				result = await reverseGeocode(coords.lat, coords.lon);
@@ -77,11 +82,11 @@
 				// Search for the address
 				result = await searchNominatim(query);
 			}
-			
+
 			if (result) {
 				// Format the address to match inventory style
 				const formattedAddress = formatNominatimAddress(result.display_name);
-				
+
 				// Create a simplified suggestion for Nominatim results
 				const nominatimAddress: AddressWithServiceLine = {
 					row: -1, // Special marker for Nominatim addresses
@@ -106,7 +111,7 @@
 					mStname: '',
 					mZip: ''
 				};
-				
+
 				nominatimSuggestions = [nominatimAddress];
 			}
 		} catch (error) {
@@ -239,12 +244,7 @@
 		if (queryNumber !== null && normalizedStreetPart.length > 0) {
 			// Find addresses where the number is in range AND the street matches
 			combinedIndex.addresses.forEach((addr) => {
-				if (
-					addr.n1 > 0 &&
-					addr.n2 > 0 &&
-					queryNumber >= addr.n1 &&
-					queryNumber <= addr.n2
-				) {
+				if (addr.n1 > 0 && addr.n2 > 0 && queryNumber >= addr.n1 && queryNumber <= addr.n2) {
 					// Only match against the street portion of the address, not the city
 					// addr.a is already in the format "1234 N CHICAGO AVE, 60601" or similar
 					// We want to exclude the zip code from matching to avoid matching "chicago" against city name
@@ -322,7 +322,7 @@
 		const seen = new Set<string>();
 		const deduplicatedAddresses = matchingAddresses.filter((addr) => {
 			// addr.a already contains the zip code after the generator fix
-			const display = addr.a.includes(addr.z) 
+			const display = addr.a.includes(addr.z)
 				? addr.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
 				: addr.a + ', CHICAGO, IL ' + addr.z;
 			if (seen.has(display)) {
@@ -348,32 +348,45 @@
 					displayAddress = addressParts.join(' ');
 				}
 			}
-			
+
 			// addr.a (or displayAddress) already contains the zip code after the generator fix
-			const fullAddress = displayAddress.includes(addr.z) 
+			const fullAddress = displayAddress.includes(addr.z)
 				? displayAddress.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
 				: displayAddress + ', CHICAGO, IL ' + addr.z;
-			
+
 			// Parse address components
 			const addressParts = addr.a.split(' ');
 			let stname = '';
 			let stdir = '';
 			let sttype = '';
-			
+
 			let startIndex = 0;
 			if (addressParts[0] && /^\d+(-\d+)?$/.test(addressParts[0])) {
 				startIndex = 1;
 			}
-			
+
 			if (addressParts[startIndex] && /^[NSEW]$|^(NE|NW|SE|SW)$/i.test(addressParts[startIndex])) {
 				stdir = addressParts[startIndex];
 				startIndex++;
 			}
-			
+
 			const remainingParts = addressParts.slice(startIndex);
 			if (remainingParts.length > 0) {
 				const lastPart = remainingParts[remainingParts.length - 1];
-				const streetTypes = ['ST', 'AVE', 'DR', 'RD', 'LN', 'CT', 'PL', 'BLVD', 'WAY', 'PKWY', 'CIR', 'TER'];
+				const streetTypes = [
+					'ST',
+					'AVE',
+					'DR',
+					'RD',
+					'LN',
+					'CT',
+					'PL',
+					'BLVD',
+					'WAY',
+					'PKWY',
+					'CIR',
+					'TER'
+				];
 				if (streetTypes.includes(lastPart.toUpperCase())) {
 					sttype = lastPart;
 					stname = remainingParts.slice(0, -1).join(' ');
@@ -649,7 +662,7 @@
 					displayAddress = addressParts.join(' ');
 				}
 			}
-			
+
 			// Extract street components from the display address to preserve original street names
 			// The display field contains the full formatted address like "12100-14 S Front St"
 			const addressParts = displayAddress.split(' ');
@@ -832,10 +845,10 @@
 			// Use combined search if available, otherwise fall back
 			suggestions = searchAddressesCombined(query);
 			console.log(`Search for "${query}" returned ${suggestions.length} results`);
-			
+
 			// Track when we have no inventory results
 			search.noInventoryResults = suggestions.length === 0;
-			
+
 			// If no inventory results, automatically search Nominatim
 			if (search.noInventoryResults) {
 				await performNominatimSearch(query);
@@ -843,7 +856,7 @@
 				// Clear Nominatim suggestions if we have inventory results
 				nominatimSuggestions = [];
 			}
-			
+
 			// Show suggestions if we have any (inventory or Nominatim)
 			showSuggestions = suggestions.length > 0 || nominatimSuggestions.length > 0;
 			selectedIndex = -1; // Reset selection when new suggestions are loaded
@@ -910,9 +923,13 @@
 				inventory.isLoading = false;
 				inventory.data = data.inventory || (data.inventoryList && data.inventoryList[0]) || null;
 				inventory.error = null;
-				
+
 				// If this was a clicked service line, update the displayed address
-				if (search.clickedServiceLineRow !== null && data.inventoryList && data.inventoryList.length > 0) {
+				if (
+					search.clickedServiceLineRow !== null &&
+					data.inventoryList &&
+					data.inventoryList.length > 0
+				) {
 					const actualAddress = data.inventoryList[0].fullAddress || data.address || address;
 					multiServiceLineStore.update((store) => ({
 						...store,
@@ -1049,7 +1066,7 @@
 
 			if (isMobile) {
 				// Pre-compute the offset position
-				const latOffset = 0.0175;
+				const latOffset = 0.0008;
 				targetCenter = [suggestion.long, suggestion.lat + latOffset];
 			}
 
@@ -1135,7 +1152,6 @@
 		return 'NL';
 	}
 
-
 	// Effects.
 	$effect(() => {
 		// Reactive update of the searched address dot color based on inventory data
@@ -1175,20 +1191,25 @@
 
 	// Handle clicked service line
 	$effect(() => {
-		if (search.clickedServiceLineRow !== null && 
-		    search.clickedServiceLineRow !== lastProcessedClickedRow &&
-		    search.nearbyServiceLines.length > 0) {
-			
+		if (
+			search.clickedServiceLineRow !== null &&
+			search.clickedServiceLineRow !== lastProcessedClickedRow &&
+			search.nearbyServiceLines.length > 0
+		) {
 			// Mark this row as processed
 			lastProcessedClickedRow = search.clickedServiceLineRow;
-			
+
 			// Find the clicked service line in the nearby list
-			const clickedLine = search.nearbyServiceLines.find(sl => sl.row === search.clickedServiceLineRow);
-			
+			const clickedLine = search.nearbyServiceLines.find(
+				(sl) => sl.row === search.clickedServiceLineRow
+			);
+
 			if (clickedLine && $combinedIndexStore.index) {
 				// Look up the address in the combined index by row ID
-				const addressData = $combinedIndexStore.index.addresses.find(addr => addr.r === clickedLine.row);
-				
+				const addressData = $combinedIndexStore.index.addresses.find(
+					(addr) => addr.r === clickedLine.row
+				);
+
 				if (addressData) {
 					// Check if this is a ranged address and format accordingly
 					let displayAddress = addressData.a;
@@ -1201,12 +1222,12 @@
 							displayAddress = addressParts.join(' ');
 						}
 					}
-					
+
 					// Reconstruct the full address
-					const fullAddress = displayAddress.includes(addressData.z) 
+					const fullAddress = displayAddress.includes(addressData.z)
 						? displayAddress.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
 						: displayAddress + ', CHICAGO, IL ' + addressData.z;
-					
+
 					// Create a proper address object
 					const clickedAddress: AddressWithServiceLine = {
 						row: clickedLine.row,
@@ -1222,7 +1243,8 @@
 						lat: clickedLine.lat,
 						long: clickedLine.long,
 						geoid: '',
-						leadStatus: addressData.m === 'L' ? 'LEAD' : addressData.m === 'N' ? 'NON_LEAD' : 'UNKNOWN',
+						leadStatus:
+							addressData.m === 'L' ? 'LEAD' : addressData.m === 'N' ? 'NON_LEAD' : 'UNKNOWN',
 						hasLead: addressData.m === 'L',
 						mIsIntersection: false,
 						mStnum1: addressData.n1,
@@ -1231,18 +1253,18 @@
 						mStname: '',
 						mZip: addressData.z
 					};
-					
+
 					// Update search state to show this as selected (but don't update the query)
 					// Important: Keep the searched address separate from clicked addresses
 					search.selectedAddress = clickedAddress;
 					search.isNominatimAddress = false; // Clear the Nominatim flag since this is a real inventory address
-					
+
 					// Load inventory for the clicked service line using the address
 					loadInventoryForAddress(fullAddress);
 				}
 			}
 		}
-		
+
 		// Reset when clicked row is cleared
 		if (search.clickedServiceLineRow === null) {
 			lastProcessedClickedRow = null;
@@ -1254,10 +1276,10 @@
 	});
 </script>
 
-<div class="search-panel relative space-y-4 overflow-visible rounded-lg">
+<div class="flex flex-col gap-4 overflow-visible rounded-lg">
 	{#if !ui.searchHeaderCollapsed}
-		<div class="relative z-10">
-			<h1 class="font-sans-secondary mt-0 text-3xl font-medium text-slate-800">
+		<div class="flex flex-col gap-4">
+			<h1 class="font-sans-secondary m-0 text-3xl font-medium text-slate-800">
 				Chicago: Does your water service line contain lead?
 			</h1>
 			<p class="m-0 font-sans text-sm text-slate-600">
@@ -1297,7 +1319,7 @@
 						bind:this={suggestionsContainer}
 					>
 						{#if suggestions.length === 0 && nominatimSuggestions.length > 0}
-							<div class="px-4 py-2 text-xs text-slate-500 border-b border-slate-100">
+							<div class="border-b border-slate-100 px-4 py-2 text-xs text-slate-500">
 								No inventory results found. Showing general address search:
 							</div>
 						{/if}
@@ -1309,7 +1331,7 @@
 								tabindex="0"
 								onmousedown={() => onSuggestionClick(suggestion)}
 								onkeydown={(e) => onSuggestionKeyDown(e, suggestion)}
-								onmouseenter={() => selectedIndex = index}
+								onmouseenter={() => (selectedIndex = index)}
 							>
 								<div class="font-medium break-words text-slate-800">
 									{suggestion.fullAddress}

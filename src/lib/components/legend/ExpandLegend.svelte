@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { ui } from '$lib/state/ui.svelte';
+	import { popup } from '$lib/state/popup.svelte';
 
 	function onClick() {
 		ui.legendExpanded = !ui.legendExpanded;
+		popup.node?.removePopup();
 	}
 </script>
 

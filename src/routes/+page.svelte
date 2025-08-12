@@ -9,6 +9,9 @@
 	import Credits from '$lib/components/credits/Credits.svelte';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
+	import GristLogo from '$lib/components/logos/GristLogo.svelte';
+	import ICNLogo from '$lib/components/logos/ICNLogo.svelte';
+	import WBEZLogo from '$lib/components/logos/WBEZLogo.svelte';
 	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
 	import { removeSelectedFeatureState, setSelectedFeatureState } from '$lib/state/feature.svelte';
 	import { mapState } from '$lib/state/map.svelte';
@@ -473,13 +476,9 @@
 	</div>
 </main>
 <div
-	class="fixed right-[calc(3%+2rem)] bottom-6 z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200 hover:opacity-100 sm:right-4 sm:bottom-14"
+	class="fixed bottom-6 left-[calc(3%+5rem)] z-10 flex items-center justify-center gap-2 sm:right-4 sm:bottom-14 sm:left-auto"
 >
-	<a href="https://grist.org" target="_blank" rel="noopener noreferrer">
-		<img
-			class="h-full w-full object-contain"
-			src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMyIgdmlld0JveD0iMCAwIDEwMCAxMDMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04NS4xMSA2NFY4OC4zQzc5LjMxIDkxLjkgNzIuODEgOTQgNjcuMzEgOTRDMzkuOTEgOTQgMTUuMzEgNjQuMSAxNS4zMSAzM0MxNS4zMSAxOC40IDI0LjkxIDYuOSA0MS42MSA2LjlDNTIuMTEgNi45IDcyLjUxIDEzLjYgODcuNjEgMjkuOEM4OC4wNjg4IDMwLjM4IDg4LjY0MzkgMzAuODU3NiA4OS4yOTg0IDMxLjIwMjFDODkuOTUyOCAzMS41NDY1IDkwLjY3MjEgMzEuNzUwMiA5MS40MSAzMS44QzkzLjQxIDMxLjggOTQuNjEgMzAuNSA5NC42MSAyOC4yVjJIOTAuOTFWM0M5MC45MSA2LjYgODguODEgNy42IDgzLjYxIDZDNzMuMTcyNyAyLjUwNDA4IDYyLjIxNTcgMC44MTMxOTMgNTEuMjEgMUMxOC4zMSAxIDAuMjEwMDIyIDI2LjggMC4yMTAwMjIgNTJDMC4yMTAwMjIgODAuOCAyMi4xMSAxMDMgNTEuMjEgMTAzQzYzLjM1OCAxMDIuOTE0IDc1LjE4ODMgOTkuMTEgODUuMTEgOTIuMVYxMDJIOTkuNjFWNTBINDYuNjFWNjRIODUuMTFaIiBmaWxsPSIjM0MzODMwIi8+Cjwvc3ZnPg=="
-			alt="Grist G logo"
-		/>
-	</a>
+	<GristLogo />
+	<WBEZLogo />
+	<ICNLogo />
 </div>

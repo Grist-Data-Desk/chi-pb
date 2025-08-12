@@ -1278,13 +1278,14 @@
 
 <div class="flex flex-col gap-4 overflow-visible rounded-lg">
 	{#if !ui.searchHeaderCollapsed}
-		<div class="flex flex-col gap-4">
-			<h1 class="font-sans-secondary m-0 text-3xl font-medium text-slate-800">
+		<div class="flex flex-col gap-3 sm:gap-4">
+			<h1 class="font-sans-secondary m-0 text-2xl font-medium text-slate-800 sm:text-3xl">
 				Chicago: Does your water service line contain lead?
 			</h1>
 			<p class="m-0 font-sans text-sm text-slate-600">
 				Enter your address to find information about your Chicago water service line composition and
-				lead status. The map will show your service line location and Census tract demographic data.
+				lead status. The map will show your service line location and community area demographic
+				data.
 			</p>
 		</div>
 	{/if}

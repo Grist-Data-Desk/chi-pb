@@ -37,13 +37,18 @@ export function formatPercent(value: number | null): string {
 /**
  * Format a title for a census tract or community area.
  * @param data - The census tract or community area to format.
+ * @param capitalizeCensusTract - Whether to capitalize the census tract prefix.
  * @returns The formatted title.
  */
-export function formatTitle(data: CensusTract | CommunityArea): string {
+export function formatAreaIdentifier(
+	data: CensusTract | CommunityArea,
+	capitalizeCensusTract = true
+): string {
 	if ('community' in data) {
 		return data.community;
 	} else if ('geoid' in data) {
-		return `Census Tract ${data.geoid}`;
+		const prefix = capitalizeCensusTract ? 'Census Tract' : 'census tract';
+		return `${prefix} ${data.geoid}`;
 	}
 
 	return '';

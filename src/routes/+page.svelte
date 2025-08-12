@@ -473,7 +473,7 @@
 	</div>
 </main>
 <div
-	class="fixed right-[calc(3%+2rem)] bottom-6 z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200 hover:opacity-100 sm:right-4 sm:bottom-12"
+	class="fixed right-[calc(3%+2rem)] bottom-6 z-10 flex h-[20px] w-[20px] items-center justify-center opacity-80 transition-opacity duration-200 hover:opacity-100 sm:right-4 sm:bottom-14"
 >
 	<a href="https://grist.org" target="_blank" rel="noopener noreferrer">
 		<img

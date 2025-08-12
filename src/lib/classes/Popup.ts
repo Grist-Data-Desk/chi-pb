@@ -1,7 +1,12 @@
 import maplibregl from 'maplibre-gl';
 
 import type { CensusTract, CommunityArea } from '$lib/types';
-import { formatCurrency, formatPercent, formatCount } from '$lib/utils/formatters';
+import {
+	formatCount,
+	formatCurrency,
+	formatPercent,
+	formatAreaIdentifier
+} from '$lib/utils/formatters';
 
 export class Popup {
 	private map: maplibregl.Map;
@@ -21,8 +26,8 @@ export class Popup {
 		const { x, y } = this.map.project(lngLat);
 		const mapHeight = this.map.getContainer().offsetHeight;
 		const mapWidth = this.map.getContainer().offsetWidth;
-		const popupWidth = 318;
-		const popupHeight = 246;
+		const popupWidth = this.isTabletOrAbove ? 318 : 264;
+		const popupHeight = this.isTabletOrAbove ? 242 : 222;
 
 		let anchor: maplibregl.PositionAnchor = 'top';
 		let position: maplibregl.LngLatLike = lngLat;
@@ -100,21 +105,13 @@ export class Popup {
 	}
 
 	private generatePopupContent(data: CensusTract | CommunityArea): string {
-		const formatTitle = (data: CensusTract | CommunityArea) => {
-			if ('community' in data) {
-				return data.community;
-			} else if ('geoid' in data) {
-				return `Census Tract ${data.geoid}`;
-			}
-		};
-
 		return `
-			<h3 class="m-0 mb-2 text-lg font-medium">${formatTitle(data)}</h3>
+			<h3 class="m-0 mb-1 text-base font-medium sm:mb-2 sm:text-lg">${formatAreaIdentifier(data)}</h3>
 			<div>
-				<ul class="-mx-3 mb-0 flex list-none gap-4 border-b border-slate-500 px-3">
+				<ul class="-mx-1.5 my-0 flex list-none gap-4 border-b border-slate-500 px-1.5 sm:-mx-3 sm:px-3">
 					<li class="active-tab border-b-2 border-b-transparent pb-1 transition-all">
 						<button
-							class="border-0 bg-transparent p-0 text-xs tracking-wider text-slate-500 uppercase"
+							class="text-2xs border-0 bg-transparent p-0 tracking-wider text-slate-500 uppercase sm:text-xs"
 							data-popup-tab="service-line-inventory"
 						>
 							Service Line Inventory
@@ -122,7 +119,7 @@ export class Popup {
 					</li>
 					<li class="border-b-2 border-b-transparent pb-1 transition-all">
 						<button
-							class="border-0 bg-transparent p-0 text-xs tracking-wider text-slate-500 uppercase"
+							class="text-2xs border-0 bg-transparent p-0 tracking-wider text-slate-500 uppercase sm:text-xs"
 							data-popup-tab="demographics"
 						>
 							Demographics
@@ -130,13 +127,13 @@ export class Popup {
 					</li>
 				</ul>
 				<div data-popup-tabcontent="service-line-inventory" class="mt-2">
-					<table class="table-fixed border-collapse font-sans text-xs text-slate-500">
-						<colgroup>
-							<col class="w-60" />
-							<col class="w-20" />
-							<col class="w-20" />
-						</colgroup>
+					<table class="text-2xs w-full table-fixed border-collapse font-sans text-slate-500 sm:text-xs">
 						<tbody>
+							<colgroup>
+								<col width="60%" />
+								<col width="20%" />
+								<col width="20%" />
+							</colgroup>
 							<tr>
 								<td class="p-1">Lead</td>
 								<td class="text-earth p-1 text-right font-medium">${formatCount(data.L)}</td>
@@ -174,39 +171,45 @@ export class Popup {
 					</table>
 				</div>
 				<div data-popup-tabcontent="demographics" style="display: none" class="mt-2">
-					<table class="w-full table-fixed border-collapse text-xs">
-						<tr>
-							<td class="p-1 text-slate-500">Median Income</td>
-							<td class="text-earth p-1 text-right font-medium">
-								${formatCurrency(data.median_household_income)}
-							</td>
-						</tr>
-						<tr>
-							<td class="p-1 text-slate-500">Poverty Rate</td>
-							<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_poverty)}</td>
-						</tr>
-						<tr>
-							<td class="p-1 text-slate-500">Black Population</td>
-							<td class="text-earth p-1 text-right font-medium">
-								${formatPercent(data.pct_black_nonhispanic)}
-							</td>
-						</tr>
-						<tr>
-							<td class="p-1 text-slate-500">White Population</td>
-							<td class="text-earth p-1 text-right font-medium">
-								${formatPercent(data.pct_white_nonhispanic)}
-							</td>
-						</tr>
-						<tr>
-							<td class="p-1 text-slate-500">Asian Population</td>
-							<td class="text-earth p-1 text-right font-medium">
-								${formatPercent(data.pct_asian_nonhispanic)}
-							</td>
-						</tr>
-						<tr class="border-b border-transparent">
-							<td class="p-1 text-slate-500">Minority Population</td>
-							<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_minority)}</td>
-						</tr>
+					<table class="text-2xs w-full table-fixed border-collapse font-sans text-slate-500 sm:text-xs">
+						<tbody>
+							<colgroup>
+								<col width="50%" />
+								<col width="50%" />
+							</colgroup>
+							<tr>
+								<td class="p-1 text-slate-500">Median Income</td>
+								<td class="text-earth p-1 text-right font-medium">
+									${formatCurrency(data.median_household_income)}
+								</td>
+							</tr>
+							<tr>
+								<td class="p-1 text-slate-500">Poverty Rate</td>
+								<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_poverty)}</td>
+							</tr>
+							<tr>
+								<td class="p-1 text-slate-500">Black Population</td>
+								<td class="text-earth p-1 text-right font-medium">
+									${formatPercent(data.pct_black_nonhispanic)}
+								</td>
+							</tr>
+							<tr>
+								<td class="p-1 text-slate-500">White Population</td>
+								<td class="text-earth p-1 text-right font-medium">
+									${formatPercent(data.pct_white_nonhispanic)}
+								</td>
+							</tr>
+							<tr>
+								<td class="p-1 text-slate-500">Asian Population</td>
+								<td class="text-earth p-1 text-right font-medium">
+									${formatPercent(data.pct_asian_nonhispanic)}
+								</td>
+							</tr>
+							<tr class="border-b border-transparent">
+								<td class="p-1 text-slate-500">Minority Population</td>
+								<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_minority)}</td>
+							</tr>
+						</tbody>
 					</table>
 				</div>
 			</div>

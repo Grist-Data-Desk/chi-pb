@@ -10,7 +10,7 @@
 
 	let { title, open = $bindable(false), children }: Props = $props();
 
-	// Generate a unique ID for this tab button
+	// Generate a unique ID for this tab button.
 	const tabId = `tab-${Math.random().toString(36).substring(2)}`;
 
 	const ctx = getContext<{

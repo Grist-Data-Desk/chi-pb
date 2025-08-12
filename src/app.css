@@ -135,7 +135,7 @@
 }
 
 #map-root .maplibregl-popup-content {
-	@apply border-earth bg-smog rounded-sm border border-solid p-3 shadow-md backdrop-blur-sm;
+	@apply border-earth bg-smog rounded-sm border border-solid p-1.5 shadow-md backdrop-blur-sm sm:p-3;
 }
 
 #map-root .maplibregl-popup-content .active-tab {

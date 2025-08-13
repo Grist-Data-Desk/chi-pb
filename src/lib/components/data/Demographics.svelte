@@ -47,7 +47,7 @@
 				>
 			</tr>
 			<tr class="border-b border-transparent">
-				<td class="py-0.5 text-slate-500 sm:py-1">Minority Population</td>
+				<td class="py-0.5 text-slate-500 sm:py-1">Non-White Population</td>
 				<td class="py-0.5 text-right font-medium sm:py-1">{formatPercent(data.pct_minority)}</td>
 			</tr>
 		</tbody>

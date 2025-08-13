@@ -206,7 +206,7 @@ export class Popup {
 								</td>
 							</tr>
 							<tr class="border-b border-transparent">
-								<td class="p-1 text-slate-500">Minority Population</td>
+								<td class="p-1 text-slate-500">Non-White Population</td>
 								<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_minority)}</td>
 							</tr>
 						</tbody>

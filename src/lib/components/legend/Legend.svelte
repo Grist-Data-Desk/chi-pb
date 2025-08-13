@@ -217,7 +217,7 @@
 				<p class="mt-1.5 mb-0.5 font-sans text-xs leading-tight text-gray-500 italic">
 					Each color represents 20% of {visualization.aggregationLevel === 'tract'
 						? 'census tracts'
-						: 'community areas'} (quintiles)
+						: 'community areas'}
 				</p>
 			</div>
 		{:else}

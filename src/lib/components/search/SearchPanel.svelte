@@ -2,17 +2,15 @@
 	import { interpolateReds } from 'd3-scale-chromatic';
 	import { debounce } from 'lodash-es';
 	import type { Map } from 'maplibre-gl';
-	import { onMount } from 'svelte';
 
 	import ServiceLineResults from '$lib/components/search/ServiceLineResults.svelte';
 	import { search } from '$lib/state/search.svelte';
 	import { ui } from '$lib/state/ui.svelte';
+	import { visualization } from '$lib/state/visualization.svelte';
 	import {
 		isAddressDataLoading,
 		addressStore,
-		loadMinimalSearchIndex,
 		minimalSearchIndexStore,
-		loadCombinedIndex,
 		combinedIndexStore,
 		multiServiceLineStore,
 		currentServiceLine
@@ -32,7 +30,6 @@
 		formatNominatimAddress
 	} from '$lib/utils/nominatim';
 	import type { NominatimResult } from '$lib/utils/nominatim';
-
 	// Props.
 	interface Props {
 		map: Map | null;
@@ -1270,10 +1267,6 @@
 			lastProcessedClickedRow = null;
 		}
 	});
-
-	onMount(() => {
-		// Index loading is handled in +page.svelte to avoid duplicate loads
-	});
 </script>
 
 <div class="flex flex-col gap-4 overflow-visible rounded-lg">
@@ -1284,8 +1277,9 @@
 			</h1>
 			<p class="m-0 font-sans text-sm text-slate-600">
 				Enter your address to find information about your Chicago water service line composition and
-				lead status. The map will show your service line location and community area demographic
-				data.
+				lead status. The map will show your service line location and
+				{visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'}
+				demographic data.
 			</p>
 		</div>
 	{/if}

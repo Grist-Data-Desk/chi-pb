@@ -34,7 +34,7 @@
 				<td class="p-0.5 text-right text-slate-500 sm:p-1">{formatPercent(data.pct_grr)}</td>
 			</tr>
 			<tr>
-				<td class="p-0.5 text-slate-500 sm:p-1">Unknown (Suspected Lead)</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">Suspected Lead</td>
 				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.U)}</td>
 				<td class="p-0.5 text-right text-slate-500 sm:p-1"
 					>{formatPercent(data.pct_suspected_lead)}</td

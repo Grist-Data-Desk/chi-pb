@@ -145,7 +145,7 @@ export class Popup {
 								<td class="p-1 text-right">${formatPercent(data.pct_grr)}</td>
 							</tr>
 							<tr>
-								<td class="p-1">Unknown (Suspected Lead)</td>
+								<td class="p-1">Suspected Lead</td>
 								<td class="text-earth p-1 text-right font-medium">${formatCount(data.U)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_suspected_lead)}</td>
 							</tr>

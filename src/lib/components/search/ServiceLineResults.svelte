@@ -354,7 +354,7 @@
 							class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor('U')}"
 						>
-							Unknown (Suspected Lead)
+							Suspected Lead
 						</span>
 					{/if}
 				</div>

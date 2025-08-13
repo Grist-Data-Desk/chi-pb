@@ -38,7 +38,7 @@
 			case 'P':
 				return 'Plastic - PVC, HDPE, PEX';
 			case 'U':
-				return 'Unknown (Suspected Lead)';
+				return 'Suspected Lead';
 			case 'UNL':
 				return 'Unknown (Not Lead)';
 			case 'NL':
@@ -54,7 +54,7 @@
 		}
 
 		switch (label) {
-			case 'Unknown (Suspected Lead)':
+			case 'Suspected Lead':
 				return { line1: 'Unknown', line2: '(Suspected Lead)' };
 			case 'Unknown (Not Lead)':
 				return { line1: 'Unknown', line2: '(Not Lead)' };
@@ -131,9 +131,9 @@
 			<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">Non-Lead</text>
 		{:else if overallCode === 'U'}
 			<rect
-				x="-100"
+				x="-65"
 				y="-12"
-				width="200"
+				width="130"
 				height="24"
 				fill={getMaterialColor(overallCode)}
 				stroke="#ffffff"
@@ -142,7 +142,7 @@
 				opacity="0.9"
 			/>
 			<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold"
-				>Unknown (Suspected Lead)</text
+				>Suspected Lead</text
 			>
 		{:else}
 			<rect

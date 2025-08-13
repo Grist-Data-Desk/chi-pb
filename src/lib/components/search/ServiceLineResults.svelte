@@ -344,14 +344,14 @@
 						</span>
 					{:else if displayCode === 'L' || displayCode === 'GRR' || displayCode === 'NL'}
 						<span
-							class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
+							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor(displayCode)}"
 						>
 							{DISPLAY_CODES_TO_MATERIAL_LABELS[displayCode]}
 						</span>
 					{:else}
 						<span
-							class="inline-flex items-center self-start rounded-full px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
+							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor('U')}"
 						>
 							Suspected Lead

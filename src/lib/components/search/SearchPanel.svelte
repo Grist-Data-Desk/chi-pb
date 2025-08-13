@@ -1168,13 +1168,13 @@
 					let dotColor: string = COLORS.EARTH; // Default
 
 					if (displayCode === 'L') {
-						dotColor = COLORS.RED;
+						dotColor = COLORS.INT_RED;
 					} else if (displayCode === 'GRR') {
-						dotColor = COLORS.ORANGE;
+						dotColor = COLORS.INT_RED;
 					} else if (displayCode === 'NL') {
-						dotColor = COLORS.TURQUOISE;
+						dotColor = COLORS.INT_BLUE;
 					} else {
-						dotColor = COLORS.GOLD; // Unknown
+						dotColor = COLORS.INT_RED; // Unknown
 					}
 
 					map.setPaintProperty(highlightLayer, 'circle-color', dotColor);

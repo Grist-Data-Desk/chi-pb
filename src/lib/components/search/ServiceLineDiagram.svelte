@@ -169,7 +169,7 @@
 				cx="0"
 				cy="0"
 				r="20"
-				fill={COLORS.COBALT}
+				fill={COLORS.INT_BLUE}
 				stroke="#ffffff"
 				stroke-width="2"
 				opacity="0.9"

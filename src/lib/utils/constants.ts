@@ -15,7 +15,9 @@ export const COLORS = {
 	PALE_GREEN: '#e8f5e9',
 	BLUE: '#0077cc',
 	PURPLE: '#9c27b0',
-	SMOG: '#f0f0f0'
+	SMOG: '#f0f0f0',
+	INT_RED: '#F9694C',
+	INT_BLUE: '#6DAED5'
 } as const;
 
 // The breakpoint for switching between mobile and desktop views
@@ -23,20 +25,20 @@ export const TABLET_BREAKPOINT = 640;
 
 // Service line material to color mapping
 export const DISPLAY_CODES_TO_MATERIAL_COLORS = {
-	L: COLORS.RED, // Lead
-	GRR: COLORS.ORANGE, // Galvanized Requiring Replacement
-	CLS: COLORS.ORANGE, // Copper with Lead Solder
-	C: COLORS.TURQUOISE, // Copper
-	P: COLORS.TURQUOISE, // Plastic
-	NL: COLORS.TURQUOISE, // Non-Lead
-	G: COLORS.TEAL, // Galvanized (not requiring replacement)
-	O: COLORS.COBALT, // Cast/Ductile Iron or Transite
-	UNL: COLORS.GOLD, // Unknown (Not Lead)
-	U: COLORS.GOLD // Unknown
+	L: COLORS.INT_RED, // Lead
+	GRR: COLORS.INT_RED, // Galvanized Requiring Replacement
+	CLS: COLORS.INT_RED, // Copper with Lead Solder
+	C: COLORS.INT_BLUE, // Copper
+	P: COLORS.INT_BLUE, // Plastic
+	NL: COLORS.INT_BLUE, // Non-Lead
+	G: COLORS.INT_BLUE, // Galvanized (not requiring replacement)
+	O: COLORS.INT_BLUE, // Cast/Ductile Iron or Transite
+	UNL: COLORS.INT_BLUE, // Unknown (Not Lead)
+	U: COLORS.INT_RED // Unknown
 } as const;
 
 // Default color for unknown materials
-export const DEFAULT_MATERIAL_COLOR = COLORS.GOLD;
+export const DEFAULT_MATERIAL_COLOR = COLORS.INT_RED;
 
 export const DISPLAY_CODES_TO_MATERIAL_LABELS = {
 	L: 'Lead',

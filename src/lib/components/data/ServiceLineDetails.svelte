@@ -112,7 +112,7 @@
 			<div class="mt-2 space-y-2 font-sans text-xs sm:text-sm">
 				<div class="flex items-start gap-2">
 					<span class="font-medium text-red-700"
-						>⚠️ This address is considered a high-risk property by the City of Chicago</span
+						>⚠️ This address is considered a high-risk property by the city of Chicago.</span
 					>
 				</div>
 			</div>

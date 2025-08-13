@@ -310,7 +310,7 @@
 					<div class="flex items-start gap-2">
 						<div>
 							<p class="font-sans text-sm font-medium text-amber-800">
-								The address you searched is not in the City of Chicago's water service line
+								The address you searched is not in the city of Chicago's water service line
 								inventory. However, you can click on a nearby service line dot to view its
 								corresponding inventory entry.
 							</p>

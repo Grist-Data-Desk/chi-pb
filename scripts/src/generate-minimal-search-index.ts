@@ -133,7 +133,7 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 				);
 
 				const id = addresses.length;
-				const fullAddress = String(normalizedRow.matched_address || '');
+				let fullAddress = String(normalizedRow.matched_address || '');
 				const stnum1 = parseInt(normalizedRow.stnum1 as string) || 0;
 				const stnum2 = parseInt(normalizedRow.stnum2 as string) || 0;
 				const stdir = String(normalizedRow.stdir || '');
@@ -145,6 +145,16 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 				const long = parseFloat(normalizedRow.long as string) || 0;
 				const isIntersection = normalizedRow.is_intersection === 'TRUE';
 				const material = String(normalizedRow.classification_for_entire_service_line || 'U');
+
+				// For ranged addresses, reconstruct the address with the range
+				if (stnum1 > 0 && stnum2 > 0 && stnum1 !== stnum2) {
+					// This is a ranged address - replace the single number with the range
+					const addressParts = fullAddress.split(' ');
+					if (addressParts[0] && /^\d+$/.test(addressParts[0])) {
+						addressParts[0] = `${stnum1}-${stnum2}`;
+						fullAddress = addressParts.join(' ');
+					}
+				}
 
 				// Build normalized street name for indexing
 				const streetParts = [stdir, stname, sttype].filter(p => p).join(' ');

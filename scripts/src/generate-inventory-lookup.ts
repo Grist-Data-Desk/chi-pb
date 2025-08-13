@@ -63,9 +63,24 @@ async function generateInventoryLookup(): Promise<void> {
 				);
 				
 				const row = parseInt(normalizedRow.row as string) || 0;
-				const fullAddress = String(normalizedRow.matched_address || '').trim();
+				const matchedAddress = String(normalizedRow.matched_address || '').trim();
+				const stnum1 = parseInt(normalizedRow.stnum1 as string) || 0;
+				const stnum2 = parseInt(normalizedRow.stnum2 as string) || 0;
 				
-				if (fullAddress && row) {
+				if (matchedAddress && row) {
+					// For ranged addresses, reconstruct the address with the range
+					let fullAddress = matchedAddress;
+					if (stnum1 > 0 && stnum2 > 0 && stnum1 !== stnum2) {
+						// This is a ranged address - replace the single number with the range
+						// matched_address typically has just the first number, e.g., "5408 N KENMORE AVE"
+						// We need to make it "5408-5412 N KENMORE AVE"
+						const addressParts = matchedAddress.split(' ');
+						if (addressParts[0] && /^\d+$/.test(addressParts[0])) {
+							addressParts[0] = `${stnum1}-${stnum2}`;
+							fullAddress = addressParts.join(' ');
+						}
+					}
+					
 					const normalizedAddr = normalizeAddress(fullAddress);
 					
 					// Create compact service line record

@@ -19,7 +19,7 @@
 	<table class="text-2xs w-full border-collapse sm:text-xs">
 		<tbody>
 			<tr>
-				<td class="py-0.5 text-slate-500 sm:py-1">Median Income</td>
+				<td class="py-0.5 text-slate-500 sm:py-1">Median Household Income</td>
 				<td class="py-0.5 text-right font-medium sm:py-1"
 					>{formatCurrency(data.median_household_income)}</td
 				>

@@ -178,7 +178,7 @@ export class Popup {
 								<col width="50%" />
 							</colgroup>
 							<tr>
-								<td class="p-1 text-slate-500">Median Income</td>
+								<td class="p-1 text-slate-500">Median Household Income</td>
 								<td class="text-earth p-1 text-right font-medium">
 									${formatCurrency(data.median_household_income)}
 								</td>

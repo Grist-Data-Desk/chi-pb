@@ -3,6 +3,7 @@
 	import { debounce } from 'lodash-es';
 	import type { Map } from 'maplibre-gl';
 
+	import SearchSuggestions from '$lib/components/search/SearchSuggestions.svelte';
 	import ServiceLineResults from '$lib/components/search/ServiceLineResults.svelte';
 	import { search } from '$lib/state/search.svelte';
 	import { ui } from '$lib/state/ui.svelte';
@@ -30,6 +31,7 @@
 		formatNominatimAddress
 	} from '$lib/utils/nominatim';
 	import type { NominatimResult } from '$lib/utils/nominatim';
+
 	// Props.
 	interface Props {
 		map: Map | null;
@@ -39,15 +41,14 @@
 
 	// Derived colors - matching search button hue
 	const searchButtonColor = interpolateReds(0.5);
-	const highlightColor = interpolateReds(0.15); // Lighter shade for background highlight
 
 	// State.
 	let suggestions = $state<AddressWithServiceLine[]>([]);
 	let isFetchingSuggestions = $state(false);
 	let showSuggestions = $state(false);
+	let input = $state<HTMLInputElement | null>(null);
 	let suggestionsContainer = $state<HTMLDivElement | null>(null);
 	let selectedIndex = $state<number>(-1);
-	let isSearchingNominatim = $state(false);
 	let nominatimSuggestions = $state<AddressWithServiceLine[]>([]);
 	let inventory = $state<{
 		isLoading: boolean;
@@ -66,7 +67,6 @@
 		// Check if it's a coordinate pair first
 		const coords = isCoordinatePair(query);
 
-		isSearchingNominatim = true;
 		nominatimSuggestions = [];
 
 		try {
@@ -113,8 +113,6 @@
 			}
 		} catch (error) {
 			console.error('Error performing Nominatim search:', error);
-		} finally {
-			isSearchingNominatim = false;
 		}
 	}
 
@@ -230,7 +228,6 @@
 			version: combinedIndex.metadata?.version
 		});
 
-		const normalizedQuery = normalizeAddress(query);
 		const queryNumber = extractNumberFromQuery(query.trim());
 
 		// Similar search logic but adapted for CombinedAddress structure
@@ -447,10 +444,10 @@
 
 		console.log('Search query analysis:', {
 			originalQuery: query,
-			normalizedQuery: normalizedQuery,
-			queryNumber: queryNumber,
-			streetPart: streetPart,
-			normalizedStreetPart: normalizedStreetPart,
+			normalizedQuery,
+			queryNumber,
+			streetPart,
+			normalizedStreetPart,
 			streetWords: normalizedStreetPart.split(/\s+/).filter((w) => w.length > 0)
 		});
 
@@ -1015,13 +1012,6 @@
 		}
 	}
 
-	function onSuggestionKeyDown(event: KeyboardEvent, suggestion: AddressWithServiceLine) {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			onSuggestionClick(suggestion);
-		}
-	}
-
 	function onSuggestionClick(suggestion: AddressWithServiceLine) {
 		search.query = suggestion.fullAddress;
 		search.selectedAddress = suggestion;
@@ -1269,7 +1259,7 @@
 	});
 </script>
 
-<div class="flex flex-col gap-4 overflow-visible rounded-lg">
+<div class="flex flex-col gap-4 rounded-lg">
 	{#if !ui.searchHeaderCollapsed}
 		<div class="flex flex-col gap-3 sm:gap-4">
 			<h1 class="font-sans-secondary m-0 text-2xl font-medium text-slate-800 sm:text-3xl">
@@ -1288,61 +1278,30 @@
 			<label class="mb-0.5 block font-sans text-sm font-medium text-slate-700" for="search"
 				>Address</label
 			>
-			<div class="relative">
-				<input
-					type="text"
-					id="search"
-					value={search.query}
-					oninput={onInput}
-					onkeydown={onKeyDown}
-					onfocus={onInputFocus}
-					onblur={onInputBlur}
-					class="border-earth bg-smog w-full rounded-sm border p-1.5 font-sans transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-					placeholder="1234 N State St"
-					disabled={$isAddressDataLoading}
-				/>
-				{#if isFetchingSuggestions || isSearchingNominatim}
-					<div class="absolute top-1/2 right-2 -translate-y-1/2">
-						<div
-							class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
-						></div>
-					</div>
-				{/if}
-				{#if showSuggestions && (suggestions.length > 0 || nominatimSuggestions.length > 0)}
-					<div
-						class="absolute left-0 z-50 mt-1 max-h-[300px] w-[200%] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
-						bind:this={suggestionsContainer}
-					>
-						{#if suggestions.length === 0 && nominatimSuggestions.length > 0}
-							<div class="border-b border-slate-100 px-4 py-2 text-xs text-slate-500">
-								No inventory results found. Showing general address search:
-							</div>
-						{/if}
-						{#each [...suggestions, ...nominatimSuggestions] as suggestion, index}
-							<div
-								class="cursor-pointer border-b border-slate-100 px-4 py-2.5 text-sm last:border-b-0 hover:bg-slate-50"
-								style={selectedIndex === index ? `background-color: ${highlightColor};` : ''}
-								role="button"
-								tabindex="0"
-								onmousedown={() => onSuggestionClick(suggestion)}
-								onkeydown={(e) => onSuggestionKeyDown(e, suggestion)}
-								onmouseenter={() => (selectedIndex = index)}
-							>
-								<div class="font-medium break-words text-slate-800">
-									{suggestion.fullAddress}
-									{#if suggestion.row !== -1 && suggestion.serviceLineCount && suggestion.serviceLineCount > 1}
-										<span class="ml-2 text-xs text-slate-500"
-											>({suggestion.serviceLineCount} service lines)</span
-										>
-									{/if}
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
+			<input
+				bind:this={input}
+				type="text"
+				id="search"
+				value={search.query}
+				oninput={onInput}
+				onkeydown={onKeyDown}
+				onfocus={onInputFocus}
+				onblur={onInputBlur}
+				class="border-earth bg-smog w-full rounded-sm border p-1.5 font-sans transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+				placeholder="1234 N State St"
+				disabled={$isAddressDataLoading}
+			/>
+			<SearchSuggestions
+				isFetching={isFetchingSuggestions}
+				{showSuggestions}
+				{suggestions}
+				{nominatimSuggestions}
+				{input}
+				{suggestionsContainer}
+				{selectedIndex}
+				{onSuggestionClick}
+			/>
 		</div>
-
 		<div class="flex flex-col justify-end">
 			<button
 				onclick={handleSearch}

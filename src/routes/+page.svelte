@@ -7,6 +7,7 @@
 	import { Popup } from '$lib/classes/Popup';
 	import { ResetViewControl } from '$lib/classes/ResetViewControl';
 	import Credits from '$lib/components/credits/Credits.svelte';
+	import ExpandCredits from '$lib/components/credits/ExpandCredits.svelte';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
 	import GristLogo from '$lib/components/logos/GristLogo.svelte';
@@ -17,6 +18,7 @@
 	import { mapState } from '$lib/state/map.svelte';
 	import { popup } from '$lib/state/popup.svelte';
 	import { search } from '$lib/state/search.svelte';
+	import { ui } from '$lib/state/ui.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import {
 		spatialIndex,
@@ -37,7 +39,6 @@
 	} from '$lib/utils/config';
 	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
-
 	// State.
 	let innerWidth = $state<number>(0);
 	let isTabletOrAbove = $derived(innerWidth > TABLET_BREAKPOINT);
@@ -466,11 +467,16 @@
 		<div id="map-container" class="relative h-full">
 			<ExpandLegend />
 			<Legend />
-			<div
-				class="floating-panel absolute top-4 left-[3%] z-10 w-[94%] p-3 sm:left-4 sm:w-[400px] sm:p-4"
-			>
-				<SearchPanel map={mapState.map} />
-				<Credits />
+			<div class="absolute top-4 left-[3%] z-10 flex w-[94%] flex-col gap-2 sm:left-4 sm:w-[400px]">
+				<div
+					class="floating-panel scrollbar-thin scrollbar-position max-h-[50svh] overflow-y-auto p-3 sm:max-h-[calc(100vh-4rem)] sm:p-4"
+				>
+					<SearchPanel map={mapState.map} />
+					{#if ui.creditsExpanded}
+						<Credits />
+					{/if}
+				</div>
+				<ExpandCredits />
 			</div>
 		</div>
 	</div>
@@ -482,3 +488,54 @@
 	<WBEZLogo />
 	<ICNLogo />
 </div>
+
+<style>
+	.scrollbar-thin {
+		/* Reserve space for scrollbar to prevent layout shift */
+		scrollbar-gutter: stable;
+
+		/* For Firefox - auto hide */
+		scrollbar-width: thin;
+		scrollbar-color: rgba(0, 0, 0, 0) transparent;
+	}
+
+	.scrollbar-thin:hover {
+		/* Show scrollbar on hover for Firefox */
+		scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+	}
+
+	.scrollbar-position {
+		/* Move scrollbar to the right without affecting content width */
+		margin-right: 0px;
+	}
+
+	/* On mobile, adjust to align with search button */
+	@media (max-width: 640px) {
+		.scrollbar-position {
+			margin-right: 0;
+		}
+	}
+
+	/* For Webkit browsers */
+	.scrollbar-thin::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.scrollbar-thin::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.scrollbar-thin::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0);
+		border-radius: 3px;
+		transition: background 0.2s;
+	}
+
+	.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.1);
+	}
+
+	.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+		background: rgba(0, 0, 0, 0.2);
+	}
+</style>

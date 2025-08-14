@@ -36,7 +36,7 @@
 <li role="presentation" class="flex flex-1">
 	<button
 		class={[
-			'text-earth flex-1 border-0 border-b-2 bg-inherit px-0 pb-1 text-center font-sans text-sm transition-all',
+			'text-earth flex-1 border-0 border-b-2 bg-inherit px-0 pb-1 text-center font-sans text-xs transition-all sm:text-sm',
 
 			open ? 'border-b-earth font-semibold' : 'border-b-transparent font-normal'
 		]}

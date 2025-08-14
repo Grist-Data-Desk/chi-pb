@@ -8,6 +8,8 @@
 	import { ResetViewControl } from '$lib/classes/ResetViewControl';
 	import Credits from '$lib/components/credits/Credits.svelte';
 	import ExpandCredits from '$lib/components/credits/ExpandCredits.svelte';
+	import Resources from '$lib/components/resources/Resources.svelte';
+	import ExpandResources from '$lib/components/resources/ExpandResources.svelte';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
 	import GristLogo from '$lib/components/logos/GristLogo.svelte';
@@ -42,6 +44,38 @@
 	// State.
 	let innerWidth = $state<number>(0);
 	let isTabletOrAbove = $derived(innerWidth > TABLET_BREAKPOINT);
+	let resourcesPanelRef = $state<HTMLDivElement | null>(null);
+
+	// Close resources panel when clicking outside
+	$effect(() => {
+		if (ui.resourcesExpanded && resourcesPanelRef) {
+			const handleClickOutside = (event: MouseEvent) => {
+				const target = event.target as HTMLElement;
+				// Check if click is outside the resources panel and not on the toggle button
+				if (!resourcesPanelRef?.contains(target) && 
+					!target.closest('button[aria-label*="resources"]')) {
+					ui.resourcesExpanded = false;
+				}
+			};
+
+			// Close on any map interaction
+			const handleMapInteraction = () => {
+				ui.resourcesExpanded = false;
+			};
+
+			document.addEventListener('click', handleClickOutside);
+			mapState.map?.on('click', handleMapInteraction);
+			mapState.map?.on('dragstart', handleMapInteraction);
+			mapState.map?.on('zoomstart', handleMapInteraction);
+
+			return () => {
+				document.removeEventListener('click', handleClickOutside);
+				mapState.map?.off('click', handleMapInteraction);
+				mapState.map?.off('dragstart', handleMapInteraction);
+				mapState.map?.off('zoomstart', handleMapInteraction);
+			};
+		}
+	});
 
 	onMount(() => {
 		const protocol = new pmtiles.Protocol();
@@ -476,8 +510,21 @@
 						<Credits />
 					{/if}
 				</div>
-				<ExpandCredits />
+				<div class="flex justify-between">
+					<ExpandCredits />
+					<ExpandResources />
+				</div>
+				{#if ui.resourcesExpanded && !isTabletOrAbove}
+					<div bind:this={resourcesPanelRef} class="floating-panel scrollbar-thin scrollbar-position max-h-[calc(50svh-15rem)] overflow-y-auto p-3">
+						<Resources />
+					</div>
+				{/if}
 			</div>
+			{#if ui.resourcesExpanded && isTabletOrAbove}
+				<div class="floating-panel scrollbar-thin scrollbar-position absolute top-4 left-[calc(400px+2rem)] z-10 hidden h-fit max-h-[calc(50svh+2rem)] w-[320px] overflow-y-auto p-4 sm:block" bind:this={resourcesPanelRef}>
+					<Resources />
+				</div>
+			{/if}
 		</div>
 	</div>
 </main>

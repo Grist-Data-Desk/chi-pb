@@ -13,11 +13,11 @@ export interface QuantileData {
 export function getColorScheme(mode: ChoroplethMode): readonly string[] {
 	switch (mode) {
 		case 'pct_minority':
-			return schemePurples[5];
+			return schemePurples[9];
 		case 'pct_poverty':
-			return schemeBlues[5];
+			return schemeBlues[9];
 		case 'pct_requires_replacement':
-			return schemeReds[5];
+			return schemeReds[9];
 	}
 }
 
@@ -39,7 +39,7 @@ export function fetchQuantileData(
 	console.warn(`No quantile data found for ${key}`);
 	return {
 		values: [],
-		quantiles: [20, 40, 60, 80],
+		quantiles: [1, 5, 20, 40, 60, 80, 95, 99],
 		colors: getColorScheme(mode)
 	};
 }

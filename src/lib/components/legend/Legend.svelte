@@ -197,27 +197,39 @@
 			{getVariableDescription(visualization.choroplethMode)}
 		</p>
 		{#if quantileData}
+			{@const positions = [0, 1, 5, 20, 40, 60, 80, 95, 99, 100]}
+			{@const labels = ['0%', ...quantileData.quantiles.map(formatQuantileValue), '100%']}
+			{@const flexValues = [1, 4, 15, 20, 20, 20, 15, 4, 1]}
+			{@const visibleIndices = labels.map((_, i) => i).filter(i => i % 2 === 1 && i < labels.length - 1)}
+			{@const lastVisibleIndex = visibleIndices[visibleIndices.length - 1]}
 			<div class="py-2">
-				<div class="flex gap-0.5">
-					{#each quantileData.colors as color}
-						<div
-							class="h-3 flex-1 rounded-xs inset-ring inset-ring-[rgba(0,0,0,0.1)]"
-							style="background-color: {color}; opacity: 0.7;"
-						></div>
-					{/each}
-				</div>
-				<div class="quantile-labels text-2xs mt-1.5 flex text-gray-500">
-					<span class="flex-1 font-sans">0%</span>
-					{#each quantileData.quantiles as quantile, i}
-						<span class="flex-1 font-sans">
-							{i === quantileData.quantiles.length - 1 ? '≥' : ''}{formatQuantileValue(quantile)}
-						</span>
-					{/each}
+				<!-- Container for color blocks and labels -->
+				<div class="relative">
+					<!-- Proportionally-sized color blocks -->
+					<div class="flex gap-0.5">
+						{#each quantileData.colors as color, i}
+							<div
+								class="h-3 rounded-xs inset-ring inset-ring-[rgba(0,0,0,0.1)]"
+								style="background-color: {color}; opacity: 0.7; flex: {flexValues[i]};"
+							></div>
+						{/each}
+					</div>
+					<!-- Labels below the color boxes - showing every other label starting from the second, excluding the last -->
+					<div class="relative h-4 text-2xs text-gray-500 mt-1">
+						{#each labels as label, i}
+							{#if i % 2 === 1 && i < labels.length - 1}
+								<span 
+									class="font-sans absolute whitespace-nowrap"
+									style="{i === 1 ? 'left: 0; transform: none;' : `left: ${positions[i]}%; transform: translateX(-50%);`}"
+								>
+									{i === 1 ? `<${label}` : (i === lastVisibleIndex && label !== '100%' ? `≥${label}` : label)}
+								</span>
+							{/if}
+						{/each}
+					</div>
 				</div>
 				<p class="mt-1.5 mb-0.5 font-sans text-xs leading-tight text-gray-500 italic">
-					Each color represents 20% of {visualization.aggregationLevel === 'tract'
-						? 'census tracts'
-						: 'community areas'}
+					Color boxes are sized proportionally to the number of {visualization.aggregationLevel === 'tract' ? 'census tracts' : 'community areas'} they contain, with finer detail offered for the top and bottom of the range. 
 				</p>
 			</div>
 		{:else}

@@ -14,22 +14,24 @@ interface FeatureCollection {
   }>;
 }
 
-// Calculate quantiles from an array of values
-function calculateQuantiles(values: number[], numQuantiles: number = 5): number[] {
+// Calculate values at specific percentile points
+function calculatePercentiles(values: number[], percentiles: number[]): number[] {
   const sorted = [...values].sort((a, b) => a - b);
-  const quantiles: number[] = [];
+  const results: number[] = [];
   
-  for (let i = 1; i < numQuantiles; i++) {
-    const index = Math.floor((i / numQuantiles) * sorted.length);
-    quantiles.push(sorted[index]);
+  for (const percentile of percentiles) {
+    const index = Math.ceil((percentile / 100) * sorted.length) - 1;
+    const safeIndex = Math.max(0, Math.min(index, sorted.length - 1));
+    results.push(sorted[safeIndex]);
   }
   
-  return quantiles;
+  return results;
 }
 
 async function processGeoJSON() {
   const modes = ['pct_requires_replacement', 'pct_poverty', 'pct_minority'];
   const results: Record<string, any> = {};
+  const percentilePoints = [1, 5, 20, 40, 60, 80, 95, 99];
   
   // Process census tracts
   const tractsPath = path.join(__dirname, '../data/raw/chi-tracts-filled.geojson');
@@ -45,7 +47,7 @@ async function processGeoJSON() {
       }
     });
     
-    const quantiles = calculateQuantiles(values, 5);
+    const quantiles = calculatePercentiles(values, percentilePoints);
     results[`tract-${mode}`] = {
       quantiles,
       min: Math.min(...values),
@@ -57,7 +59,7 @@ async function processGeoJSON() {
     console.log(`  Count: ${values.length}`);
     console.log(`  Min: ${Math.min(...values).toFixed(2)}%`);
     console.log(`  Max: ${Math.max(...values).toFixed(2)}%`);
-    console.log(`  Quantiles: ${quantiles.map(q => q.toFixed(2)).join('%, ')}%`);
+    console.log(`  Percentiles (${percentilePoints.join(', ')}): ${quantiles.map(q => q.toFixed(2)).join('%, ')}%`);
     console.log('');
   }
   
@@ -76,7 +78,7 @@ async function processGeoJSON() {
     });
     
     if (values.length > 0) {
-      const quantiles = calculateQuantiles(values, 5);
+      const quantiles = calculatePercentiles(values, percentilePoints);
       results[`community-${mode}`] = {
         quantiles,
         min: Math.min(...values),
@@ -88,7 +90,7 @@ async function processGeoJSON() {
       console.log(`  Count: ${values.length}`);
       console.log(`  Min: ${Math.min(...values).toFixed(2)}%`);
       console.log(`  Max: ${Math.max(...values).toFixed(2)}%`);
-      console.log(`  Quantiles: ${quantiles.map(q => q.toFixed(2)).join('%, ')}%`);
+      console.log(`  Percentiles (${percentilePoints.join(', ')}): ${quantiles.map(q => q.toFixed(2)).join('%, ')}%`);
       console.log('');
     } else {
       console.log(`Community Areas - ${mode}: No data available`);

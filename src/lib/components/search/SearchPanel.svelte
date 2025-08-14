@@ -1059,7 +1059,7 @@
 
 			map.flyTo({
 				center: targetCenter,
-				zoom: 17,
+				zoom: isMobile ? 16 : 17,
 				duration: 1500
 			});
 

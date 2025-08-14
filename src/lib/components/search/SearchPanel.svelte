@@ -1034,6 +1034,15 @@
 			inventory.isLoading = false;
 			inventory.data = null;
 			inventory.error = null;
+			
+			// Clear the multiServiceLineStore to disable resources panel for Nominatim addresses
+			multiServiceLineStore.set({
+				isLoading: false,
+				inventoryList: [],
+				currentIndex: 0,
+				error: null,
+				address: null
+			});
 		} else {
 			// Regular inventory address
 			search.isNominatimAddress = false;

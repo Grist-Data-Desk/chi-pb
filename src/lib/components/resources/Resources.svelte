@@ -76,24 +76,26 @@
 			</a>
 		</div>
 
-		<div class="rounded-sm border border-green-200 bg-green-50 p-2">
-			<p class="mb-1 font-sans text-xs font-semibold text-green-900">
-				Lead Pipe Replacement Assistance
-			</p>
-			<p class="mb-2 font-sans text-xs text-green-800">
-				Depending on your household income, you may qualify for free lead pipe replacement.
-			</p>
-			<a
-				href="https://www.chicagowaterquality.org/LSLREquity"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="inline-flex items-center gap-1 font-sans text-xs font-medium text-green-700 underline hover:text-green-900"
-			>
-				Apply for replacement assistance
-				<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-				</svg>
-			</a>
-		</div>
+		{#if qualifiesForFilter}
+			<div class="rounded-sm border border-green-200 bg-green-50 p-2">
+				<p class="mb-1 font-sans text-xs font-semibold text-green-900">
+					Lead Pipe Replacement Assistance
+				</p>
+				<p class="mb-2 font-sans text-xs text-green-800">
+					Depending on your household income, you may qualify for free lead pipe replacement.
+				</p>
+				<a
+					href="https://www.chicagowaterquality.org/LSLREquity"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-1 font-sans text-xs font-medium text-green-700 underline hover:text-green-900"
+				>
+					Apply for replacement assistance
+					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+					</svg>
+				</a>
+			</div>
+		{/if}
 	</div>
 </div>

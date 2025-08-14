@@ -30,7 +30,7 @@
 	
 	<p class="mb-3 font-sans text-xs text-slate-600 sm:text-sm">
 		Based on your service line result, 
-		the following resources are available to you:
+		the following {qualifiesForFilter ? 'resources are' : 'resource is'} available to you:
 	</p>
 
 	<div class="space-y-2">

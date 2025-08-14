@@ -1278,19 +1278,28 @@
 			<label class="mb-0.5 block font-sans text-sm font-medium text-slate-700" for="search"
 				>Address</label
 			>
-			<input
-				bind:this={input}
-				type="text"
-				id="search"
-				value={search.query}
-				oninput={onInput}
-				onkeydown={onKeyDown}
-				onfocus={onInputFocus}
-				onblur={onInputBlur}
-				class="border-earth bg-smog w-full rounded-sm border p-1.5 font-sans transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-				placeholder="1234 N State St"
-				disabled={$isAddressDataLoading}
-			/>
+			<div class="relative">
+				<input
+					bind:this={input}
+					type="text"
+					id="search"
+					value={search.query}
+					oninput={onInput}
+					onkeydown={onKeyDown}
+					onfocus={onInputFocus}
+					onblur={onInputBlur}
+					class="border-earth bg-smog w-full rounded-sm border p-1.5 font-sans transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+					placeholder="1234 N State St"
+					disabled={$isAddressDataLoading}
+				/>
+				{#if isFetchingSuggestions}
+					<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+						<div
+							class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
+						></div>
+					</div>
+				{/if}
+			</div>
 			<SearchSuggestions
 				isFetching={isFetchingSuggestions}
 				{showSuggestions}

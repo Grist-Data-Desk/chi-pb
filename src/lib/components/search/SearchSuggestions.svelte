@@ -44,13 +44,6 @@
 	}
 </script>
 
-{#if isFetching}
-	<div class="absolute top-1/2 right-2 -translate-y-1/2">
-		<div
-			class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
-		></div>
-	</div>
-{/if}
 {#if showSuggestions && (suggestions.length > 0 || nominatimSuggestions.length > 0)}
 	<Portal
 		target={document.getElementById('map-container') ?? document.body}

@@ -34,7 +34,7 @@
 		<circle cx="12" cy="12" r="10" stroke-width="2" />
 		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01" />
 	</svg>
-	<span>Available Resources for Selected Address</span>
+	<span>Resources for Selected Address</span>
 	<svg
 		class="h-3 w-3 text-slate-600 transition-transform duration-200"
 		style="transform: rotate({ui.resourcesExpanded ? '180deg' : '0deg'})"

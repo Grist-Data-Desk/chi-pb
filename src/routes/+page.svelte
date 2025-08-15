@@ -515,7 +515,7 @@
 					<ExpandResources />
 				</div>
 				{#if ui.resourcesExpanded && !isTabletOrAbove}
-					<div bind:this={resourcesPanelRef} class="floating-panel scrollbar-thin scrollbar-position max-h-[calc(50svh-15rem)] overflow-y-auto p-3">
+					<div bind:this={resourcesPanelRef} class="floating-panel scrollbar-thin scrollbar-position max-h-[calc(50svh-8rem)] overflow-y-auto p-3">
 						<Resources />
 					</div>
 				{/if}

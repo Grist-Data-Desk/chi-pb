@@ -3,6 +3,7 @@ import type { IControl } from 'maplibre-gl';
 import { popup } from '$lib/state/popup.svelte';
 import { search } from '$lib/state/search.svelte';
 import { ui } from '$lib/state/ui.svelte';
+import { multiServiceLineStore } from '$lib/stores';
 import {
 	INITIAL_CENTER,
 	INITIAL_MOBILE_CENTER,
@@ -40,6 +41,16 @@ export class ResetViewControl implements IControl {
 			// Reset the UI state.
 			ui.searchHeaderCollapsed = false;
 			ui.creditsExpanded = true;
+			ui.resourcesExpanded = false;
+
+			// Reset the multi-service line store to clear selected service line
+			multiServiceLineStore.set({
+				isLoading: false,
+				inventoryList: [],
+				currentIndex: 0,
+				error: null,
+				address: null
+			});
 
 			// Do not reset the visualization state for the legend - let users keep
 			// their choropleth mode selection.

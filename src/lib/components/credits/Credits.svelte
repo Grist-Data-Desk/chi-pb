@@ -7,7 +7,7 @@
 		<strong>Sources</strong> City of Chicago / Census Bureau
 	</p>
 	<p class="m-0">
-		<strong>Analyis</strong> Peter Aldhous / Inside Climate News / Amy Qin / WBEZ
+		<strong>Analysis</strong> Peter Aldhous / Inside Climate News / Amy Qin / WBEZ
 	</p>
 	<p class="m-0">
 		<strong>Development</strong> Clayton Aldern / Parker Ziegler / Grist. See our

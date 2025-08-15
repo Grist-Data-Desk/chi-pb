@@ -15,5 +15,5 @@
 
 <p class="text-2xs mt-0 mb-1 text-slate-500 italic sm:text-xs">
 	This address is located in {areaIdentifier}. Statistics on this
-	{isCommunityArea ? 'community area' : 'census tract'} appear below.
+	{isCommunityArea ? 'community area' : 'census tract'} appear below. Hover over a line classification to learn more.
 </p>

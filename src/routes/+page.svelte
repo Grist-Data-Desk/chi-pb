@@ -52,8 +52,10 @@
 			const handleClickOutside = (event: MouseEvent) => {
 				const target = event.target as HTMLElement;
 				// Check if click is outside the resources panel and not on the toggle button
-				if (!resourcesPanelRef?.contains(target) && 
-					!target.closest('button[aria-label*="resources"]')) {
+				if (
+					!resourcesPanelRef?.contains(target) &&
+					!target.closest('button[aria-label*="resources"]')
+				) {
 					ui.resourcesExpanded = false;
 				}
 			};
@@ -503,7 +505,7 @@
 			<Legend />
 			<div class="absolute top-4 left-[3%] z-10 flex w-[94%] flex-col gap-2 sm:left-4 sm:w-[400px]">
 				<div
-					class="floating-panel scrollbar-thin scrollbar-position max-h-[50svh] overflow-y-auto p-3 sm:max-h-[calc(100vh-4rem)] sm:p-4"
+					class="floating-panel scrollbar-thin scrollbar-position max-h-[60svh] overflow-y-auto p-3 sm:max-h-[calc(100vh-4rem)] sm:p-4"
 				>
 					<SearchPanel map={mapState.map} />
 					{#if ui.creditsExpanded}
@@ -515,13 +517,19 @@
 					<ExpandResources />
 				</div>
 				{#if ui.resourcesExpanded && !isTabletOrAbove}
-					<div bind:this={resourcesPanelRef} class="floating-panel scrollbar-thin scrollbar-position max-h-[calc(50svh-8rem)] overflow-y-auto p-3">
+					<div
+						bind:this={resourcesPanelRef}
+						class="floating-panel scrollbar-thin scrollbar-position max-h-[calc(50svh-8rem)] overflow-y-auto p-3"
+					>
 						<Resources />
 					</div>
 				{/if}
 			</div>
 			{#if ui.resourcesExpanded && isTabletOrAbove}
-				<div class="floating-panel scrollbar-thin scrollbar-position absolute top-4 left-[calc(400px+2rem)] z-10 hidden h-fit max-h-[calc(50svh+2rem)] w-[320px] overflow-y-auto p-4 sm:block" bind:this={resourcesPanelRef}>
+				<div
+					class="floating-panel scrollbar-thin scrollbar-position absolute top-4 left-[calc(400px+2rem)] z-10 hidden h-fit max-h-[calc(50svh+2rem)] w-[320px] overflow-y-auto p-4 sm:block"
+					bind:this={resourcesPanelRef}
+				>
 					<Resources />
 				</div>
 			{/if}

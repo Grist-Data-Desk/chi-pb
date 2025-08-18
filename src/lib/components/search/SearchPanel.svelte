@@ -1034,7 +1034,7 @@
 			inventory.isLoading = false;
 			inventory.data = null;
 			inventory.error = null;
-			
+
 			// Clear the multiServiceLineStore to disable resources panel for Nominatim addresses
 			multiServiceLineStore.set({
 				isLoading: false,
@@ -1268,13 +1268,13 @@
 	});
 </script>
 
-<div class="flex flex-col gap-4 rounded-lg">
+<div class="flex flex-col gap-3 rounded-lg sm:gap-4">
 	{#if !ui.searchHeaderCollapsed}
-		<div class="flex flex-col gap-3 sm:gap-4">
+		<div class="flex flex-col gap-2 sm:gap-4">
 			<h1 class="font-sans-secondary m-0 text-2xl font-medium text-slate-800 sm:text-3xl">
 				Chicago: Does your water service line contain lead?
 			</h1>
-			<p class="m-0 font-sans text-sm text-slate-600">
+			<p class="m-0 font-sans text-xs text-slate-600 sm:text-sm">
 				Enter your address to find information about your Chicago water service line composition and
 				lead status. The map will show your service line location and
 				{visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'}
@@ -1282,49 +1282,33 @@
 			</p>
 		</div>
 	{/if}
-	<div class="relative flex items-stretch gap-2">
-		<div class="flex-5">
-			<label class="mb-0.5 block font-sans text-sm font-medium text-slate-700" for="search"
-				>Address</label
-			>
-			<div class="relative">
-				<input
-					bind:this={input}
-					type="text"
-					id="search"
-					value={search.query}
-					oninput={onInput}
-					onkeydown={onKeyDown}
-					onfocus={onInputFocus}
-					onblur={onInputBlur}
-					class="border-earth bg-smog w-full rounded-sm border p-1.5 font-sans transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-					placeholder="1234 N State St"
-					disabled={$isAddressDataLoading}
-				/>
-				{#if isFetchingSuggestions}
-					<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-						<div
-							class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
-						></div>
-					</div>
-				{/if}
-			</div>
-			<SearchSuggestions
-				isFetching={isFetchingSuggestions}
-				{showSuggestions}
-				{suggestions}
-				{nominatimSuggestions}
-				{input}
-				{suggestionsContainer}
-				{selectedIndex}
-				{onSuggestionClick}
+	<div class="relative flex flex-col items-stretch gap-1">
+		<label class="block font-sans text-sm font-medium text-slate-700" for="search">Address</label>
+		<div class="relative flex gap-2">
+			<input
+				bind:this={input}
+				type="text"
+				id="search"
+				value={search.query}
+				oninput={onInput}
+				onkeydown={onKeyDown}
+				onfocus={onInputFocus}
+				onblur={onInputBlur}
+				class="border-earth bg-smog w-full rounded-sm border px-1.5 py-1 font-sans text-base transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+				placeholder="1234 N State St"
+				disabled={$isAddressDataLoading}
 			/>
-		</div>
-		<div class="flex flex-col justify-end">
+			{#if isFetchingSuggestions}
+				<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+					<div
+						class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
+					></div>
+				</div>
+			{/if}
 			<button
 				onclick={handleSearch}
 				style="background-color: {searchButtonColor}; border-color: {interpolateReds(0.6)};"
-				class="flex w-[100px] items-center justify-center gap-2 rounded-md border p-1.5 font-sans whitespace-nowrap text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+				class="flex shrink-0 basis-[100px] items-center justify-center gap-2 rounded-md border p-1.5 font-sans whitespace-nowrap text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={$isAddressDataLoading || search.isSearching}
 			>
 				{#if $isAddressDataLoading || search.isSearching}
@@ -1369,6 +1353,16 @@
 				{/if}
 			</button>
 		</div>
+		<SearchSuggestions
+			isFetching={isFetchingSuggestions}
+			{showSuggestions}
+			{suggestions}
+			{nominatimSuggestions}
+			{input}
+			{suggestionsContainer}
+			{selectedIndex}
+			{onSuggestionClick}
+		/>
 	</div>
 	<!-- Service Line Results Panel -->
 	<ServiceLineResults

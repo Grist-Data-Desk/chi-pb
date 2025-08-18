@@ -83,7 +83,7 @@
 
 <div
 	class={[
-		'floating-panel absolute z-15 w-[94%] px-4 py-0.5 shadow-lg md:top-4 md:right-16 md:bottom-auto md:left-auto md:block md:w-[370px]',
+		'floating-panel appear absolute z-15 w-[94%] p-2 shadow-lg sm:p-4 md:top-4 md:right-16 md:bottom-auto md:left-auto md:block md:w-[370px]',
 		ui.legendExpanded ? 'right-[3%] bottom-16 left-[3%] md:right-16 md:left-auto' : 'hidden'
 	]}
 >
@@ -100,7 +100,9 @@
 				clip-rule="evenodd"
 			/>
 		</svg>
-		<p class="font-sans text-xs leading-tight text-gray-500">Select a data layer to visualize</p>
+		<p class="m-0 font-sans text-xs leading-tight text-gray-500">
+			Select a data layer to visualize
+		</p>
 	</div>
 	<div class="mb-3">
 		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">Aggregation Level</p>
@@ -123,7 +125,7 @@
 				<label
 					for="community-radio"
 					class={[
-						'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
+						'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
 						visualization.aggregationLevel === 'community'
 							? 'text-white'
 							: 'text-earth hover:bg-gray-100'
@@ -144,7 +146,7 @@
 				<label
 					for="tract-radio"
 					class={[
-						'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
+						'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
 						visualization.aggregationLevel === 'tract'
 							? 'text-white'
 							: 'text-earth hover:bg-gray-100'
@@ -180,7 +182,7 @@
 					<label
 						for="{mode.value}-radio"
 						class={[
-							'font-sans-secondary relative z-10 block cursor-pointer px-2 py-1.5 text-center text-xs transition-colors',
+							'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
 							visualization.choroplethMode === mode.value
 								? 'text-white'
 								: 'text-earth hover:bg-gray-100'
@@ -192,7 +194,7 @@
 			{/each}
 		</div>
 	</div>
-	<div class="mt-6">
+	<div class="mt-3 sm:mt-4">
 		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">
 			{getVariableDescription(visualization.choroplethMode)}
 		</p>
@@ -200,9 +202,11 @@
 			{@const positions = [0, 1, 5, 20, 40, 60, 80, 95, 99, 100]}
 			{@const labels = ['0%', ...quantileData.quantiles.map(formatQuantileValue), '100%']}
 			{@const flexValues = [1, 4, 15, 20, 20, 20, 15, 4, 1]}
-			{@const visibleIndices = labels.map((_, i) => i).filter(i => i % 2 === 1 && i < labels.length - 1)}
+			{@const visibleIndices = labels
+				.map((_, i) => i)
+				.filter((i) => i % 2 === 1 && i < labels.length - 1)}
 			{@const lastVisibleIndex = visibleIndices[visibleIndices.length - 1]}
-			<div class="py-2">
+			<div>
 				<!-- Container for color blocks and labels -->
 				<div class="relative">
 					<!-- Proportionally-sized color blocks -->
@@ -215,25 +219,69 @@
 						{/each}
 					</div>
 					<!-- Labels below the color boxes - showing every other label starting from the second, excluding the last -->
-					<div class="relative h-4 text-2xs text-gray-500 mt-1">
+					<div class="text-2xs relative mt-1 h-4 text-gray-500">
 						{#each labels as label, i}
 							{#if i % 2 === 1 && i < labels.length - 1}
-								<span 
-									class="font-sans absolute whitespace-nowrap"
-									style="{i === 1 ? 'left: 0; transform: none;' : `left: ${positions[i]}%; transform: translateX(-50%);`}"
+								<span
+									class="absolute font-sans whitespace-nowrap"
+									style={i === 1
+										? 'left: 0; transform: none;'
+										: `left: ${positions[i]}%; transform: translateX(-50%);`}
 								>
-									{i === 1 ? `<${label}` : (i === lastVisibleIndex && label !== '100%' ? `≥${label}` : label)}
+									{i === 1
+										? `<${label}`
+										: i === lastVisibleIndex && label !== '100%'
+											? `≥${label}`
+											: label}
 								</span>
 							{/if}
 						{/each}
 					</div>
 				</div>
-				<p class="mt-1.5 mb-0.5 font-sans text-xs leading-tight text-gray-500 italic">
-					Color boxes are sized proportionally to the number of {visualization.aggregationLevel === 'tract' ? 'census tracts' : 'community areas'} they contain, with finer detail offered for the top and bottom of the range. 
+				<p class="text-2xs mt-1 mb-0 font-sans leading-tight text-gray-500 italic sm:text-xs">
+					Color boxes are sized proportionally to the number of {visualization.aggregationLevel ===
+					'tract'
+						? 'census tracts'
+						: 'community areas'} they contain, with finer detail offered for the top and bottom of the
+					range.
 				</p>
 			</div>
 		{:else}
-			<div class="text-xs text-gray-500">Loading...</div>
+			<div class="text-2xs text-gray-500 sm:text-xs">Loading...</div>
 		{/if}
 	</div>
 </div>
+
+<style lang="postcss">
+	@reference 'tailwindcss';
+
+	.appear {
+		animation:
+			slide 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+			fade 0.15s ease-out;
+	}
+
+	@media (min-width: theme(--breakpoint-sm)) {
+		.appear {
+			@apply animate-none;
+		}
+	}
+
+	@keyframes slide {
+		from {
+			transform: translateY(8px);
+		}
+		to {
+			transform: translateX(0);
+		}
+	}
+
+	@keyframes fade {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+</style>

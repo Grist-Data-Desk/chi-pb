@@ -41,6 +41,39 @@
 	} from '$lib/utils/config';
 	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
+	
+	// Helper function to check if a polygon should be interactive (clickable/hoverable)
+	function isPolygonInteractive(
+		properties: any,
+		aggregationLevel: 'tract' | 'community'
+	): boolean {
+		if (!properties) return false;
+		
+		// Check if this is the searched address polygon
+		if (search.selectedAddress) {
+			if (aggregationLevel === 'tract' && properties.geoid === search.selectedAddressTractId) {
+				return false;
+			}
+			if (aggregationLevel === 'community' && properties.community === search.selectedAddressCommunityName) {
+				return false;
+			}
+		}
+		
+		// Check if value is null/undefined for current mode
+		const currentMode = visualization.choroplethMode;
+		const modeValue = properties[currentMode];
+		if (modeValue === null || modeValue === undefined) {
+			return false;
+		}
+		
+		// Check if flagged in replacement mode
+		if (currentMode === 'pct_requires_replacement' && properties.flag === true) {
+			return false;
+		}
+		
+		return true;
+	}
+	
 	// State.
 	let innerWidth = $state<number>(0);
 	let isTabletOrAbove = $derived(innerWidth > TABLET_BREAKPOINT);
@@ -181,15 +214,9 @@
 			const feature = e.features[0];
 			const tractProperties = feature.properties;
 
-			if (tractProperties && tractProperties.geoid) {
+			if (tractProperties && tractProperties.geoid && isPolygonInteractive(tractProperties, 'tract')) {
 				// Reset the selected feature, if it exists.
 				removeSelectedFeatureState();
-
-				// Check if this is the tract containing the searched address
-				if (search.selectedAddress && search.selectedAddressTractId === tractProperties.geoid) {
-					// Don't show popup for the tract containing the searched address
-					return;
-				}
 
 				const lngLat = e.lngLat;
 				popup.node?.showPopup(lngLat, tractProperties as any);
@@ -207,18 +234,9 @@
 			const feature = e.features[0];
 			const communityProperties = feature.properties;
 
-			if (communityProperties && communityProperties.community) {
+			if (communityProperties && communityProperties.community && isPolygonInteractive(communityProperties, 'community')) {
 				// Reset the selected feature, if it exists.
 				removeSelectedFeatureState();
-
-				// Check if this is the community area containing the searched address
-				if (
-					search.selectedAddress &&
-					search.selectedAddressCommunityName === communityProperties.community
-				) {
-					// Don't show popup for the community area containing the searched address
-					return;
-				}
 
 				const lngLat = e.lngLat;
 				popup.node?.showPopup(lngLat, communityProperties as any);
@@ -230,19 +248,15 @@
 			}
 		});
 
-		// Add mouseenter and mouseleave handlers for Census tracts and Community areas.
+		// Add mouseenter and mouseleave handlers for census tracts and community areas.
 		mapState.map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-			if (visualization.aggregationLevel === 'tract') {
-				// Show pointer cursor for all tracts except the one containing the searched address
-				if (e.features?.length && search.selectedAddress && search.selectedAddressTractId) {
-					const feature = e.features[0];
-					if (feature.properties?.geoid === search.selectedAddressTractId) {
-						return; // Don't show pointer for the searched address tract
-					}
-				}
-				const map = e.target;
-				map.getCanvas().style.cursor = 'pointer';
-			}
+			if (visualization.aggregationLevel !== 'tract' || !e.features?.length) return;
+			
+			const feature = e.features[0];
+			const properties = feature.properties;
+			const map = e.target;
+			
+			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'tract') ? 'pointer' : '';
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, (e) => {
@@ -252,24 +266,56 @@
 			}
 		});
 
-		mapState.map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, (e) => {
-			if (visualization.aggregationLevel === 'community') {
-				// Show pointer cursor for all community areas except the one containing the searched address
-				if (e.features?.length && search.selectedAddress && search.selectedAddressCommunityName) {
-					const feature = e.features[0];
-					if (feature.properties?.community === search.selectedAddressCommunityName) {
-						return; // Don't show pointer for the searched address community area
-					}
-				}
-				const map = e.target;
+		// Add mousemove handler to catch transitions between features
+		mapState.map.on('mousemove', LAYER_CONFIG.censusTractsFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'tract' || !e.features?.length) return;
+			
+			const feature = e.features[0];
+			const properties = feature.properties;
+			const map = e.target;
+			const currentCursor = map.getCanvas().style.cursor;
+			const shouldHavePointer = isPolygonInteractive(properties, 'tract');
+			
+			// Update cursor if needed
+			if (!shouldHavePointer && currentCursor === 'pointer') {
+				map.getCanvas().style.cursor = '';
+			} else if (shouldHavePointer && currentCursor !== 'pointer') {
 				map.getCanvas().style.cursor = 'pointer';
 			}
+		});
+
+		mapState.map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'community' || !e.features?.length) return;
+			
+			const feature = e.features[0];
+			const properties = feature.properties;
+			const map = e.target;
+			
+			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'community') ? 'pointer' : '';
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, (e) => {
 			if (visualization.aggregationLevel === 'community') {
 				const map = e.target;
 				map.getCanvas().style.cursor = '';
+			}
+		});
+
+		// Add mousemove handler to catch transitions between features
+		mapState.map.on('mousemove', LAYER_CONFIG.communityAreasFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'community' || !e.features?.length) return;
+			
+			const feature = e.features[0];
+			const properties = feature.properties;
+			const map = e.target;
+			const currentCursor = map.getCanvas().style.cursor;
+			const shouldHavePointer = isPolygonInteractive(properties, 'community');
+			
+			// Update cursor if needed
+			if (!shouldHavePointer && currentCursor === 'pointer') {
+				map.getCanvas().style.cursor = '';
+			} else if (shouldHavePointer && currentCursor !== 'pointer') {
+				map.getCanvas().style.cursor = 'pointer';
 			}
 		});
 

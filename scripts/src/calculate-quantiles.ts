@@ -40,9 +40,16 @@ async function processGeoJSON() {
   
   for (const mode of modes) {
     const values: number[] = [];
+    let flaggedCount = 0;
     tractsGeoJSON.features.forEach(feature => {
+      // Only apply flag filter for pct_requires_replacement
+      if (mode === 'pct_requires_replacement' && feature.properties?.flag === true) {
+        flaggedCount++;
+        return;
+      }
+      // For poverty and minority, don't filter by flag
       const value = feature.properties?.[mode];
-      if (typeof value === 'number' && !isNaN(value)) {
+      if (typeof value === 'number' && !isNaN(value) && value !== null) {
         values.push(value);
       }
     });
@@ -57,6 +64,7 @@ async function processGeoJSON() {
     
     console.log(`Census Tracts - ${mode}:`);
     console.log(`  Count: ${values.length}`);
+    console.log(`  Flagged/Dropped: ${flaggedCount}`);
     console.log(`  Min: ${Math.min(...values).toFixed(2)}%`);
     console.log(`  Max: ${Math.max(...values).toFixed(2)}%`);
     console.log(`  Percentiles (${percentilePoints.join(', ')}): ${quantiles.map(q => q.toFixed(2)).join('%, ')}%`);
@@ -70,9 +78,17 @@ async function processGeoJSON() {
   
   for (const mode of modes) {
     const values: number[] = [];
+    let flaggedCount = 0;
     commGeoJSON.features.forEach(feature => {
+      // Only apply flag filter for pct_requires_replacement
+      if (mode === 'pct_requires_replacement' && feature.properties?.flag === true) {
+        flaggedCount++;
+        return;
+      }
+      // For poverty and minority, don't filter by flag
       const value = feature.properties?.[mode];
-      if (typeof value === 'number' && !isNaN(value)) {
+      // Exclude null, undefined, NaN values
+      if (typeof value === 'number' && !isNaN(value) && value !== null) {
         values.push(value);
       }
     });
@@ -88,6 +104,7 @@ async function processGeoJSON() {
       
       console.log(`Community Areas - ${mode}:`);
       console.log(`  Count: ${values.length}`);
+      console.log(`  Flagged/Dropped: ${flaggedCount}`);
       console.log(`  Min: ${Math.min(...values).toFixed(2)}%`);
       console.log(`  Max: ${Math.max(...values).toFixed(2)}%`);
       console.log(`  Percentiles (${percentilePoints.join(', ')}): ${quantiles.map(q => q.toFixed(2)).join('%, ')}%`);

@@ -18,7 +18,7 @@
 	}));
 
 	// State.
-	let quantileData = $derived<{ quantiles: number[]; colors: readonly string[] }>(
+	let quantileData = $derived(
 		fetchQuantileData(visualization.aggregationLevel, visualization.choroplethMode)
 	);
 
@@ -198,35 +198,39 @@
 		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">
 			{getVariableDescription(visualization.choroplethMode)}
 		</p>
-		{#if quantileData}
-			{@const positions = [0, 1, 5, 20, 40, 60, 80, 95, 99, 100]}
-			{@const labels = ['0%', ...quantileData.quantiles.map(formatQuantileValue), '100%']}
-			{@const flexValues = [1, 4, 15, 20, 20, 20, 15, 4, 1]}
-			{@const visibleIndices = labels
-				.map((_, i) => i)
-				.filter((i) => i % 2 === 1 && i < labels.length - 1)}
+		{#if quantileData && quantileData.dedupedQuantiles && quantileData.dedupedColors && quantileData.flexValues}
+			{@const dedupedLabels = ['0%', ...quantileData.dedupedQuantiles.map(formatQuantileValue), '100%']}
+			{@const positions = (() => {
+				const totalFlex = quantileData.flexValues.reduce((a, b) => a + b, 0);
+				const pos = [0];
+				let cumulative = 0;
+				for (let i = 0; i < quantileData.flexValues.length; i++) {
+					cumulative += quantileData.flexValues[i];
+					pos.push((cumulative / totalFlex) * 100);
+				}
+				return pos;
+			})()}
+			{@const visibleIndices = dedupedLabels.map((_, i) => i).filter(i => i % 2 === 1 && i < dedupedLabels.length - 1)}
 			{@const lastVisibleIndex = visibleIndices[visibleIndices.length - 1]}
 			<div>
 				<!-- Container for color blocks and labels -->
 				<div class="relative">
 					<!-- Proportionally-sized color blocks -->
 					<div class="flex gap-0.5">
-						{#each quantileData.colors as color, i}
+						{#each quantileData.dedupedColors as color, i}
 							<div
 								class="h-3 rounded-xs inset-ring inset-ring-[rgba(0,0,0,0.1)]"
-								style="background-color: {color}; opacity: 0.7; flex: {flexValues[i]};"
+								style="background-color: {color}; opacity: 0.7; flex: {quantileData.flexValues[i]};"
 							></div>
 						{/each}
 					</div>
 					<!-- Labels below the color boxes - showing every other label starting from the second, excluding the last -->
-					<div class="text-2xs relative mt-1 h-4 text-gray-500">
-						{#each labels as label, i}
-							{#if i % 2 === 1 && i < labels.length - 1}
-								<span
-									class="absolute font-sans whitespace-nowrap"
-									style={i === 1
-										? 'left: 0; transform: none;'
-										: `left: ${positions[i]}%; transform: translateX(-50%);`}
+					<div class="relative h-4 text-2xs text-gray-500 mt-1">
+						{#each dedupedLabels as label, i}
+							{#if i % 2 === 1 && i < dedupedLabels.length - 1}
+								<span 
+									class="font-sans absolute whitespace-nowrap"
+									style="{i === 1 ? 'left: 0; transform: none;' : (i === lastVisibleIndex && quantileData.dedupedQuantiles.length < quantileData.quantiles.length ? `left: ${positions[i]}%; transform: translateX(-50%);` : `left: ${positions[i]}%; transform: translateX(-50%);`)}"
 								>
 									{i === 1
 										? `<${label}`

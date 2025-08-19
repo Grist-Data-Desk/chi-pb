@@ -1,21 +1,21 @@
 // Auto-generated quantile data
-// Generated on 2025-08-14T22:08:12.456Z
+// Generated on 2025-08-19T20:57:12.326Z
 
 export const QUANTILE_DATA = {
   "tract-pct_requires_replacement": {
     "quantiles": [
-      2.9,
-      26.4,
-      55.5,
-      77.1,
-      89.2,
+      7,
+      32.5,
+      56.5,
+      77.5,
+      89.3,
       93.8,
       96.1,
       97.3
     ],
-    "min": 0,
-    "max": 100,
-    "count": 800
+    "min": 1.1,
+    "max": 98.1,
+    "count": 789
   },
   "tract-pct_poverty": {
     "quantiles": [

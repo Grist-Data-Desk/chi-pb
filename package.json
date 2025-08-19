@@ -14,6 +14,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
+		"gen:clip": "cd scripts && python3 src/clip-to-boundary.py",
 		"gen:search": "tsx scripts/src/generate-minimal-search-index.ts",
 		"gen:inventory-lookup": "tsx scripts/src/generate-inventory-lookup.ts",
 		"gen:service-lines": "tsx scripts/src/generate-service-lines-geojson.ts",
@@ -25,7 +26,7 @@
 		"upload:styles": "tsx scripts/src/upload-styles.ts",
 		"publish:app": "tsx scripts/src/deploy.ts",
 		"deploy:functions": "cd functions && doctl serverless deploy . --verbose",
-		"process:data": "pnpm gen:search && pnpm gen:inventory-lookup && gen:service-lines && pnpm gen:pmtiles && pnpm gen:quantiles",
+		"process:data": "pnpm gen:clip && pnpm gen:search && pnpm gen:inventory-lookup && pnpm gen:service-lines && pnpm gen:pmtiles && pnpm gen:quantiles",
 		"upload:all": "pnpm upload:pmtiles && pnpm upload:search && pnpm upload:inventory-lookup && pnpm upload:styles",
 		"build-and-publish": "pnpm build:cdn && pnpm publish:app && pnpm deploy:functions"
 	},

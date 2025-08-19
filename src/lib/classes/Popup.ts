@@ -293,6 +293,12 @@ export class Popup {
 								</td>
 							</tr>
 							<tr>
+								<td class="p-1 text-slate-500">Latino Population</td>
+								<td class="text-earth p-1 text-right font-medium">
+									${formatPercent(data.pct_hispanic)}
+								</td>
+							</tr>
+							<tr>
 								<td class="p-1 text-slate-500">White Population</td>
 								<td class="text-earth p-1 text-right font-medium">
 									${formatPercent(data.pct_white_nonhispanic)}

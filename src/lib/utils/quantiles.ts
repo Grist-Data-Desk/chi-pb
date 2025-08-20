@@ -173,5 +173,10 @@ export function getQuantileColorExpression(
 }
 
 export function formatQuantileValue(value: number): string {
-	return `${Math.round(value)}%`;
+	const rounded = Math.round(value);
+	// If rounding would produce 100%, keep the original value if it's less than 100
+	if (rounded === 100 && value < 100) {
+		return `${value.toFixed(1)}%`;
+	}
+	return `${rounded}%`;
 }

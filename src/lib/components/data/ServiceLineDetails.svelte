@@ -67,7 +67,7 @@
 					disabled={$multiServiceLineStore.currentIndex === 0}
 					class={[
 						'border-earth flex w-20 items-center justify-center gap-1 rounded-xs border px-2 py-1 text-xs font-medium transition-colors',
-						$multiServiceLineStore.currentIndex === $serviceLineCount - 1
+						$multiServiceLineStore.currentIndex === 0
 							? 'cursor-not-allowed text-slate-400'
 							: 'text-slate-600 hover:bg-slate-200'
 					]}

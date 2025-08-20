@@ -248,7 +248,7 @@
 					const streetWords = normalizedStreetPart.split(/\s+/).filter((w) => w.length > 0);
 
 					const allStreetWordsMatch = streetWords.every((queryWord) => {
-						if (queryWord.length < 3) return true;
+						// Don't skip any words - even single letters should be matched
 						return addressWords.some(
 							(addrWord) =>
 								addrWord.startsWith(queryWord) ||
@@ -284,7 +284,7 @@
 			const streetWords = normalizedStreetPart.split(/\s+/);
 
 			streetWords.forEach((word) => {
-				if (word.length >= 2) {
+				if (word.length >= 1) {
 					Object.keys(combinedIndex.streets).forEach((streetKey) => {
 						if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
 							const ids = combinedIndex.streets[streetKey];
@@ -471,8 +471,7 @@
 
 					// All query street words must match (using prefix matching)
 					const allStreetWordsMatch = streetWords.every((queryWord) => {
-						if (queryWord.length < 3) return true; // Skip very short words
-
+						// Don't skip any words - even single letters should be matched
 						// Check if any address word starts with the query word (prefix match)
 						return addressWords.some(
 							(addrWord) =>
@@ -523,7 +522,7 @@
 
 						// Use the efficient street index instead of iterating all addresses
 						streetWords.forEach((word) => {
-							if (word.length >= 2) {
+							if (word.length >= 1) {
 								// Check all street index keys for matches
 								Object.keys(searchIndex.streetNames).forEach((streetKey) => {
 									if (!streetKey.endsWith('*') && streetKey.includes(word)) {
@@ -546,7 +545,7 @@
 
 								// Check if all words from this street are in the address
 								const allWordsMatch = streetWords.every((word) => {
-									if (word.length < 2) return true;
+									// Check all words including single letters
 									return normalizedDisplay.includes(word);
 								});
 
@@ -578,7 +577,7 @@
 				const streetWords = normalizedStreetPart.split(/\s+/);
 
 				streetWords.forEach((word) => {
-					if (word.length >= 2) {
+					if (word.length >= 1) {
 						// Check all street index keys for matches
 						Object.keys(searchIndex.streetNames).forEach((streetKey) => {
 							if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {

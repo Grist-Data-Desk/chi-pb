@@ -1347,7 +1347,8 @@
 				Chicago: Does your water service line contain lead?
 			</h1>
 			<p class="m-0 font-sans text-xs text-slate-600 sm:text-sm">
-				Enter your Chicago address to find out whether any part of your water service line is made from lead.
+				Enter your Chicago address to find out whether any part of your water service line is made
+				from lead.
 			</p>
 		</div>
 	{/if}

@@ -22,8 +22,9 @@ async function main(): Promise<void> {
 		}
 	});
 
-	const csvFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => path.extname(file) === '.csv');
+	const csvFiles = (
+		await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed'))
+	).filter((file) => path.extname(file) === '.csv');
 
 	for (const file of csvFiles) {
 		console.log(`Uploading ${file}`);
@@ -50,4 +51,4 @@ async function main(): Promise<void> {
 	}
 }
 
-main().catch(console.error); 
+main().catch(console.error);

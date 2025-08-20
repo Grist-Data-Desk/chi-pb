@@ -41,39 +41,39 @@
 	} from '$lib/utils/config';
 	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
-	
+
 	// Helper function to check if a polygon should be interactive (clickable/hoverable)
-	function isPolygonInteractive(
-		properties: any,
-		aggregationLevel: 'tract' | 'community'
-	): boolean {
+	function isPolygonInteractive(properties: any, aggregationLevel: 'tract' | 'community'): boolean {
 		if (!properties) return false;
-		
+
 		// Check if this is the searched address polygon
 		if (search.selectedAddress) {
 			if (aggregationLevel === 'tract' && properties.geoid === search.selectedAddressTractId) {
 				return false;
 			}
-			if (aggregationLevel === 'community' && properties.community === search.selectedAddressCommunityName) {
+			if (
+				aggregationLevel === 'community' &&
+				properties.community === search.selectedAddressCommunityName
+			) {
 				return false;
 			}
 		}
-		
+
 		// Check if value is null/undefined for current mode
 		const currentMode = visualization.choroplethMode;
 		const modeValue = properties[currentMode];
 		if (modeValue === null || modeValue === undefined) {
 			return false;
 		}
-		
+
 		// Check if flagged in replacement mode
 		if (currentMode === 'pct_requires_replacement' && properties.flag === true) {
 			return false;
 		}
-		
+
 		return true;
 	}
-	
+
 	// State.
 	let innerWidth = $state<number>(0);
 	let isTabletOrAbove = $derived(innerWidth > TABLET_BREAKPOINT);
@@ -214,7 +214,11 @@
 			const feature = e.features[0];
 			const tractProperties = feature.properties;
 
-			if (tractProperties && tractProperties.geoid && isPolygonInteractive(tractProperties, 'tract')) {
+			if (
+				tractProperties &&
+				tractProperties.geoid &&
+				isPolygonInteractive(tractProperties, 'tract')
+			) {
 				// Reset the selected feature, if it exists.
 				removeSelectedFeatureState();
 
@@ -234,7 +238,11 @@
 			const feature = e.features[0];
 			const communityProperties = feature.properties;
 
-			if (communityProperties && communityProperties.community && isPolygonInteractive(communityProperties, 'community')) {
+			if (
+				communityProperties &&
+				communityProperties.community &&
+				isPolygonInteractive(communityProperties, 'community')
+			) {
 				// Reset the selected feature, if it exists.
 				removeSelectedFeatureState();
 
@@ -251,7 +259,7 @@
 		// Handle cursor for census tracts - simplified to just use mousemove
 		mapState.map.on('mousemove', LAYER_CONFIG.censusTractsFill.id, (e) => {
 			if (visualization.aggregationLevel !== 'tract') return;
-			
+
 			const map = e.target;
 			// Check if there's a service line under the cursor - if so, don't change cursor
 			const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
@@ -260,12 +268,12 @@
 			if (serviceLineFeatures && serviceLineFeatures.length > 0) {
 				return; // Let service line handler manage the cursor
 			}
-			
+
 			if (!e.features?.length) {
 				map.getCanvas().style.cursor = '';
 				return;
 			}
-			
+
 			const feature = e.features[0];
 			const properties = feature.properties;
 			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'tract') ? 'pointer' : '';
@@ -287,7 +295,7 @@
 		// Handle cursor for community areas - simplified to just use mousemove
 		mapState.map.on('mousemove', LAYER_CONFIG.communityAreasFill.id, (e) => {
 			if (visualization.aggregationLevel !== 'community') return;
-			
+
 			const map = e.target;
 			// Check if there's a service line under the cursor - if so, don't change cursor
 			const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
@@ -296,12 +304,12 @@
 			if (serviceLineFeatures && serviceLineFeatures.length > 0) {
 				return; // Let service line handler manage the cursor
 			}
-			
+
 			if (!e.features?.length) {
 				map.getCanvas().style.cursor = '';
 				return;
 			}
-			
+
 			const feature = e.features[0];
 			const properties = feature.properties;
 			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'community') ? 'pointer' : '';

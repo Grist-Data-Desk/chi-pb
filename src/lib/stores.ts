@@ -165,7 +165,7 @@ export async function loadCombinedIndex(): Promise<void> {
 
 		const arrayBuffer = await response.arrayBuffer();
 		let combinedIndex: CombinedIndex;
-		
+
 		try {
 			const text = new TextDecoder().decode(arrayBuffer);
 			combinedIndex = JSON.parse(text);
@@ -192,7 +192,7 @@ export async function loadCombinedIndex(): Promise<void> {
 		);
 		console.log(`  Generated: ${combinedIndex.metadata.generatedAt}`);
 		console.log(`  Version: ${combinedIndex.metadata.version}`);
-		
+
 		// Update addressStore to indicate loading is complete
 		addressStore.update((store) => ({ ...store, isLoading: false }));
 	} catch (error) {

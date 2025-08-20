@@ -24,15 +24,15 @@ export interface NominatimError {
 // Format Nominatim address to match inventory format
 export function formatNominatimAddress(displayName: string): string {
 	// Split by comma and trim each part
-	const parts = displayName.split(',').map(p => p.trim());
-	
+	const parts = displayName.split(',').map((p) => p.trim());
+
 	// Try to extract the essential parts
 	let streetNumber = '';
 	let streetName = '';
 	let city = 'CHICAGO';
 	let state = 'IL';
 	let zip = '';
-	
+
 	// First part is just the number, second part is usually the street name
 	if (parts[0] && parts[1]) {
 		// Check if first part is just a number
@@ -60,7 +60,7 @@ export function formatNominatimAddress(displayName: string): string {
 			streetName = parts[0].toUpperCase();
 		}
 	}
-	
+
 	// Look for Chicago and zip code in the parts
 	for (const part of parts) {
 		if (part.toLowerCase().includes('chicago') && !part.toLowerCase().includes('township')) {
@@ -71,7 +71,7 @@ export function formatNominatimAddress(displayName: string): string {
 			state = 'IL';
 		}
 	}
-	
+
 	// Format the address
 	if (streetNumber && streetName) {
 		return `${streetNumber} ${streetName}, ${city}, ${state}${zip ? ' ' + zip : ''}`;
@@ -82,7 +82,6 @@ export function formatNominatimAddress(displayName: string): string {
 		return `${parts[0] || 'Unknown'}, ${city}, ${state}`;
 	}
 }
-
 
 // Check if a string is a valid coordinate pair
 export function isCoordinatePair(input: string): { lat: number; lon: number } | null {
@@ -134,7 +133,7 @@ export async function searchNominatim(query: string): Promise<NominatimResult | 
 			`https://nominatim.openstreetmap.org/search?${params.toString()}`,
 			{
 				headers: {
-					'Accept': 'application/json',
+					Accept: 'application/json',
 					'User-Agent': 'Chicago Water Service Line Map'
 				}
 			}
@@ -146,13 +145,13 @@ export async function searchNominatim(query: string): Promise<NominatimResult | 
 		}
 
 		const data = await response.json();
-		
+
 		// Nominatim returns an array, we requested limit=1
 		if (Array.isArray(data) && data.length > 0) {
 			// Prioritize Chicago results
-			const chicagoResult = data.find((result: NominatimResult) => 
-				result.display_name.includes('Chicago') || 
-				result.display_name.includes('IL')
+			const chicagoResult = data.find(
+				(result: NominatimResult) =>
+					result.display_name.includes('Chicago') || result.display_name.includes('IL')
 			);
 			return chicagoResult || data[0];
 		}
@@ -178,7 +177,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<Nominati
 			`https://nominatim.openstreetmap.org/reverse?${params.toString()}`,
 			{
 				headers: {
-					'Accept': 'application/json',
+					Accept: 'application/json',
 					'User-Agent': 'Chicago Water Service Line Map'
 				}
 			}

@@ -199,7 +199,11 @@
 			{getVariableDescription(visualization.choroplethMode)}
 		</p>
 		{#if quantileData && quantileData.dedupedQuantiles && quantileData.dedupedColors && quantileData.flexValues}
-			{@const dedupedLabels = ['0%', ...quantileData.dedupedQuantiles.map(formatQuantileValue), '100%']}
+			{@const dedupedLabels = [
+				'0%',
+				...quantileData.dedupedQuantiles.map(formatQuantileValue),
+				'100%'
+			]}
 			{@const positions = (() => {
 				const totalFlex = quantileData.flexValues.reduce((a, b) => a + b, 0);
 				const pos = [0];
@@ -210,7 +214,9 @@
 				}
 				return pos;
 			})()}
-			{@const visibleIndices = dedupedLabels.map((_, i) => i).filter(i => i % 2 === 1 && i < dedupedLabels.length - 1)}
+			{@const visibleIndices = dedupedLabels
+				.map((_, i) => i)
+				.filter((i) => i % 2 === 1 && i < dedupedLabels.length - 1)}
 			{@const lastVisibleIndex = visibleIndices[visibleIndices.length - 1]}
 			<div>
 				<!-- Container for color blocks and labels -->
@@ -225,12 +231,17 @@
 						{/each}
 					</div>
 					<!-- Labels below the color boxes - showing every other label starting from the second, excluding the last -->
-					<div class="relative h-4 text-2xs text-gray-500 mt-1">
+					<div class="text-2xs relative mt-1 h-4 text-gray-500">
 						{#each dedupedLabels as label, i}
 							{#if i % 2 === 1 && i < dedupedLabels.length - 1}
-								<span 
-									class="font-sans absolute whitespace-nowrap"
-									style="{i === 1 ? 'left: 0; transform: none;' : (i === lastVisibleIndex && quantileData.dedupedQuantiles.length < quantileData.quantiles.length ? `left: ${positions[i]}%; transform: translateX(-50%);` : `left: ${positions[i]}%; transform: translateX(-50%);`)}"
+								<span
+									class="absolute font-sans whitespace-nowrap"
+									style={i === 1
+										? 'left: 0; transform: none;'
+										: i === lastVisibleIndex &&
+											  quantileData.dedupedQuantiles.length < quantileData.quantiles.length
+											? `left: ${positions[i]}%; transform: translateX(-50%);`
+											: `left: ${positions[i]}%; transform: translateX(-50%);`}
 								>
 									{i === 1
 										? `<${label}`
@@ -243,7 +254,11 @@
 					</div>
 				</div>
 				<p class="mt-3 mb-0.5 font-sans text-xs leading-tight text-gray-500 italic">
-					Color boxes are sized proportionally to the number of {visualization.aggregationLevel === 'tract' ? 'census tracts' : 'community areas'} they contain, with finer detail offered for the top and bottom of the range. 
+					Color boxes are sized proportionally to the number of {visualization.aggregationLevel ===
+					'tract'
+						? 'census tracts'
+						: 'community areas'} they contain, with finer detail offered for the top and bottom of the
+					range.
 				</p>
 			</div>
 		{:else}

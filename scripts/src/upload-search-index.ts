@@ -22,8 +22,9 @@ async function main(): Promise<void> {
 		}
 	});
 
-	const searchIndexFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => file.startsWith('combined-index.json') && !file.endsWith('.meta'));
+	const searchIndexFiles = (
+		await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed'))
+	).filter((file) => file.startsWith('combined-index.json') && !file.endsWith('.meta'));
 
 	for (const file of searchIndexFiles) {
 		console.log(`Uploading ${file}`);
@@ -34,7 +35,7 @@ async function main(): Promise<void> {
 		// Determine content type and encoding
 		let contentType = 'application/json';
 		let contentEncoding: string | undefined;
-		
+
 		if (file.endsWith('.br')) {
 			contentEncoding = 'br';
 		}
@@ -59,8 +60,9 @@ async function main(): Promise<void> {
 	}
 
 	// Also upload metadata files
-	const metaFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => file.startsWith('combined-index.json') && file.endsWith('.meta'));
+	const metaFiles = (
+		await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed'))
+	).filter((file) => file.startsWith('combined-index.json') && file.endsWith('.meta'));
 
 	for (const file of metaFiles) {
 		console.log(`Uploading ${file}`);

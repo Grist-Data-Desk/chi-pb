@@ -29,7 +29,7 @@
 	{@render children?.()}
 	<span
 		bind:this={iconRef}
-		class="inline-flex items-center justify-center text-slate-300 hover:text-slate-500 transition-colors ml-0.5"
+		class="ml-0.5 inline-flex items-center justify-center text-slate-300 transition-colors hover:text-slate-500"
 		onmouseenter={() => (showTooltip = true)}
 		onmouseleave={() => (showTooltip = false)}
 		style="cursor: help;"
@@ -49,7 +49,7 @@
 
 {#if showTooltip}
 	<div
-		class="fixed w-64 rounded-md bg-slate-800 px-3 py-2 text-xs text-white shadow-lg pointer-events-none"
+		class="pointer-events-none fixed w-64 rounded-md bg-slate-800 px-3 py-2 text-xs text-white shadow-lg"
 		role="tooltip"
 		style="z-index: 99999; top: {tooltipPosition.top}px; left: {tooltipPosition.left}px;"
 	>

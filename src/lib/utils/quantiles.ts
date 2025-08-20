@@ -15,7 +15,10 @@ export interface QuantileData {
 	flexValues?: number[];
 }
 
-export function getColorScheme(mode: ChoroplethMode, count: number = MAX_COLORS): readonly string[] {
+export function getColorScheme(
+	mode: ChoroplethMode,
+	count: number = MAX_COLORS
+): readonly string[] {
 	switch (mode) {
 		case 'pct_minority':
 			return schemePurples[count];
@@ -26,30 +29,30 @@ export function getColorScheme(mode: ChoroplethMode, count: number = MAX_COLORS)
 	}
 }
 
-function deduplicateQuantiles(quantiles: number[]): { 
-	dedupedQuantiles: number[]; 
+function deduplicateQuantiles(quantiles: number[]): {
+	dedupedQuantiles: number[];
 	flexValues: number[];
 } {
 	// The percentile ranges for each box
 	const percentileRanges = [
-		1,   // 0-1
-		4,   // 1-5
-		15,  // 5-20
-		20,  // 20-40
-		20,  // 40-60
-		20,  // 60-80
-		15,  // 80-95
-		4,   // 95-99
-		1    // 99-100
+		1, // 0-1
+		4, // 1-5
+		15, // 5-20
+		20, // 20-40
+		20, // 40-60
+		20, // 60-80
+		15, // 80-95
+		4, // 95-99
+		1 // 99-100
 	];
-	
+
 	const dedupedQuantiles: number[] = [];
 	const flexValues: number[] = [];
 	const tolerance = 0.01;
-	
+
 	// Track which box we're currently processing
 	let currentBoxIndex = 0;
-	
+
 	// Process each quantile
 	let i = 0;
 	while (i < quantiles.length) {
@@ -58,10 +61,10 @@ function deduplicateQuantiles(quantiles: number[]): {
 		while (j < quantiles.length - 1 && Math.abs(quantiles[j] - quantiles[j + 1]) < tolerance) {
 			j++;
 		}
-		
+
 		// Add the unique quantile value
 		dedupedQuantiles.push(quantiles[i]);
-		
+
 		// If we found duplicates (j > i), combine the corresponding boxes
 		if (j > i) {
 			// When quantiles[i] through quantiles[j] are equal,
@@ -70,17 +73,17 @@ function deduplicateQuantiles(quantiles: number[]): {
 			for (let boxIdx = i + 1; boxIdx <= j + 1 && boxIdx < percentileRanges.length; boxIdx++) {
 				combinedFlex += percentileRanges[boxIdx];
 			}
-			
+
 			// Add the box before the duplicate group
 			flexValues.push(percentileRanges[currentBoxIndex]);
 			currentBoxIndex++;
-			
+
 			// Add the combined box (if it exists)
 			if (combinedFlex > 0) {
 				flexValues.push(combinedFlex);
 				currentBoxIndex = j + 2; // Skip past the combined boxes
 			}
-			
+
 			i = j + 1;
 		} else {
 			// No duplicates, just add the current box
@@ -89,13 +92,13 @@ function deduplicateQuantiles(quantiles: number[]): {
 			i++;
 		}
 	}
-	
+
 	// Add any remaining boxes (including the last box if needed)
 	while (currentBoxIndex < percentileRanges.length) {
 		flexValues.push(percentileRanges[currentBoxIndex]);
 		currentBoxIndex++;
 	}
-	
+
 	return { dedupedQuantiles, flexValues };
 }
 
@@ -111,7 +114,7 @@ export function fetchQuantileData(
 		const { dedupedQuantiles, flexValues } = deduplicateQuantiles(quantiles);
 		const colorCount = flexValues.length;
 		const colors = getColorScheme(mode, Math.min(colorCount, MAX_COLORS));
-		
+
 		return {
 			values: [],
 			quantiles,
@@ -127,7 +130,7 @@ export function fetchQuantileData(
 	const { dedupedQuantiles, flexValues } = deduplicateQuantiles(quantiles);
 	const colorCount = flexValues.length;
 	const colors = getColorScheme(mode, Math.min(colorCount, MAX_COLORS));
-	
+
 	return {
 		values: [],
 		quantiles,

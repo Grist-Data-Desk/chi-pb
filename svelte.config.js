@@ -19,9 +19,10 @@ const config = {
 			strict: true
 		}),
 		paths: {
-			assets: process.env.USE_CDN === 'true'
-				? 'https://grist.nyc3.cdn.digitaloceanspaces.com/chi-pb/interactives/chi-pb-map'
-				: ''
+			assets:
+				process.env.USE_CDN === 'true'
+					? 'https://grist.nyc3.cdn.digitaloceanspaces.com/chi-pb/interactives/chi-pb-map'
+					: ''
 		}
 	}
 };

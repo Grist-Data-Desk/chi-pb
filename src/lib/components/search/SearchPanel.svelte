@@ -248,7 +248,7 @@
 					const streetWords = normalizedStreetPart.split(/\s+/).filter((w) => w.length > 0);
 
 					const allStreetWordsMatch = streetWords.every((queryWord) => {
-						if (queryWord.length < 3) return true;
+						// Don't skip any words - even single letters should be matched
 						return addressWords.some(
 							(addrWord) =>
 								addrWord.startsWith(queryWord) ||
@@ -279,28 +279,101 @@
 				}
 			});
 		} else if (normalizedStreetPart.length > 0) {
-			// Street search using the index
-			const resultIds = new Set<number>();
-			const streetWords = normalizedStreetPart.split(/\s+/);
+			// Check if this is an intersection query (contains & or was normalized from "and")
+			const isIntersectionQuery = normalizedStreetPart.includes('&');
 
-			streetWords.forEach((word) => {
-				if (word.length >= 2) {
-					Object.keys(combinedIndex.streets).forEach((streetKey) => {
-						if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
-							const ids = combinedIndex.streets[streetKey];
-							if (Array.isArray(ids)) {
-								ids.forEach((id) => resultIds.add(id));
+			if (isIntersectionQuery) {
+				// Handle intersection search
+				const streets = normalizedStreetPart
+					.split('&')
+					.map((s) => s.trim())
+					.filter((s) => s.length > 0);
+
+				if (streets.length >= 2) {
+					// Find addresses that match ALL streets in the intersection
+					const streetMatchSets = streets.map((street) => {
+						const streetIds = new Set<number>();
+						const streetWords = street.split(/\s+/).filter((w) => w.length > 0);
+
+						// Use the efficient street index
+						streetWords.forEach((word) => {
+							if (word.length >= 1) {
+								// Check all street index keys for matches
+								Object.keys(combinedIndex.streets).forEach((streetKey) => {
+									if (!streetKey.endsWith('*') && streetKey.includes(word)) {
+										const ids = combinedIndex.streets[streetKey];
+										if (Array.isArray(ids)) {
+											// Add all IDs that match this word
+											ids.forEach((id) => streetIds.add(id));
+										}
+									}
+								});
 							}
-						}
-					});
-				}
-			});
+						});
 
-			resultIds.forEach((id) => {
-				if (id >= 0 && id < combinedIndex.addresses.length) {
-					matchingAddresses.push(combinedIndex.addresses[id]);
+						// Filter to only keep addresses where ALL words match
+						const filteredIds = new Set<number>();
+						streetIds.forEach((id) => {
+							if (id >= 0 && id < combinedIndex.addresses.length) {
+								const addr = combinedIndex.addresses[id];
+								// addr.a contains the address, addr.z contains zip
+								const fullAddr = addr.a.includes(addr.z)
+									? addr.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
+									: addr.a + ', CHICAGO, IL ' + addr.z;
+								const normalizedDisplay = normalizeAddress(fullAddr);
+
+								// Check if all words from this street are in the address
+								const allWordsMatch = streetWords.every((word) => {
+									// Check all words including single letters
+									return normalizedDisplay.includes(word);
+								});
+
+								if (allWordsMatch) {
+									filteredIds.add(id);
+								}
+							}
+						});
+
+						return filteredIds;
+					});
+
+					// Find intersection - addresses that match ALL streets
+					if (streetMatchSets.length >= 2) {
+						const intersection = streetMatchSets.reduce((a, b) => {
+							return new Set([...a].filter((x) => b.has(x)));
+						});
+
+						intersection.forEach((id) => {
+							if (id >= 0 && id < combinedIndex.addresses.length) {
+								matchingAddresses.push(combinedIndex.addresses[id]);
+							}
+						});
+					}
 				}
-			});
+			} else {
+				// Regular street search - use the street index
+				const resultIds = new Set<number>();
+				const streetWords = normalizedStreetPart.split(/\s+/);
+
+				streetWords.forEach((word) => {
+					if (word.length >= 1) {
+						Object.keys(combinedIndex.streets).forEach((streetKey) => {
+							if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
+								const ids = combinedIndex.streets[streetKey];
+								if (Array.isArray(ids)) {
+									ids.forEach((id) => resultIds.add(id));
+								}
+							}
+						});
+					}
+				});
+
+				resultIds.forEach((id) => {
+					if (id >= 0 && id < combinedIndex.addresses.length) {
+						matchingAddresses.push(combinedIndex.addresses[id]);
+					}
+				});
+			}
 		}
 
 		// Sort and deduplicate
@@ -471,8 +544,7 @@
 
 					// All query street words must match (using prefix matching)
 					const allStreetWordsMatch = streetWords.every((queryWord) => {
-						if (queryWord.length < 3) return true; // Skip very short words
-
+						// Don't skip any words - even single letters should be matched
 						// Check if any address word starts with the query word (prefix match)
 						return addressWords.some(
 							(addrWord) =>
@@ -523,7 +595,7 @@
 
 						// Use the efficient street index instead of iterating all addresses
 						streetWords.forEach((word) => {
-							if (word.length >= 2) {
+							if (word.length >= 1) {
 								// Check all street index keys for matches
 								Object.keys(searchIndex.streetNames).forEach((streetKey) => {
 									if (!streetKey.endsWith('*') && streetKey.includes(word)) {
@@ -546,7 +618,7 @@
 
 								// Check if all words from this street are in the address
 								const allWordsMatch = streetWords.every((word) => {
-									if (word.length < 2) return true;
+									// Check all words including single letters
 									return normalizedDisplay.includes(word);
 								});
 
@@ -578,7 +650,7 @@
 				const streetWords = normalizedStreetPart.split(/\s+/);
 
 				streetWords.forEach((word) => {
-					if (word.length >= 2) {
+					if (word.length >= 1) {
 						// Check all street index keys for matches
 						Object.keys(searchIndex.streetNames).forEach((streetKey) => {
 							if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
@@ -1268,17 +1340,15 @@
 	});
 </script>
 
-<div class="flex flex-col gap-3 rounded-lg sm:gap-4">
+<div class="flex flex-col gap-3 sm:gap-4">
 	{#if !ui.searchHeaderCollapsed}
 		<div class="flex flex-col gap-2 sm:gap-4">
 			<h1 class="font-sans-secondary m-0 text-2xl font-medium text-slate-800 sm:text-3xl">
 				Chicago: Does your water service line contain lead?
 			</h1>
 			<p class="m-0 font-sans text-xs text-slate-600 sm:text-sm">
-				Enter your address to find information about your Chicago water service line composition and
-				lead status. The map will show your service line location and
-				{visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'}
-				demographic data.
+				Enter your Chicago address to find out whether any part of your water service line is made
+				from lead.
 			</p>
 		</div>
 	{/if}

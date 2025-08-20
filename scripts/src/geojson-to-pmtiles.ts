@@ -11,9 +11,8 @@ const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 const inputFiles = [
 	'../../scripts/data/raw/chi-tracts-filled.geojson',
 	'../../scripts/data/raw/chi-comm-areas.geojson',
-	'../../scripts/data/raw/service-lines.geojson',
+	'../../scripts/data/raw/service-lines.geojson'
 ];
-
 
 /**
  * Generate PMTiles archive for Chicago dataset.
@@ -25,7 +24,7 @@ const main = async (): Promise<void> => {
 		// Always output to processed folder
 		const outFile = `../../scripts/data/processed/${name}.pmtiles`;
 		const outFilePath = path.resolve(__dirname, outFile);
-		
+
 		// Create a temporary reprojected file
 		const tempFile = path.resolve(__dirname, `../../scripts/data/processed/${name}-wgs84.geojson`);
 
@@ -38,15 +37,14 @@ const main = async (): Promise<void> => {
 			// Then convert to PMTiles
 			console.log(`Generating PMTiles for ${file}...`);
 			const tippecanoeCmd = `tippecanoe -zg -o ${outFilePath} -l ${name} --drop-densest-as-needed --extend-zooms-if-still-dropping --force ${tempFile}`;
-			
+
 			const { stdout, stderr } = await execAsync(tippecanoeCmd);
 			console.log(stdout);
 			if (stderr) console.error(stderr);
-			
+
 			// Clean up temporary file
 			fs.unlinkSync(tempFile);
 			console.log(`Successfully created ${outFile}`);
-			
 		} catch (err) {
 			console.error(`Failed to process ${file}:`, err);
 			// Clean up temp file if it exists

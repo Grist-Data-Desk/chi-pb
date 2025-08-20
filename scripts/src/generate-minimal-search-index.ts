@@ -11,22 +11,22 @@ const __dirname = path.dirname(__filename);
 const brotliCompressAsync = promisify(brotliCompress);
 
 interface CombinedAddress {
-	i: number;     // id (shortened field name)
-	r: number;     // row
-	a: string;     // address without ", CHICAGO, IL," to save space
-	s: string;     // street (normalized for search)
-	n1: number;    // num1
-	n2: number;    // num2
-	z: string;     // zip
-	la: number;    // latitude
-	lo: number;    // longitude
-	m: string;     // material (single char)
+	i: number; // id (shortened field name)
+	r: number; // row
+	a: string; // address without ", CHICAGO, IL," to save space
+	s: string; // street (normalized for search)
+	n1: number; // num1
+	n2: number; // num2
+	z: string; // zip
+	la: number; // latitude
+	lo: number; // longitude
+	m: string; // material (single char)
 }
 
 interface CombinedIndex {
 	// Maps for lookups
-	streets: Record<string, number[]>;  // normalized street -> address IDs
-	addresses: CombinedAddress[];       // combined address data by ID
+	streets: Record<string, number[]>; // normalized street -> address IDs
+	addresses: CombinedAddress[]; // combined address data by ID
 	metadata: {
 		totalAddresses: number;
 		uniqueStreets: number;
@@ -36,10 +36,10 @@ interface CombinedIndex {
 }
 
 interface ServiceLinePoint {
-	row: number;        // Row ID for matching with PMTiles
+	row: number; // Row ID for matching with PMTiles
 	lat: number;
 	long: number;
-	material: string;   // Lead status for filtering
+	material: string; // Lead status for filtering
 }
 
 interface ServiceLineSpatialIndex {
@@ -53,26 +53,27 @@ interface ServiceLineSpatialIndex {
 
 // Normalization for address variants
 function normalizeStreetName(street: string): string {
-	let normalized = street.toLowerCase()
+	let normalized = street
+		.toLowerCase()
 		.replace(/[^\w\s]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim();
 
 	// Some street type variants
 	const streetTypeReplacements = {
-		'avenue': 'ave',
-		'street': 'st',
-		'saint': 'st',
-		'boulevard': 'blvd',
-		'parkway': 'park',
-		'terrace': 'ter',
-		'plaza': 'plz',
-		'place': 'pl',
-		'court': 'ct',
-		'drive': 'dr',
-		'lane': 'ln',
-		'road': 'rd',
-		'circle': 'cir'
+		avenue: 'ave',
+		street: 'st',
+		saint: 'st',
+		boulevard: 'blvd',
+		parkway: 'park',
+		terrace: 'ter',
+		plaza: 'plz',
+		place: 'pl',
+		court: 'ct',
+		drive: 'dr',
+		lane: 'ln',
+		road: 'rd',
+		circle: 'cir'
 	};
 
 	for (const [full, abbrev] of Object.entries(streetTypeReplacements)) {
@@ -83,13 +84,13 @@ function normalizeStreetName(street: string): string {
 	const streetNameReplacements = {
 		'martin luther king jr': 'king',
 		'martin l king jr': 'king',
-		'lakeshore': 'lake shore',
-		'crestline': 'crest line',
-		'blueisland': 'blue island',
+		lakeshore: 'lake shore',
+		crestline: 'crest line',
+		blueisland: 'blue island',
 		'blue island': 'blueisland',
-		'dekoven': 'de koven',
+		dekoven: 'de koven',
 		'de koven': 'dekoven',
-		'desplaines': 'des plaines',
+		desplaines: 'des plaines',
 		'des plaines': 'desplaines'
 	};
 
@@ -99,14 +100,23 @@ function normalizeStreetName(street: string): string {
 
 	// Some prefix variants (LA, MC, O)
 	normalized = normalized
-		.replace(/\bla\s+/g, 'la')  // "LA SALLE" -> "lasalle"
-		.replace(/\bmc\s+/g, 'mc')  // "MC VICKER" -> "mcvicker"
-		.replace(/\bo\s+/g, 'o');   // "O BRIEN" -> "obrien"
+		.replace(/\bla\s+/g, 'la') // "LA SALLE" -> "lasalle"
+		.replace(/\bmc\s+/g, 'mc') // "MC VICKER" -> "mcvicker"
+		.replace(/\bo\s+/g, 'o'); // "O BRIEN" -> "obrien"
 
 	// Direction variants (N, S, E, W, NE, NW, SE, SW)
-	const directions = ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'];
+	const directions = [
+		'north',
+		'south',
+		'east',
+		'west',
+		'northeast',
+		'northwest',
+		'southeast',
+		'southwest'
+	];
 	const directionAbbrevs = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
-	
+
 	directions.forEach((dir, i) => {
 		normalized = normalized.replace(new RegExp(`\\b${dir}\\b`, 'g'), directionAbbrevs[i]);
 	});
@@ -157,7 +167,7 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 				}
 
 				// Build normalized street name for indexing
-				const streetParts = [stdir, stname, sttype].filter(p => p).join(' ');
+				const streetParts = [stdir, stname, sttype].filter((p) => p).join(' ');
 				const normalizedStreet = normalizeStreetName(streetParts);
 
 				// Remove ", CHICAGO, IL" from the address to save space, but keep the zip separate
@@ -190,9 +200,9 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 					if (intersectionMatch) {
 						const intersectionText = intersectionMatch[1];
 						// Split by & and index each street name
-						const streets = intersectionText.split('&').map(s => s.trim());
-						
-						streets.forEach(street => {
+						const streets = intersectionText.split('&').map((s) => s.trim());
+
+						streets.forEach((street) => {
 							const normalizedIntersectionStreet = normalizeStreetName(street);
 							if (normalizedIntersectionStreet) {
 								// Index full street name
@@ -200,12 +210,12 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 									streetNameIndex[normalizedIntersectionStreet] = [];
 								}
 								streetNameIndex[normalizedIntersectionStreet].push(id);
-								
+
 								// Index individual words
 								const words = normalizedIntersectionStreet.split(' ');
 								const directions = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
-								
-								words.forEach(word => {
+
+								words.forEach((word) => {
 									if (word.length > 2 || directions.includes(word)) {
 										if (!streetNameIndex[word]) {
 											streetNameIndex[word] = [];
@@ -229,8 +239,8 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 					// Index individual words for partial matching
 					const words = normalizedStreet.split(' ');
 					const directions = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
-					
-					words.forEach(word => {
+
+					words.forEach((word) => {
 						// Index important short words (directions) and longer words
 						if (word.length > 2 || directions.includes(word)) {
 							if (!streetNameIndex[word]) {
@@ -250,10 +260,11 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 							streetNameIndex[partial].push(id);
 						}
 					}
-					
+
 					// Index partial word matching for street names (for cases like "fr" matching "front")
-					words.forEach(word => {
-						if (word.length > 3) { // Only for longer words
+					words.forEach((word) => {
+						if (word.length > 3) {
+							// Only for longer words
 							// Create prefix indexes for partial matching
 							for (let len = 2; len <= word.length - 1; len++) {
 								const prefix = word.substring(0, len);
@@ -269,7 +280,7 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 			})
 			.on('end', async () => {
 				// Remove duplicates from indexes
-				Object.keys(streetNameIndex).forEach(key => {
+				Object.keys(streetNameIndex).forEach((key) => {
 					streetNameIndex[key] = [...new Set(streetNameIndex[key])];
 				});
 
@@ -295,7 +306,7 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 					contentEncoding: 'br',
 					originalSize: jsonString.length,
 					compressedSize: compressed.length,
-					compressionRatio: (compressed.length / jsonString.length * 100).toFixed(1) + '%'
+					compressionRatio: ((compressed.length / jsonString.length) * 100).toFixed(1) + '%'
 				};
 				fs.writeFileSync(`${outputPath}.br.meta`, JSON.stringify(metadata, null, 2));
 

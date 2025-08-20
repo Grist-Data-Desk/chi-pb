@@ -9,4 +9,4 @@ export function isValidUrl(url: string | null | undefined): boolean {
 	} catch {
 		return false;
 	}
-} 
+}

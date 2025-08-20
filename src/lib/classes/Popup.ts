@@ -7,6 +7,7 @@ import {
 	formatPercent,
 	formatAreaIdentifier
 } from '$lib/utils/formatters';
+import { SERVICE_LINE_DEFINITIONS, getTooltipPositioningScript } from '$lib/utils/tooltips';
 
 export class Popup {
 	private map: maplibregl.Map;
@@ -105,7 +106,73 @@ export class Popup {
 	}
 
 	private generatePopupContent(data: CensusTract | CommunityArea): string {
+		// Add inline styles for tooltips
+		const tooltipStyles = `
+			<style>
+				.tooltip-trigger {
+					cursor: help;
+					display: inline-block;
+					margin-left: 2px;
+					color: #cbd5e1;
+					vertical-align: text-bottom;
+					position: relative;
+					top: -1px;
+					transition: color 0.2s;
+				}
+				.tooltip-trigger:hover {
+					color: #94a3b8;
+				}
+				.tooltip-container {
+					position: relative;
+					display: inline-block;
+				}
+				.tooltip-content {
+					visibility: hidden;
+					width: 200px;
+					background-color: #1e293b;
+					color: #fff;
+					text-align: left;
+					border-radius: 6px;
+					padding: 8px 10px;
+					position: fixed;
+					z-index: 99999;
+					opacity: 0;
+					transition: opacity 0.3s;
+					font-size: 11px;
+					line-height: 1.4;
+					pointer-events: none;
+				}
+				.tooltip-container:hover .tooltip-content {
+					visibility: visible;
+					opacity: 1;
+				}
+			</style>
+		`;
+
+		// Inline JavaScript for viewport-aware positioning
+		const tooltipScript = `
+			<script>
+				${getTooltipPositioningScript()}
+				
+				function setupTooltips() {
+					const containers = document.querySelectorAll('.tooltip-container');
+					containers.forEach(container => {
+						const trigger = container.querySelector('.tooltip-trigger');
+						const content = container.querySelector('.tooltip-content');
+						if (!trigger || !content) return;
+						
+						trigger.addEventListener('mouseenter', () => {
+							positionTooltip(trigger, content);
+						});
+					});
+				}
+				setTimeout(setupTooltips, 0);
+			</script>
+		`;
+
 		return `
+			${tooltipStyles}
+			${tooltipScript}
 			<h3 class="m-0 mb-1 text-base font-medium sm:mb-2 sm:text-lg">${formatAreaIdentifier(data)}</h3>
 			<div>
 				<ul class="-mx-1.5 my-0 flex list-none gap-4 border-b border-slate-500 px-1.5 sm:-mx-3 sm:px-3">
@@ -135,22 +202,54 @@ export class Popup {
 								<col width="20%" />
 							</colgroup>
 							<tr>
-								<td class="p-1">Lead</td>
+								<td class="p-1">
+									Lead
+									<span class="tooltip-container">
+										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+										</svg>
+										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.lead}</span>
+									</span>
+								</td>
 								<td class="text-earth p-1 text-right font-medium">${formatCount(data.L)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_lead)}</td>
 							</tr>
 							<tr>
-								<td class="p-1">Suspected Lead</td>
+								<td class="p-1">
+									Suspected Lead
+									<span class="tooltip-container">
+										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+										</svg>
+										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.suspected}</span>
+									</span>
+								</td>
 								<td class="text-earth p-1 text-right font-medium">${formatCount(data.U)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_suspected_lead)}</td>
 							</tr>
 							<tr>
-								<td class="p-1">Galvanized (Replace)</td>
+								<td class="p-1">
+									Galvanized (Replace)
+									<span class="tooltip-container">
+										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+										</svg>
+										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.galvanized}</span>
+									</span>
+								</td>
 								<td class="text-earth p-1 text-right font-medium">${formatCount(data.GRR)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_grr)}</td>
 							</tr>
 							<tr>
-								<td class="p-1">Non-Lead</td>
+								<td class="p-1">
+									Non-Lead
+									<span class="tooltip-container">
+										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+										</svg>
+										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS['non-lead']}</span>
+									</span>
+								</td>
 								<td class="text-earth p-1 text-right font-medium">${formatCount(data.NL)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_not_lead)}</td>
 							</tr>
@@ -191,6 +290,12 @@ export class Popup {
 								<td class="p-1 text-slate-500">Black Population</td>
 								<td class="text-earth p-1 text-right font-medium">
 									${formatPercent(data.pct_black_nonhispanic)}
+								</td>
+							</tr>
+							<tr>
+								<td class="p-1 text-slate-500">Latino Population</td>
+								<td class="text-earth p-1 text-right font-medium">
+									${formatPercent(data.pct_hispanic)}
 								</td>
 							</tr>
 							<tr>

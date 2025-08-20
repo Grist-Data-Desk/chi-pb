@@ -29,7 +29,9 @@ async function main(): Promise<void> {
 	for (const tileset of tilesets) {
 		console.log(`Uploading ${tileset}.pmtiles.`);
 
-		const file = await fs.readFile(path.resolve(__dirname, `../../scripts/data/processed/${tileset}.pmtiles`));
+		const file = await fs.readFile(
+			path.resolve(__dirname, `../../scripts/data/processed/${tileset}.pmtiles`)
+		);
 		const putObjectCommand = new PutObjectCommand({
 			Bucket: 'grist',
 			Key: `${PMTILES_PATH}/${tileset}.pmtiles`,

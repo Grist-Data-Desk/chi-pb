@@ -127,7 +127,7 @@
 }
 
 #map-root .maplibregl-ctrl-bottom-right {
-	@apply right-[3%] bottom-6 z-20 translate-x-0.5 sm:right-4 sm:translate-x-1;
+	@apply right-[3%] bottom-6 translate-x-0.5 sm:right-4 sm:translate-x-1;
 }
 
 #map-root .maplibregl-popup-tip {

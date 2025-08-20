@@ -21,10 +21,11 @@ async function main(): Promise<void> {
 			secretAccessKey: process.env.DO_SPACES_SECRET || ''
 		}
 	});
-	
+
 	// Upload main lookup files
-	const lookupFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => file.startsWith('inventory-lookup.json'));
+	const lookupFiles = (
+		await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed'))
+	).filter((file) => file.startsWith('inventory-lookup.json'));
 
 	for (const file of lookupFiles) {
 		console.log(`Uploading ${file}`);
@@ -34,16 +35,17 @@ async function main(): Promise<void> {
 
 		// Determine content type
 		let contentType = 'application/json';
-		
+
 		if (file.endsWith('.br') || file.endsWith('.brotli')) {
 			// Don't set content-encoding for compressed files to prevent CDN auto-decompression
 			contentType = 'application/octet-stream';
 		}
 
 		// Rename .br to .brotli for DO Spaces compatibility
-		const uploadKey = file === 'inventory-lookup.json.br' 
-			? `${SEARCH_INDEX_PATH}/inventory-lookup.json.brotli`
-			: `${SEARCH_INDEX_PATH}/${file}`;
+		const uploadKey =
+			file === 'inventory-lookup.json.br'
+				? `${SEARCH_INDEX_PATH}/inventory-lookup.json.brotli`
+				: `${SEARCH_INDEX_PATH}/${file}`;
 
 		const putObjectCommand = new PutObjectCommand({
 			Bucket: 'grist',
@@ -64,8 +66,9 @@ async function main(): Promise<void> {
 	}
 
 	// Also upload metadata files
-	const metaFiles = (await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed')))
-		.filter((file) => file.startsWith('inventory-lookup-metadata.json'));
+	const metaFiles = (
+		await fs.readdir(path.resolve(__dirname, '../../scripts/data/processed'))
+	).filter((file) => file.startsWith('inventory-lookup-metadata.json'));
 
 	for (const file of metaFiles) {
 		console.log(`Uploading ${file}`);
@@ -75,17 +78,18 @@ async function main(): Promise<void> {
 
 		// Determine content type
 		let contentType = 'application/json';
-		
+
 		if (file.endsWith('.br') || file.endsWith('.brotli')) {
 			// Don't set content-encoding for compressed files to prevent CDN auto-decompression
 			contentType = 'application/octet-stream';
 		}
 
-		// Rename .br to .brotli for DO Spaces compatibility  
-		const uploadKey = file === 'inventory-lookup-metadata.json.br'
-			? `${SEARCH_INDEX_PATH}/inventory-lookup-metadata.json.brotli`
-			: `${SEARCH_INDEX_PATH}/${file}`;
-			
+		// Rename .br to .brotli for DO Spaces compatibility
+		const uploadKey =
+			file === 'inventory-lookup-metadata.json.br'
+				? `${SEARCH_INDEX_PATH}/inventory-lookup-metadata.json.brotli`
+				: `${SEARCH_INDEX_PATH}/${file}`;
+
 		const putObjectCommand = new PutObjectCommand({
 			Bucket: 'grist',
 			Key: uploadKey,

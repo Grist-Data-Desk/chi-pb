@@ -15,7 +15,7 @@
 <button
 	type="button"
 	class={[
-		'floating-panel flex h-[29px] items-center justify-center gap-1.5 px-3 text-xs font-medium',
+		'floating-panel flex h-[29px] items-center justify-center gap-1.5 px-3 text-xs',
 		{
 			'cursor-not-allowed text-slate-600/40': !isActive,
 			'text-slate-600': isActive
@@ -38,7 +38,13 @@
 	</svg>
 	<span>Resources for Selected Address</span>
 	<svg
-		class="h-3 w-3 text-slate-600 transition-transform duration-200"
+		class={[
+			'h-3 w-3 transition-transform duration-200',
+			{
+				'text-slate-600': isActive,
+				'text-slate-600/40': !isActive
+			}
+		]}
 		style="transform: rotate({ui.resourcesExpanded ? '180deg' : '0deg'})"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 24 24"

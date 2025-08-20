@@ -12,7 +12,7 @@
 	class="border-earth bg-smog absolute bottom-6 left-[3%] z-10 rounded-sm border shadow-sm backdrop-blur-sm md:hidden"
 >
 	<button
-		class="flex h-8 items-center justify-center gap-1 border-0 bg-transparent px-2"
+		class="flex h-8 items-center justify-center gap-1 border-0 bg-transparent px-2 text-slate-600"
 		onclick={onClick}
 		aria-label="Expand legend"
 	>
@@ -21,14 +21,16 @@
 			stroke-linejoin="round"
 			viewBox="0 0 16 16"
 			width="16"
-			style="color: currentcolor;"
-			><path
-				fill-rule="evenodd"
-				clip-rule="evenodd"
-				d="M0 5.25136V4.2487L0.463236 4.05702L7.71324 1.05702L8 0.938354L8.28676 1.05702L15.5368 4.05702L16 4.2487V5.25136L15.5368 5.44304L8.28676 8.44304L8 8.5617L7.71324 8.44304L0.463236 5.44304L0 5.25136ZM0 8.45825V6.83491L0.536764 7.05702L8 10.1453L15.4632 7.05702L16 6.83491V8.45825L8.28676 11.6499L8 11.7686L7.71324 11.6499L0 8.45825ZM0 11.7083V10.0849L0.536764 10.307L8 13.3953L15.4632 10.307L16 10.0849V11.7083L8.28676 14.8999L8 15.0186L7.71324 14.8999L0 11.7083ZM8 6.93835L2.71154 4.75003L8 2.5617L13.2885 4.75003L8 6.93835Z"
-				fill="currentColor"
-			></path></svg
+			class="text-gray-500"
+			fill="currentColor"
 		>
-		<span class="font-sans text-xs">Filters</span>
+			<path d="M3.5 1.5L5.25 4.5H1.75L3.5 1.5Z" />
+			<rect x="7.5" y="2.75" width="6.5" height="1" rx="0.25" />
+			<rect x="1.75" y="6.25" width="3.5" height="3.5" />
+			<rect x="7.5" y="7.5" width="6.5" height="1" rx="0.25" />
+			<circle cx="3.5" cy="12.5" r="1.75" />
+			<rect x="7.5" y="12" width="6.5" height="1" rx="0.25" />
+		</svg>
+		<span class="font-sans text-xs">Legend</span>
 	</button>
 </div>

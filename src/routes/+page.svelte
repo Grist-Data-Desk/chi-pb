@@ -41,6 +41,39 @@
 	} from '$lib/utils/config';
 	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
+
+	// Helper function to check if a polygon should be interactive (clickable/hoverable)
+	function isPolygonInteractive(properties: any, aggregationLevel: 'tract' | 'community'): boolean {
+		if (!properties) return false;
+
+		// Check if this is the searched address polygon
+		if (search.selectedAddress) {
+			if (aggregationLevel === 'tract' && properties.geoid === search.selectedAddressTractId) {
+				return false;
+			}
+			if (
+				aggregationLevel === 'community' &&
+				properties.community === search.selectedAddressCommunityName
+			) {
+				return false;
+			}
+		}
+
+		// Check if value is null/undefined for current mode
+		const currentMode = visualization.choroplethMode;
+		const modeValue = properties[currentMode];
+		if (modeValue === null || modeValue === undefined) {
+			return false;
+		}
+
+		// Check if flagged in replacement mode
+		if (currentMode === 'pct_requires_replacement' && properties.flag === true) {
+			return false;
+		}
+
+		return true;
+	}
+
 	// State.
 	let innerWidth = $state<number>(0);
 	let isTabletOrAbove = $derived(innerWidth > TABLET_BREAKPOINT);
@@ -181,15 +214,13 @@
 			const feature = e.features[0];
 			const tractProperties = feature.properties;
 
-			if (tractProperties && tractProperties.geoid) {
+			if (
+				tractProperties &&
+				tractProperties.geoid &&
+				isPolygonInteractive(tractProperties, 'tract')
+			) {
 				// Reset the selected feature, if it exists.
 				removeSelectedFeatureState();
-
-				// Check if this is the tract containing the searched address
-				if (search.selectedAddress && search.selectedAddressTractId === tractProperties.geoid) {
-					// Don't show popup for the tract containing the searched address
-					return;
-				}
 
 				const lngLat = e.lngLat;
 				popup.node?.showPopup(lngLat, tractProperties as any);
@@ -207,18 +238,13 @@
 			const feature = e.features[0];
 			const communityProperties = feature.properties;
 
-			if (communityProperties && communityProperties.community) {
+			if (
+				communityProperties &&
+				communityProperties.community &&
+				isPolygonInteractive(communityProperties, 'community')
+			) {
 				// Reset the selected feature, if it exists.
 				removeSelectedFeatureState();
-
-				// Check if this is the community area containing the searched address
-				if (
-					search.selectedAddress &&
-					search.selectedAddressCommunityName === communityProperties.community
-				) {
-					// Don't show popup for the community area containing the searched address
-					return;
-				}
 
 				const lngLat = e.lngLat;
 				popup.node?.showPopup(lngLat, communityProperties as any);
@@ -230,46 +256,75 @@
 			}
 		});
 
-		// Add mouseenter and mouseleave handlers for Census tracts and Community areas.
-		mapState.map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-			if (visualization.aggregationLevel === 'tract') {
-				// Show pointer cursor for all tracts except the one containing the searched address
-				if (e.features?.length && search.selectedAddress && search.selectedAddressTractId) {
-					const feature = e.features[0];
-					if (feature.properties?.geoid === search.selectedAddressTractId) {
-						return; // Don't show pointer for the searched address tract
-					}
-				}
-				const map = e.target;
-				map.getCanvas().style.cursor = 'pointer';
+		// Handle cursor for census tracts - simplified to just use mousemove
+		mapState.map.on('mousemove', LAYER_CONFIG.censusTractsFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'tract') return;
+
+			const map = e.target;
+			// Check if there's a service line under the cursor - if so, don't change cursor
+			const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+				layers: [LAYER_CONFIG.serviceLines.id]
+			});
+			if (serviceLineFeatures && serviceLineFeatures.length > 0) {
+				return; // Let service line handler manage the cursor
 			}
+
+			if (!e.features?.length) {
+				map.getCanvas().style.cursor = '';
+				return;
+			}
+
+			const feature = e.features[0];
+			const properties = feature.properties;
+			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'tract') ? 'pointer' : '';
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, (e) => {
 			if (visualization.aggregationLevel === 'tract') {
 				const map = e.target;
-				map.getCanvas().style.cursor = '';
+				// Check if we're leaving to a service line
+				const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+					layers: [LAYER_CONFIG.serviceLines.id]
+				});
+				if (!serviceLineFeatures || serviceLineFeatures.length === 0) {
+					map.getCanvas().style.cursor = '';
+				}
 			}
 		});
 
-		mapState.map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, (e) => {
-			if (visualization.aggregationLevel === 'community') {
-				// Show pointer cursor for all community areas except the one containing the searched address
-				if (e.features?.length && search.selectedAddress && search.selectedAddressCommunityName) {
-					const feature = e.features[0];
-					if (feature.properties?.community === search.selectedAddressCommunityName) {
-						return; // Don't show pointer for the searched address community area
-					}
-				}
-				const map = e.target;
-				map.getCanvas().style.cursor = 'pointer';
+		// Handle cursor for community areas - simplified to just use mousemove
+		mapState.map.on('mousemove', LAYER_CONFIG.communityAreasFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'community') return;
+
+			const map = e.target;
+			// Check if there's a service line under the cursor - if so, don't change cursor
+			const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+				layers: [LAYER_CONFIG.serviceLines.id]
+			});
+			if (serviceLineFeatures && serviceLineFeatures.length > 0) {
+				return; // Let service line handler manage the cursor
 			}
+
+			if (!e.features?.length) {
+				map.getCanvas().style.cursor = '';
+				return;
+			}
+
+			const feature = e.features[0];
+			const properties = feature.properties;
+			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'community') ? 'pointer' : '';
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, (e) => {
 			if (visualization.aggregationLevel === 'community') {
 				const map = e.target;
-				map.getCanvas().style.cursor = '';
+				// Check if we're leaving to a service line
+				const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+					layers: [LAYER_CONFIG.serviceLines.id]
+				});
+				if (!serviceLineFeatures || serviceLineFeatures.length === 0) {
+					map.getCanvas().style.cursor = '';
+				}
 			}
 		});
 
@@ -289,15 +344,16 @@
 			}
 		});
 
-		// Add hover effect for service lines
+		// Add hover effect for service lines - only when they have features
 		mapState.map.on('mouseenter', LAYER_CONFIG.serviceLines.id, (e) => {
-			const map = e.target;
-			map.getCanvas().style.cursor = 'pointer';
+			// Only show pointer if there are actual features and they're visible
+			if (e.features && e.features.length > 0) {
+				e.target.getCanvas().style.cursor = 'pointer';
+			}
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.serviceLines.id, (e) => {
-			const map = e.target;
-			map.getCanvas().style.cursor = '';
+			e.target.getCanvas().style.cursor = '';
 		});
 
 		mapState.map.on('move', () => {
@@ -519,7 +575,7 @@
 				{#if ui.resourcesExpanded && !isTabletOrAbove}
 					<div
 						bind:this={resourcesPanelRef}
-						class="floating-panel scrollbar-thin scrollbar-position max-h-[calc(50svh-8rem)] overflow-y-auto p-3"
+						class="floating-panel scrollbar-thin scrollbar-position z-10 max-h-[calc(50svh-8rem)] overflow-y-auto p-3"
 					>
 						<Resources />
 					</div>
@@ -537,7 +593,7 @@
 	</div>
 </main>
 <div
-	class="fixed bottom-6 left-[calc(3%+5rem)] z-10 flex items-center justify-center gap-2 sm:right-4 sm:bottom-14 sm:left-auto"
+	class="fixed right-[calc(3%+2rem)] bottom-6 flex items-center justify-center gap-2 sm:right-4 sm:bottom-14"
 >
 	<GristLogo />
 	<WBEZLogo />

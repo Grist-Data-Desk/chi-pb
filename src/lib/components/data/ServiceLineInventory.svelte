@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AreaContext from '$lib/components/data/AreaContext.svelte';
 	import AreaContextLoading from '$lib/components/data/AreaContextLoading.svelte';
+	import ServiceLineTooltip from '$lib/components/shared/ServiceLineTooltip.svelte';
 	import type { CensusTract, CommunityArea } from '$lib/types';
 	import { formatCount, formatPercent } from '$lib/utils/formatters';
 
@@ -24,24 +25,40 @@
 		</colgroup>
 		<tbody>
 			<tr>
-				<td class="p-0.5 text-slate-500 sm:p-1">Lead</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">
+					<ServiceLineTooltip classification="lead">
+						<span>Lead</span>
+					</ServiceLineTooltip>
+				</td>
 				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.L)}</td>
 				<td class="p-0.5 text-right text-slate-500 sm:p-1">{formatPercent(data.pct_lead)}</td>
 			</tr>
 			<tr>
-				<td class="p-0.5 text-slate-500 sm:p-1">Suspected Lead</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">
+					<ServiceLineTooltip classification="suspected">
+						<span>Suspected Lead</span>
+					</ServiceLineTooltip>
+				</td>
 				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.U)}</td>
 				<td class="p-0.5 text-right text-slate-500 sm:p-1"
 					>{formatPercent(data.pct_suspected_lead)}</td
 				>
 			</tr>
 			<tr>
-				<td class="p-0.5 text-slate-500 sm:p-1">Galvanized (Replace)</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">
+					<ServiceLineTooltip classification="galvanized">
+						<span>Galvanized (Replace)</span>
+					</ServiceLineTooltip>
+				</td>
 				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.GRR)}</td>
 				<td class="p-0.5 text-right text-slate-500 sm:p-1">{formatPercent(data.pct_grr)}</td>
 			</tr>
 			<tr>
-				<td class="p-0.5 text-slate-500 sm:p-1">Non-Lead</td>
+				<td class="p-0.5 text-slate-500 sm:p-1">
+					<ServiceLineTooltip classification="non-lead">
+						<span>Non-Lead</span>
+					</ServiceLineTooltip>
+				</td>
 				<td class="p-0.5 text-right font-medium sm:p-1">{formatCount(data.NL)}</td>
 				<td class="p-0.5 text-right text-slate-500 sm:p-1">{formatPercent(data.pct_not_lead)}</td>
 			</tr>

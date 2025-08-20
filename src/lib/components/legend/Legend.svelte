@@ -18,7 +18,7 @@
 	}));
 
 	// State.
-	let quantileData = $derived<{ quantiles: number[]; colors: readonly string[] }>(
+	let quantileData = $derived(
 		fetchQuantileData(visualization.aggregationLevel, visualization.choroplethMode)
 	);
 
@@ -90,14 +90,14 @@
 	<div class="mb-0 flex items-center gap-1">
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 20 20"
+			viewBox="0 0 16 16"
 			fill="currentColor"
 			class="h-3 w-3 text-gray-500"
 		>
 			<path
 				fill-rule="evenodd"
-				d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z"
 				clip-rule="evenodd"
+				d="M0 5.25136V4.2487L0.463236 4.05702L7.71324 1.05702L8 0.938354L8.28676 1.05702L15.5368 4.05702L16 4.2487V5.25136L15.5368 5.44304L8.28676 8.44304L8 8.5617L7.71324 8.44304L0.463236 5.44304L0 5.25136ZM0 8.45825V6.83491L0.536764 7.05702L8 10.1453L15.4632 7.05702L16 6.83491V8.45825L8.28676 11.6499L8 11.7686L7.71324 11.6499L0 8.45825ZM0 11.7083V10.0849L0.536764 10.307L8 13.3953L15.4632 10.307L16 10.0849V11.7083L8.28676 14.8999L8 15.0186L7.71324 14.8999L0 11.7083ZM8 6.93835L2.71154 4.75003L8 2.5617L13.2885 4.75003L8 6.93835Z"
 			/>
 		</svg>
 		<p class="m-0 font-sans text-xs leading-tight text-gray-500">
@@ -198,35 +198,50 @@
 		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">
 			{getVariableDescription(visualization.choroplethMode)}
 		</p>
-		{#if quantileData}
-			{@const positions = [0, 1, 5, 20, 40, 60, 80, 95, 99, 100]}
-			{@const labels = ['0%', ...quantileData.quantiles.map(formatQuantileValue), '100%']}
-			{@const flexValues = [1, 4, 15, 20, 20, 20, 15, 4, 1]}
-			{@const visibleIndices = labels
+		{#if quantileData && quantileData.dedupedQuantiles && quantileData.dedupedColors && quantileData.flexValues}
+			{@const dedupedLabels = [
+				'0%',
+				...quantileData.dedupedQuantiles.map(formatQuantileValue),
+				'100%'
+			]}
+			{@const positions = (() => {
+				const totalFlex = quantileData.flexValues.reduce((a, b) => a + b, 0);
+				const pos = [0];
+				let cumulative = 0;
+				for (let i = 0; i < quantileData.flexValues.length; i++) {
+					cumulative += quantileData.flexValues[i];
+					pos.push((cumulative / totalFlex) * 100);
+				}
+				return pos;
+			})()}
+			{@const visibleIndices = dedupedLabels
 				.map((_, i) => i)
-				.filter((i) => i % 2 === 1 && i < labels.length - 1)}
+				.filter((i) => i % 2 === 1 && i < dedupedLabels.length - 1)}
 			{@const lastVisibleIndex = visibleIndices[visibleIndices.length - 1]}
 			<div>
 				<!-- Container for color blocks and labels -->
 				<div class="relative">
 					<!-- Proportionally-sized color blocks -->
 					<div class="flex gap-0.5">
-						{#each quantileData.colors as color, i}
+						{#each quantileData.dedupedColors as color, i}
 							<div
 								class="h-3 rounded-xs inset-ring inset-ring-[rgba(0,0,0,0.1)]"
-								style="background-color: {color}; opacity: 0.7; flex: {flexValues[i]};"
+								style="background-color: {color}; opacity: 0.7; flex: {quantileData.flexValues[i]};"
 							></div>
 						{/each}
 					</div>
 					<!-- Labels below the color boxes - showing every other label starting from the second, excluding the last -->
 					<div class="text-2xs relative mt-1 h-4 text-gray-500">
-						{#each labels as label, i}
-							{#if i % 2 === 1 && i < labels.length - 1}
+						{#each dedupedLabels as label, i}
+							{#if i % 2 === 1 && i < dedupedLabels.length - 1}
 								<span
 									class="absolute font-sans whitespace-nowrap"
 									style={i === 1
 										? 'left: 0; transform: none;'
-										: `left: ${positions[i]}%; transform: translateX(-50%);`}
+										: i === lastVisibleIndex &&
+											  quantileData.dedupedQuantiles.length < quantileData.quantiles.length
+											? `left: ${positions[i]}%; transform: translateX(-50%);`
+											: `left: ${positions[i]}%; transform: translateX(-50%);`}
 								>
 									{i === 1
 										? `<${label}`
@@ -238,7 +253,7 @@
 						{/each}
 					</div>
 				</div>
-				<p class="text-2xs mt-1 mb-0 font-sans leading-tight text-gray-500 italic sm:text-xs">
+				<p class="mt-3 mb-0.5 font-sans text-xs leading-tight text-gray-500 italic">
 					Color boxes are sized proportionally to the number of {visualization.aggregationLevel ===
 					'tract'
 						? 'census tracts'

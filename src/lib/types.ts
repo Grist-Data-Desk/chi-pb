@@ -40,6 +40,7 @@ interface DemographicStatistics {
 	median_household_income: number;
 	pct_asian_nonhispanic: number;
 	pct_black_nonhispanic: number;
+	pct_hispanic: number;
 	pct_minority: number;
 	pct_poverty: number;
 	pct_white_nonhispanic: number;

@@ -35,6 +35,12 @@
 				>
 			</tr>
 			<tr>
+				<td class="py-0.5 text-slate-500 sm:py-1">Latino Population</td>
+				<td class="py-0.5 text-right font-medium sm:py-1"
+					>{formatPercent(data.pct_hispanic)}</td
+				>
+			</tr>
+			<tr>
 				<td class="py-0.5 text-slate-500 sm:py-1">White Population</td>
 				<td class="py-0.5 text-right font-medium sm:py-1"
 					>{formatPercent(data.pct_white_nonhispanic)}</td

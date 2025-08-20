@@ -361,6 +361,8 @@
 						This address is associated with {$serviceLineCount} service line records. The status shown
 						above represents the 'worst-case' scenario across all lines: If suspected lead appears in
 						any of the service lines, it'll be noted here. See individual line details below.
+						<span class="sm:hidden">Tap</span><span class="hidden sm:inline">Hover over</span> a line
+						classification to learn more.
 					</p>
 				{/if}
 			{/if}

@@ -61,7 +61,7 @@
 					Free Water Filter
 				</p>
 				<p class="mb-2 font-sans text-xs text-red-800">
-					Check if your address qualifies for a free water filter from the City of Chicago.
+					Check if your address qualifies for a free water filter from the city of Chicago.
 				</p>
 				<a
 					href="https://chicagowaterquality.org/filters"

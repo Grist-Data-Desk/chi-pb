@@ -5,8 +5,8 @@ export const SERVICE_LINE_DEFINITIONS: Record<ServiceLineClassification, string>
 	suspected:
 		"The composition of the service line is marked unknown in the city's inventory, but is suspected to contain lead components, usually based on the building's age.",
 	galvanized:
-		'No components of the service line are known to be made from lead, but at least one is composed of galvanized steel, which can become contaminated with lead from upstream pipes.',
-	'non-lead': 'None of the components of the line are made from or may be contaminated with lead.'
+		'No components of the service line are known to be made from lead, but at least one part is made of galvanized steel, which can become contaminated with lead from upstream pipes.',
+	'non-lead': 'None of the components of the service line are made from or may be contaminated with lead.'
 };
 
 export interface TooltipPosition {

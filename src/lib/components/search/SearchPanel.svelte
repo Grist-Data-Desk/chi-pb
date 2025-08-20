@@ -1346,11 +1346,8 @@
 			<h1 class="font-sans-secondary m-0 text-2xl font-medium text-slate-800 sm:text-3xl">
 				Chicago: Does your water service line contain lead?
 			</h1>
-			<p class="m-0 font-sans text-xs text-slate-600 sm:text-sm">
-				Enter your address to find information about your Chicago water service line composition and
-				lead status. The map will show your service line location and
-				{visualization.aggregationLevel === 'community' ? 'community area' : 'census tract'}
-				demographic data.
+			<p class="m-0 font-sans text-sm text-slate-600">
+				Enter your Chicago address to find out whether any part of your water service line is made from lead.
 			</p>
 		</div>
 	{/if}

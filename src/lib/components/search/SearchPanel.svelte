@@ -1340,7 +1340,7 @@
 	});
 </script>
 
-<div class="flex flex-col gap-3 rounded-lg sm:gap-4">
+<div class="flex flex-col gap-3 sm:gap-4">
 	{#if !ui.searchHeaderCollapsed}
 		<div class="flex flex-col gap-2 sm:gap-4">
 			<h1 class="font-sans-secondary m-0 text-2xl font-medium text-slate-800 sm:text-3xl">

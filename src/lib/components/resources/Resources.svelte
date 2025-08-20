@@ -12,11 +12,11 @@
 
 <div class="relative w-full">
 	<button
-		class="absolute top-0 right-0 z-10 flex h-6 w-6 items-center justify-center hover:bg-slate-100"
+		class="bg-smog absolute top-0 right-0 z-10 flex h-6 w-6 items-center justify-center border-none transition-opacity hover:opacity-70"
 		onclick={() => (ui.resourcesExpanded = false)}
 		aria-label="Close resources"
 	>
-		<svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
@@ -37,7 +37,7 @@
 
 	<div class="space-y-2">
 		<div class="rounded-sm border border-blue-200 bg-blue-50 p-2">
-			<p class="mb-1 font-sans text-xs font-semibold text-blue-900">Free Water Testing Kit</p>
+			<p class="mt-0 mb-1 font-sans text-xs font-semibold text-blue-900">Free Water Testing Kit</p>
 			<p class="mb-2 font-sans text-xs text-blue-800">
 				All Chicago residents can request a free water testing kit to check lead levels.
 			</p>
@@ -61,7 +61,7 @@
 
 		{#if qualifiesForFilter}
 			<div class="rounded-sm border border-red-200 bg-red-50 p-2">
-				<p class="mb-1 font-sans text-xs font-semibold text-red-900">Free Water Filter</p>
+				<p class="mt-0 mb-1 font-sans text-xs font-semibold text-red-900">Free Water Filter</p>
 				<p class="mb-2 font-sans text-xs text-red-800">
 					Check if your address qualifies for a free water filter from the city of Chicago.
 				</p>
@@ -86,7 +86,7 @@
 
 		{#if qualifiesForFilter}
 			<div class="rounded-sm border border-green-200 bg-green-50 p-2">
-				<p class="mb-1 font-sans text-xs font-semibold text-green-900">
+				<p class="mt-0 mb-1 font-sans text-xs font-semibold text-green-900">
 					Lead Pipe Replacement Assistance
 				</p>
 				<p class="mb-2 font-sans text-xs text-green-800">

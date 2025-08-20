@@ -8,7 +8,7 @@
 
 <button
 	type="button"
-	class="floating-panel flex h-[29px] items-center justify-center gap-1 px-3 text-xs font-medium text-slate-600"
+	class="floating-panel flex h-[29px] items-center justify-center gap-1 px-3 text-xs text-slate-600"
 	onclick={toggleCredits}
 	aria-label={ui.creditsExpanded ? 'Collapse notes' : 'Expand notes'}
 >

@@ -575,7 +575,7 @@
 				{#if ui.resourcesExpanded && !isTabletOrAbove}
 					<div
 						bind:this={resourcesPanelRef}
-						class="floating-panel scrollbar-thin scrollbar-position max-h-[calc(50svh-8rem)] overflow-y-auto p-3"
+						class="floating-panel scrollbar-thin scrollbar-position z-10 max-h-[calc(50svh-8rem)] overflow-y-auto p-3"
 					>
 						<Resources />
 					</div>
@@ -593,7 +593,7 @@
 	</div>
 </main>
 <div
-	class="fixed bottom-6 left-[calc(3%+5rem)] z-10 flex items-center justify-center gap-2 sm:right-4 sm:bottom-14 sm:left-auto"
+	class="fixed right-[calc(3%+2rem)] bottom-6 flex items-center justify-center gap-2 sm:right-4 sm:bottom-14"
 >
 	<GristLogo />
 	<WBEZLogo />

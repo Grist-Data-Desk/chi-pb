@@ -12,7 +12,7 @@
 	class="border-earth bg-smog absolute bottom-6 left-[3%] z-10 rounded-sm border shadow-sm backdrop-blur-sm md:hidden"
 >
 	<button
-		class="flex h-8 items-center justify-center gap-1 border-0 bg-transparent px-2"
+		class="flex h-8 items-center justify-center gap-1 border-0 bg-transparent px-2 text-slate-600"
 		onclick={onClick}
 		aria-label="Expand legend"
 	>

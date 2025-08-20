@@ -248,74 +248,75 @@
 			}
 		});
 
-		// Add mouseenter and mouseleave handlers for census tracts and community areas.
-		mapState.map.on('mouseenter', LAYER_CONFIG.censusTractsFill.id, (e) => {
-			if (visualization.aggregationLevel !== 'tract' || !e.features?.length) return;
+		// Handle cursor for census tracts - simplified to just use mousemove
+		mapState.map.on('mousemove', LAYER_CONFIG.censusTractsFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'tract') return;
+			
+			const map = e.target;
+			// Check if there's a service line under the cursor - if so, don't change cursor
+			const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+				layers: [LAYER_CONFIG.serviceLines.id]
+			});
+			if (serviceLineFeatures && serviceLineFeatures.length > 0) {
+				return; // Let service line handler manage the cursor
+			}
+			
+			if (!e.features?.length) {
+				map.getCanvas().style.cursor = '';
+				return;
+			}
 			
 			const feature = e.features[0];
 			const properties = feature.properties;
-			const map = e.target;
-			
 			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'tract') ? 'pointer' : '';
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.censusTractsFill.id, (e) => {
 			if (visualization.aggregationLevel === 'tract') {
 				const map = e.target;
-				map.getCanvas().style.cursor = '';
+				// Check if we're leaving to a service line
+				const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+					layers: [LAYER_CONFIG.serviceLines.id]
+				});
+				if (!serviceLineFeatures || serviceLineFeatures.length === 0) {
+					map.getCanvas().style.cursor = '';
+				}
 			}
 		});
 
-		// Add mousemove handler to catch transitions between features
-		mapState.map.on('mousemove', LAYER_CONFIG.censusTractsFill.id, (e) => {
-			if (visualization.aggregationLevel !== 'tract' || !e.features?.length) return;
+		// Handle cursor for community areas - simplified to just use mousemove
+		mapState.map.on('mousemove', LAYER_CONFIG.communityAreasFill.id, (e) => {
+			if (visualization.aggregationLevel !== 'community') return;
 			
-			const feature = e.features[0];
-			const properties = feature.properties;
 			const map = e.target;
-			const currentCursor = map.getCanvas().style.cursor;
-			const shouldHavePointer = isPolygonInteractive(properties, 'tract');
-			
-			// Update cursor if needed
-			if (!shouldHavePointer && currentCursor === 'pointer') {
-				map.getCanvas().style.cursor = '';
-			} else if (shouldHavePointer && currentCursor !== 'pointer') {
-				map.getCanvas().style.cursor = 'pointer';
+			// Check if there's a service line under the cursor - if so, don't change cursor
+			const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+				layers: [LAYER_CONFIG.serviceLines.id]
+			});
+			if (serviceLineFeatures && serviceLineFeatures.length > 0) {
+				return; // Let service line handler manage the cursor
 			}
-		});
-
-		mapState.map.on('mouseenter', LAYER_CONFIG.communityAreasFill.id, (e) => {
-			if (visualization.aggregationLevel !== 'community' || !e.features?.length) return;
+			
+			if (!e.features?.length) {
+				map.getCanvas().style.cursor = '';
+				return;
+			}
 			
 			const feature = e.features[0];
 			const properties = feature.properties;
-			const map = e.target;
-			
 			map.getCanvas().style.cursor = isPolygonInteractive(properties, 'community') ? 'pointer' : '';
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.communityAreasFill.id, (e) => {
 			if (visualization.aggregationLevel === 'community') {
 				const map = e.target;
-				map.getCanvas().style.cursor = '';
-			}
-		});
-
-		// Add mousemove handler to catch transitions between features
-		mapState.map.on('mousemove', LAYER_CONFIG.communityAreasFill.id, (e) => {
-			if (visualization.aggregationLevel !== 'community' || !e.features?.length) return;
-			
-			const feature = e.features[0];
-			const properties = feature.properties;
-			const map = e.target;
-			const currentCursor = map.getCanvas().style.cursor;
-			const shouldHavePointer = isPolygonInteractive(properties, 'community');
-			
-			// Update cursor if needed
-			if (!shouldHavePointer && currentCursor === 'pointer') {
-				map.getCanvas().style.cursor = '';
-			} else if (shouldHavePointer && currentCursor !== 'pointer') {
-				map.getCanvas().style.cursor = 'pointer';
+				// Check if we're leaving to a service line
+				const serviceLineFeatures = map.queryRenderedFeatures(e.point, {
+					layers: [LAYER_CONFIG.serviceLines.id]
+				});
+				if (!serviceLineFeatures || serviceLineFeatures.length === 0) {
+					map.getCanvas().style.cursor = '';
+				}
 			}
 		});
 
@@ -335,15 +336,16 @@
 			}
 		});
 
-		// Add hover effect for service lines
+		// Add hover effect for service lines - only when they have features
 		mapState.map.on('mouseenter', LAYER_CONFIG.serviceLines.id, (e) => {
-			const map = e.target;
-			map.getCanvas().style.cursor = 'pointer';
+			// Only show pointer if there are actual features and they're visible
+			if (e.features && e.features.length > 0) {
+				e.target.getCanvas().style.cursor = 'pointer';
+			}
 		});
 
 		mapState.map.on('mouseleave', LAYER_CONFIG.serviceLines.id, (e) => {
-			const map = e.target;
-			map.getCanvas().style.cursor = '';
+			e.target.getCanvas().style.cursor = '';
 		});
 
 		mapState.map.on('move', () => {

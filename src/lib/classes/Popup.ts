@@ -273,8 +273,8 @@ export class Popup {
 					<table class="text-2xs w-full table-fixed border-collapse font-sans text-slate-500 sm:text-xs">
 						<tbody>
 							<colgroup>
-								<col width="50%" />
-								<col width="50%" />
+								<col width="65%" />
+								<col width="35%" />
 							</colgroup>
 							<tr>
 								<td class="p-1 text-slate-500">Median Household Income</td>

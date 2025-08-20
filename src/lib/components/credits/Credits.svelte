@@ -1,7 +1,6 @@
 <div class="text-2xs mt-2 flex flex-col gap-2 font-sans leading-tight text-slate-500">
 	<p class="m-0">
-		<strong>Note</strong> Data is current as of the 2025 water service line inventory. As per the city's
-		practice, service lines marked "Unknown" are suspected to contain some amount of lead.
+		<strong>Note</strong> Data is current as of the city’s 2025 water service line inventory. The city’s data is incomplete and may contain inaccuracies and duplicates. Multiple addresses may be served by the same service line. Some addresses will appear as ranges.
 	</p>
 	<p class="m-0">
 		<strong>Sources</strong> City of Chicago / Census Bureau

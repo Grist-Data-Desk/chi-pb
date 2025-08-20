@@ -16,7 +16,7 @@
 {#if loading}
 	<AreaContextLoading />
 {:else}
-	<AreaContext {data} />
+	<AreaContext {data} showServiceLineHelp={true} />
 	<table class="text-2xs w-full border-collapse sm:text-xs">
 		<colgroup>
 			<col class="w-3/5" />

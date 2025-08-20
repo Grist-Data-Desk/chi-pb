@@ -279,28 +279,101 @@
 				}
 			});
 		} else if (normalizedStreetPart.length > 0) {
-			// Street search using the index
-			const resultIds = new Set<number>();
-			const streetWords = normalizedStreetPart.split(/\s+/);
+			// Check if this is an intersection query (contains & or was normalized from "and")
+			const isIntersectionQuery = normalizedStreetPart.includes('&');
 
-			streetWords.forEach((word) => {
-				if (word.length >= 1) {
-					Object.keys(combinedIndex.streets).forEach((streetKey) => {
-						if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
-							const ids = combinedIndex.streets[streetKey];
-							if (Array.isArray(ids)) {
-								ids.forEach((id) => resultIds.add(id));
+			if (isIntersectionQuery) {
+				// Handle intersection search
+				const streets = normalizedStreetPart
+					.split('&')
+					.map((s) => s.trim())
+					.filter((s) => s.length > 0);
+
+				if (streets.length >= 2) {
+					// Find addresses that match ALL streets in the intersection
+					const streetMatchSets = streets.map((street) => {
+						const streetIds = new Set<number>();
+						const streetWords = street.split(/\s+/).filter((w) => w.length > 0);
+
+						// Use the efficient street index
+						streetWords.forEach((word) => {
+							if (word.length >= 1) {
+								// Check all street index keys for matches
+								Object.keys(combinedIndex.streets).forEach((streetKey) => {
+									if (!streetKey.endsWith('*') && streetKey.includes(word)) {
+										const ids = combinedIndex.streets[streetKey];
+										if (Array.isArray(ids)) {
+											// Add all IDs that match this word
+											ids.forEach((id) => streetIds.add(id));
+										}
+									}
+								});
 							}
-						}
-					});
-				}
-			});
+						});
 
-			resultIds.forEach((id) => {
-				if (id >= 0 && id < combinedIndex.addresses.length) {
-					matchingAddresses.push(combinedIndex.addresses[id]);
+						// Filter to only keep addresses where ALL words match
+						const filteredIds = new Set<number>();
+						streetIds.forEach((id) => {
+							if (id >= 0 && id < combinedIndex.addresses.length) {
+								const addr = combinedIndex.addresses[id];
+								// addr.a contains the address, addr.z contains zip
+								const fullAddr = addr.a.includes(addr.z)
+									? addr.a.replace(/, (\d{5})$/, ', CHICAGO, IL $1')
+									: addr.a + ', CHICAGO, IL ' + addr.z;
+								const normalizedDisplay = normalizeAddress(fullAddr);
+
+								// Check if all words from this street are in the address
+								const allWordsMatch = streetWords.every((word) => {
+									// Check all words including single letters
+									return normalizedDisplay.includes(word);
+								});
+
+								if (allWordsMatch) {
+									filteredIds.add(id);
+								}
+							}
+						});
+
+						return filteredIds;
+					});
+
+					// Find intersection - addresses that match ALL streets
+					if (streetMatchSets.length >= 2) {
+						const intersection = streetMatchSets.reduce((a, b) => {
+							return new Set([...a].filter((x) => b.has(x)));
+						});
+
+						intersection.forEach((id) => {
+							if (id >= 0 && id < combinedIndex.addresses.length) {
+								matchingAddresses.push(combinedIndex.addresses[id]);
+							}
+						});
+					}
 				}
-			});
+			} else {
+				// Regular street search - use the street index
+				const resultIds = new Set<number>();
+				const streetWords = normalizedStreetPart.split(/\s+/);
+
+				streetWords.forEach((word) => {
+					if (word.length >= 1) {
+						Object.keys(combinedIndex.streets).forEach((streetKey) => {
+							if (!streetKey.endsWith('*') && streetKey.startsWith(word)) {
+								const ids = combinedIndex.streets[streetKey];
+								if (Array.isArray(ids)) {
+									ids.forEach((id) => resultIds.add(id));
+								}
+							}
+						});
+					}
+				});
+
+				resultIds.forEach((id) => {
+					if (id >= 0 && id < combinedIndex.addresses.length) {
+						matchingAddresses.push(combinedIndex.addresses[id]);
+					}
+				});
+			}
 		}
 
 		// Sort and deduplicate

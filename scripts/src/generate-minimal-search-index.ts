@@ -146,10 +146,10 @@ async function generateCombinedIndex(addressPath: string, outputPath: string): P
 				let fullAddress = String(normalizedRow.matched_address || '');
 				const stnum1 = parseInt(normalizedRow.stnum1 as string) || 0;
 				const stnum2 = parseInt(normalizedRow.stnum2 as string) || 0;
-				const stdir = String(normalizedRow.stdir || '');
-				const stname = String(normalizedRow.stname || '');
-				const sttype = String(normalizedRow.sttype || '');
-				const zip = String(normalizedRow.zip || '');
+				const stdir = String(normalizedRow.m_stdir || '');
+				const stname = String(normalizedRow.m_stname || '');
+				const sttype = String(normalizedRow.m_sttype || '');
+				const zip = String(normalizedRow.m_zip || '');
 				const row = parseInt(normalizedRow.row as string) || 0;
 				const lat = parseFloat(normalizedRow.lat as string) || 0;
 				const long = parseFloat(normalizedRow.long as string) || 0;

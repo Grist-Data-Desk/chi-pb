@@ -83,10 +83,10 @@ async function generateServiceLinesGeoJSON(): Promise<void> {
 						is_intersection: normalizedRow.is_intersection === 'TRUE',
 						stnum1: parseInt(normalizedRow.stnum1 as string) || 0,
 						stnum2: parseInt(normalizedRow.stnum2 as string) || 0,
-						stdir: String(normalizedRow.stdir || ''),
-						stname: String(normalizedRow.stname || ''),
-						sttype: String(normalizedRow.sttype || ''),
-						zip: String(normalizedRow.zip || ''),
+						stdir: String(normalizedRow.m_stdir || ''),
+						stname: String(normalizedRow.m_stname || ''),
+						sttype: String(normalizedRow.m_sttype || ''),
+						zip: String(normalizedRow.m_zip || ''),
 						lat: lat,
 						long: long
 					}

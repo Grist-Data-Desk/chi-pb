@@ -28,7 +28,7 @@ export class Popup {
 		const mapHeight = this.map.getContainer().offsetHeight;
 		const mapWidth = this.map.getContainer().offsetWidth;
 		const popupWidth = this.isTabletOrAbove ? 332 : 282;
-		const popupHeight = this.isTabletOrAbove ? 242 : 222;
+		const popupHeight = this.isTabletOrAbove ? 242 : 245;
 
 		let anchor: maplibregl.PositionAnchor = 'top';
 		let position: maplibregl.LngLatLike = lngLat;
@@ -53,9 +53,11 @@ export class Popup {
 				`${verticalAnchor}${horizontalAnchor ? '-' + horizontalAnchor : ''}` as maplibregl.PositionAnchor;
 		} else {
 			// On mobile, use a fixed position in the bottom left of the screen,
-			// accounting for the Filters button.
-			anchor = 'top-left';
-			position = this.map.unproject([(mapWidth / 100) * 3, mapHeight - popupHeight - 24 - 34 - 8]);
+			// accounting for the Legend button.
+			anchor = 'bottom-left';
+			const x = (mapWidth / 100) * 3; // 3% from the left.
+			const y = mapHeight - 24 - 34 - 8; // 24px of padding, 34px for Legend button, 8px additional padding.
+			position = this.map.unproject([x, y]);
 		}
 
 		this.popup = new maplibregl.Popup({

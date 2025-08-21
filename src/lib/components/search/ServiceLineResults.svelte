@@ -367,10 +367,10 @@
 		</div>
 		{#if !search.isNominatimAddress}
 			<Tabs>
-				<TabItem title="Service line information" open={true}>
+				<TabItem title={'Service line\ninformation'} open={true}>
 					<ServiceLineDetails {isLoading} {error} {currentInventoryData} />
 				</TabItem>
-				<TabItem title="Service line inventory" open={false}>
+				<TabItem title={'Service line\ninventory'} open={false}>
 					<ServiceLineInventory
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 						loading={visualization.aggregationLevel === 'tract'
@@ -378,7 +378,7 @@
 							: isCommunityDataLoading}
 					/>
 				</TabItem>
-				<TabItem title="Demographic context" open={false}>
+				<TabItem title={'Demographic\ncontext'} open={false}>
 					<Demographics
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 						loading={visualization.aggregationLevel === 'tract'

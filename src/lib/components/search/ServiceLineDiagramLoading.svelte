@@ -43,10 +43,10 @@
 	</g>
 
 	<!-- Public/Customer Side Headers -->
-	<text x="170" y="80" text-anchor="middle" class="fill-slate-400 text-sm font-semibold"
+	<text x="170" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
 		>Public Side</text
 	>
-	<text x="450" y="80" text-anchor="middle" class="fill-slate-400 text-sm font-semibold"
+	<text x="450" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
 		>Private Side</text
 	>
 
@@ -63,21 +63,21 @@
 	/>
 
 	<!-- Labels -->
-	<text x="40" y="110" text-anchor="middle" class="fill-slate-400 text-sm font-medium"
+	<text x="40" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
 		>Water main</text
 	>
-	<text x="140" y="110" text-anchor="middle" class="fill-slate-400 text-sm font-medium"
+	<text x="140" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
 		>Gooseneck</text
 	>
 
 	<!-- Utility portion label with text wrapping -->
-	<text x="285" y="105" text-anchor="middle" class="fill-slate-400 text-sm font-medium">
+	<text x="285" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
 		<tspan x="285" dy="0">Utility portion</tspan>
 		<tspan x="285" dy="14">of service line</tspan>
 	</text>
 
 	<!-- Customer portion label with text wrapping -->
-	<text x="450" y="105" text-anchor="middle" class="fill-slate-400 text-sm font-medium">
+	<text x="450" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
 		<tspan x="450" dy="0">Customer portion</tspan>
 		<tspan x="450" dy="14">of service line</tspan>
 	</text>
@@ -169,7 +169,7 @@
 	<rect x="0" y="0" width="550" height="230" fill="url(#waterFlow)" mask="url(#pipeMask)" />
 
 	<!-- Loading text below -->
-	<text x="275" y="240" text-anchor="middle" class="animate-pulse fill-slate-500 text-sm">
+	<text x="275" y="240" text-anchor="middle" class="fill-earth/40 animate-pulse text-sm">
 		Loading service line information...
 	</text>
 </svg>

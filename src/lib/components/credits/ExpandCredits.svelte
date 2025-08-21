@@ -8,13 +8,13 @@
 
 <button
 	type="button"
-	class="floating-panel flex h-[29px] items-center justify-center gap-1 px-3 text-xs text-slate-600"
+	class="floating-panel text-earth/80 flex h-[29px] items-center justify-center gap-1 px-3 text-xs"
 	onclick={toggleCredits}
 	aria-label={ui.creditsExpanded ? 'Collapse notes' : 'Expand notes'}
 >
 	<span>Notes</span>
 	<svg
-		class="h-3 w-3 text-slate-600 transition-transform duration-200"
+		class="text-earth/80 h-3 w-3 transition-transform duration-200"
 		style="transform: rotate({ui.creditsExpanded ? '180deg' : '0deg'})"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 24 24"

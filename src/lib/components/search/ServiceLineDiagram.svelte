@@ -181,10 +181,10 @@
 	{/if}
 
 	<!-- Public/Customer Side Headers -->
-	<text x="170" y="80" text-anchor="middle" class="fill-slate-700 text-sm font-semibold"
+	<text x="170" y="80" text-anchor="middle" class="fill-earth/80 text-sm font-semibold"
 		>Public Side</text
 	>
-	<text x="450" y="80" text-anchor="middle" class="fill-slate-700 text-sm font-semibold"
+	<text x="450" y="80" text-anchor="middle" class="fill-earth/80 text-sm font-semibold"
 		>Private Side</text
 	>
 
@@ -201,21 +201,21 @@
 	/>
 
 	<!-- Labels -->
-	<text x="40" y="110" text-anchor="middle" class="fill-slate-600 text-sm font-medium"
+	<text x="40" y="110" text-anchor="middle" class="fill-earth/80 text-sm font-medium"
 		>Water main</text
 	>
-	<text x="140" y="110" text-anchor="middle" class="fill-slate-600 text-sm font-medium"
+	<text x="140" y="110" text-anchor="middle" class="fill-earth/80 text-sm font-medium"
 		>Gooseneck</text
 	>
 
 	<!-- Utility portion label with text wrapping -->
-	<text x="285" y="105" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
+	<text x="285" y="105" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
 		<tspan x="285" dy="0">Utility portion</tspan>
 		<tspan x="285" dy="14">of service line</tspan>
 	</text>
 
 	<!-- Customer portion label with text wrapping -->
-	<text x="450" y="105" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
+	<text x="450" y="105" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
 		<tspan x="450" dy="0">Customer portion</tspan>
 		<tspan x="450" dy="14">of service line</tspan>
 	</text>
@@ -286,7 +286,7 @@
 	</rect>
 
 	<!-- Material labels below pipes with text wrapping -->
-	<text x="140" y="200" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
+	<text x="140" y="200" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
 		{#if splitLabel(getMaterialLabel(gooseneckMaterial)).line2}
 			<tspan x="140" dy="0">{splitLabel(getMaterialLabel(gooseneckMaterial)).line1}</tspan>
 			<tspan x="140" dy="15">{splitLabel(getMaterialLabel(gooseneckMaterial)).line2}</tspan>
@@ -294,7 +294,7 @@
 			{getMaterialLabel(gooseneckMaterial)}
 		{/if}
 	</text>
-	<text x="285" y="200" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
+	<text x="285" y="200" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
 		{#if splitLabel(getMaterialLabel(utilitySideMaterial)).line2}
 			<tspan x="285" dy="0">{splitLabel(getMaterialLabel(utilitySideMaterial)).line1}</tspan>
 			<tspan x="285" dy="15">{splitLabel(getMaterialLabel(utilitySideMaterial)).line2}</tspan>
@@ -302,7 +302,7 @@
 			{getMaterialLabel(utilitySideMaterial)}
 		{/if}
 	</text>
-	<text x="440" y="200" text-anchor="middle" class="fill-slate-600 text-sm font-medium">
+	<text x="440" y="200" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
 		{#if splitLabel(getMaterialLabel(customerSideMaterial)).line2}
 			<tspan x="440" dy="0">{splitLabel(getMaterialLabel(customerSideMaterial)).line1}</tspan>
 			<tspan x="440" dy="15">{splitLabel(getMaterialLabel(customerSideMaterial)).line2}</tspan>

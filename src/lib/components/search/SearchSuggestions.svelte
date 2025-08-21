@@ -51,17 +51,17 @@
 		style={getPortalPosition()}
 	>
 		<div
-			class="max-h-[300px] w-[150%] overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
+			class="border-earth/5 max-h-[300px] w-[150%] overflow-y-auto rounded-md border bg-white shadow-lg"
 			bind:this={suggestionsContainer}
 		>
 			{#if suggestions.length === 0 && nominatimSuggestions.length > 0}
-				<div class="border-b border-slate-100 px-4 py-2 text-xs text-slate-500">
+				<div class="text-earth/80 border-earth/5 border-b px-4 py-2 text-xs">
 					No inventory results found. Showing general address search:
 				</div>
 			{/if}
 			{#each [...suggestions, ...nominatimSuggestions] as suggestion, index}
 				<div
-					class="cursor-pointer border-b border-slate-100 p-2 text-xs last:border-b-0 hover:bg-slate-50"
+					class="border-earth/5 hover:bg-earth/5 cursor-pointer border-b p-2 text-xs last:border-b-0"
 					style={selectedIndex === index ? `background-color: ${highlightColor};` : ''}
 					role="button"
 					tabindex="0"
@@ -69,13 +69,8 @@
 					onkeydown={(e) => onSuggestionKeyDown(e, suggestion)}
 					onmouseenter={() => (selectedIndex = index)}
 				>
-					<div class="font-medium break-words text-slate-800">
+					<div class="text-earth font-medium break-words">
 						{suggestion.fullAddress}
-						{#if suggestion.row !== -1 && suggestion.serviceLineCount && suggestion.serviceLineCount > 1}
-							<span class="ml-2 text-xs text-slate-500"
-								>({suggestion.serviceLineCount} service lines)</span
-							>
-						{/if}
 					</div>
 				</div>
 			{/each}

@@ -1343,16 +1343,18 @@
 <div class="flex flex-col gap-3 sm:gap-4">
 	{#if !ui.searchHeaderCollapsed}
 		<div class="flex flex-col gap-2 sm:gap-4">
-			<h1 class="font-sans-secondary m-0 text-2xl font-medium text-slate-800 sm:text-3xl">
+			<h1
+				class="font-sans-secondary text-earth text-2.5xl m-0 font-medium text-balance sm:text-4xl"
+			>
 				Chicago: Does your water service line contain lead?
 			</h1>
-			<p class="m-0 font-sans text-xs text-slate-600 sm:text-sm">
-				Enter your address to find out whether any part of your water service line needs replacing and how your neighborhood compares to others.
+			<p class="text-earth m-0 font-sans text-base leading-[calc(1/0.75)]">
+				Enter your address to find out whether any part of your water service line needs replacing
+				and how your neighborhood compares to others.
 			</p>
 		</div>
 	{/if}
 	<div class="relative flex flex-col items-stretch gap-1">
-		<label class="block font-sans text-sm font-medium text-slate-700" for="search">Address</label>
 		<div class="relative flex gap-2">
 			<input
 				bind:this={input}
@@ -1370,7 +1372,7 @@
 			{#if isFetchingSuggestions}
 				<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
 					<div
-						class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500"
+						class="border-earth/30 h-4 w-4 animate-spin rounded-full border-2 border-t-emerald-500"
 					></div>
 				</div>
 			{/if}

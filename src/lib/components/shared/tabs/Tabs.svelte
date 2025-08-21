@@ -25,7 +25,7 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<ul role="tablist" class="border-earth m-0 flex list-none border-b p-0">
+	<ul role="tablist" class="border-earth m-0 flex list-none gap-2 border-b p-0">
 		{@render children()}
 	</ul>
 	<div id={ctx.panelId} role="tabpanel" aria-labelledby={ctx.selectedTab?.id}>

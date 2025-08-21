@@ -297,10 +297,10 @@
 {#if address}
 	<div class="flex flex-col gap-3 sm:gap-6">
 		<div class="flex flex-col gap-1 font-sans sm:gap-2">
-			<h3 class="font-sans-secondary mt-0 mb-0 text-base font-medium text-slate-800 sm:text-lg">
+			<h3 class="font-sans-secondary text-earth mt-0 mb-0 text-base font-medium sm:text-lg">
 				Selected address
 			</h3>
-			<p class="m-0 text-sm font-medium break-words text-slate-800 sm:text-base">
+			<p class="text-earth m-0 text-sm font-medium break-words sm:text-base">
 				{address.fullAddress}
 			</p>
 			{#if search.isNominatimAddress}
@@ -317,10 +317,10 @@
 				</div>
 			{:else}
 				<div class="flex items-center gap-1 sm:gap-2">
-					<span class="text-xs text-slate-600 sm:text-sm">Lead Status:</span>
+					<span class="text-earth/80 text-xs sm:text-sm">Lead Status:</span>
 					{#if isLoading}
 						<span
-							class="inline-flex items-center self-start rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 sm:px-2.5 sm:text-sm"
+							class="text-earth/80 border-earth/30 bg-earth/5 inline-flex items-center self-start rounded-full border px-2 py-0.5 text-xs font-medium sm:px-2.5 sm:text-sm"
 						>
 							<svg class="mr-1 h-3 w-3 animate-spin" viewBox="0 0 24 24">
 								<circle
@@ -357,7 +357,7 @@
 					{/if}
 				</div>
 				{#if $serviceLineCount > 1}
-					<p class="m-0 text-xs text-slate-500 italic">
+					<p class="text-earth/80 m-0 text-xs italic">
 						This address is associated with {$serviceLineCount} service line records. The status shown
 						above represents the 'worst-case' scenario across all lines: If suspected lead appears in
 						any of the service lines, it'll be noted here. See individual line details below.
@@ -378,7 +378,7 @@
 							: isCommunityDataLoading}
 					/>
 				</TabItem>
-				<TabItem title="Demographics" open={false}>
+				<TabItem title="Demographic context" open={false}>
 					<Demographics
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 						loading={visualization.aggregationLevel === 'tract'

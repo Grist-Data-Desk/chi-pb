@@ -27,7 +27,7 @@ export class Popup {
 		const { x, y } = this.map.project(lngLat);
 		const mapHeight = this.map.getContainer().offsetHeight;
 		const mapWidth = this.map.getContainer().offsetWidth;
-		const popupWidth = this.isTabletOrAbove ? 318 : 264;
+		const popupWidth = this.isTabletOrAbove ? 332 : 282;
 		const popupHeight = this.isTabletOrAbove ? 242 : 222;
 
 		let anchor: maplibregl.PositionAnchor = 'top';
@@ -113,14 +113,14 @@ export class Popup {
 					cursor: help;
 					display: inline-block;
 					margin-left: 2px;
-					color: #cbd5e1;
+					color: #3c383066;
 					vertical-align: text-bottom;
 					position: relative;
 					top: -1px;
 					transition: color 0.2s;
 				}
 				.tooltip-trigger:hover {
-					color: #94a3b8;
+					color: #3c3830cc;
 				}
 				.tooltip-container {
 					position: relative;
@@ -175,26 +175,26 @@ export class Popup {
 			${tooltipScript}
 			<h3 class="m-0 mb-1 text-base font-medium sm:mb-2 sm:text-lg">${formatAreaIdentifier(data)}</h3>
 			<div>
-				<ul class="-mx-1.5 my-0 flex list-none gap-4 border-b border-slate-500 px-1.5 sm:-mx-3 sm:px-3">
+				<ul class="-mx-1.5 my-0 flex list-none gap-4 border-b border-earth px-1.5 sm:-mx-3 sm:px-3 font-sans">
 					<li class="active-tab border-b-2 border-b-transparent pb-1 transition-all">
 						<button
-							class="text-2xs border-0 bg-transparent p-0 tracking-wider text-slate-500 uppercase sm:text-xs"
+							class="text-xs border-0 bg-transparent p-0 text-earth sm:text-sm"
 							data-popup-tab="service-line-inventory"
 						>
-							Service Line Inventory
+							Service line inventory
 						</button>
 					</li>
 					<li class="border-b-2 border-b-transparent pb-1 transition-all">
 						<button
-							class="text-2xs border-0 bg-transparent p-0 tracking-wider text-slate-500 uppercase sm:text-xs"
+							class="text-xs border-0 bg-transparent p-0 text-earth sm:text-sm"
 							data-popup-tab="demographics"
 						>
-							Demographics
+							Demographic context
 						</button>
 					</li>
 				</ul>
 				<div data-popup-tabcontent="service-line-inventory" class="mt-2">
-					<table class="text-2xs w-full table-fixed border-collapse font-sans text-slate-500 sm:text-xs">
+					<table class="text-2xs w-full table-fixed border-collapse font-sans text-earth/80 sm:text-xs">
 						<tbody>
 							<colgroup>
 								<col width="60%" />
@@ -211,7 +211,7 @@ export class Popup {
 										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.lead}</span>
 									</span>
 								</td>
-								<td class="text-earth p-1 text-right font-medium">${formatCount(data.L)}</td>
+								<td class="p-1 text-right">${formatCount(data.L)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_lead)}</td>
 							</tr>
 							<tr>
@@ -224,7 +224,7 @@ export class Popup {
 										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.suspected}</span>
 									</span>
 								</td>
-								<td class="text-earth p-1 text-right font-medium">${formatCount(data.U)}</td>
+								<td class="p-1 text-right">${formatCount(data.U)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_suspected_lead)}</td>
 							</tr>
 							<tr>
@@ -237,7 +237,7 @@ export class Popup {
 										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.galvanized}</span>
 									</span>
 								</td>
-								<td class="text-earth p-1 text-right font-medium">${formatCount(data.GRR)}</td>
+								<td class="p-1 text-right">${formatCount(data.GRR)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_grr)}</td>
 							</tr>
 							<tr>
@@ -250,19 +250,19 @@ export class Popup {
 										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS['non-lead']}</span>
 									</span>
 								</td>
-								<td class="text-earth p-1 text-right font-medium">${formatCount(data.NL)}</td>
+								<td class="p-1 text-right">${formatCount(data.NL)}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_not_lead)}</td>
 							</tr>
 						</tbody>
-						<tfoot class="border-t border-slate-300">
+						<tfoot class="border-t border-earth/30">
 							<tr>
 								<td class="p-1">Total</td>
-								<td class="text-earth p-1 text-right font-medium">${formatCount(data.total)}</td>
+								<td class="p-1 text-right">${formatCount(data.total)}</td>
 							</tr>
 							<tr class="rounded bg-red-100 text-red-600">
 								<td class="p-1">Requires Replacement</td>
-								<td class="p-1 text-right font-medium">${formatCount(data.requires_replacement)}</td>
-								<td class="p-1 text-right font-medium">
+								<td class="p-1 text-right font-semibold">${formatCount(data.requires_replacement)}</td>
+								<td class="p-1 text-right font-semibold">
 									${formatPercent(data.pct_requires_replacement)}
 								</td>
 							</tr>
@@ -270,49 +270,49 @@ export class Popup {
 					</table>
 				</div>
 				<div data-popup-tabcontent="demographics" style="display: none" class="mt-2">
-					<table class="text-2xs w-full table-fixed border-collapse font-sans text-slate-500 sm:text-xs">
+					<table class="text-2xs w-full table-fixed border-collapse font-sans text-earth/80 sm:text-xs">
 						<tbody>
 							<colgroup>
 								<col width="65%" />
 								<col width="35%" />
 							</colgroup>
 							<tr>
-								<td class="p-1 text-slate-500">Median Household Income</td>
-								<td class="text-earth p-1 text-right font-medium">
+								<td class="p-1 ">Median Household Income</td>
+								<td class="p-1 text-right">
 									${formatCurrency(data.median_household_income)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 text-slate-500">Poverty Rate</td>
-								<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_poverty)}</td>
+								<td class="p-1 ">Poverty Rate</td>
+								<td class="p-1 text-right">${formatPercent(data.pct_poverty)}</td>
 							</tr>
 							<tr>
-								<td class="p-1 text-slate-500">Black Population</td>
-								<td class="text-earth p-1 text-right font-medium">
+								<td class="p-1 ">Black Population</td>
+								<td class="p-1 text-right">
 									${formatPercent(data.pct_black_nonhispanic)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 text-slate-500">Latino Population</td>
-								<td class="text-earth p-1 text-right font-medium">
+								<td class="p-1 ">Latino Population</td>
+								<td class="p-1 text-right">
 									${formatPercent(data.pct_hispanic)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 text-slate-500">White Population</td>
-								<td class="text-earth p-1 text-right font-medium">
+								<td class="p-1 ">White Population</td>
+								<td class="p-1 text-right">
 									${formatPercent(data.pct_white_nonhispanic)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 text-slate-500">Asian Population</td>
-								<td class="text-earth p-1 text-right font-medium">
+								<td class="p-1 ">Asian Population</td>
+								<td class="p-1 text-right">
 									${formatPercent(data.pct_asian_nonhispanic)}
 								</td>
 							</tr>
-							<tr class="border-b border-transparent">
-								<td class="p-1 text-slate-500">Non-White Population</td>
-								<td class="text-earth p-1 text-right font-medium">${formatPercent(data.pct_minority)}</td>
+							<tr>
+								<td class="p-1 ">Non-White Population</td>
+								<td class="p-1 text-right">${formatPercent(data.pct_minority)}</td>
 							</tr>
 						</tbody>
 					</table>

@@ -16,7 +16,7 @@
 		onclick={() => (ui.resourcesExpanded = false)}
 		aria-label="Close resources"
 	>
-		<svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<svg class="text-earth/80 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
@@ -25,11 +25,11 @@
 			/>
 		</svg>
 	</button>
-	<h3 class="font-sans-secondary mt-0 mb-3 pr-6 text-base font-medium text-slate-800 sm:text-lg">
+	<h3 class="font-sans-secondary text-earth mt-0 mb-3 pr-6 text-base font-medium sm:text-lg">
 		What can I do?
 	</h3>
 
-	<p class="mb-3 font-sans text-xs text-slate-600 sm:text-sm">
+	<p class="text-earth/80 mb-3 font-sans text-xs sm:text-sm">
 		Based on your service line result, the following {qualifiesForFilter
 			? 'resources are'
 			: 'resource is'} available to you:

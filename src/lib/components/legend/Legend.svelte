@@ -92,7 +92,7 @@
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 16 16"
 			fill="currentColor"
-			class="h-3 w-3 text-gray-500"
+			class="text-earth/80 h-3 w-3"
 		>
 			<path
 				fill-rule="evenodd"
@@ -100,12 +100,12 @@
 				d="M0 5.25136V4.2487L0.463236 4.05702L7.71324 1.05702L8 0.938354L8.28676 1.05702L15.5368 4.05702L16 4.2487V5.25136L15.5368 5.44304L8.28676 8.44304L8 8.5617L7.71324 8.44304L0.463236 5.44304L0 5.25136ZM0 8.45825V6.83491L0.536764 7.05702L8 10.1453L15.4632 7.05702L16 6.83491V8.45825L8.28676 11.6499L8 11.7686L7.71324 11.6499L0 8.45825ZM0 11.7083V10.0849L0.536764 10.307L8 13.3953L15.4632 10.307L16 10.0849V11.7083L8.28676 14.8999L8 15.0186L7.71324 14.8999L0 11.7083ZM8 6.93835L2.71154 4.75003L8 2.5617L13.2885 4.75003L8 6.93835Z"
 			/>
 		</svg>
-		<p class="m-0 font-sans text-xs leading-tight text-gray-500">
+		<p class="text-earth/80 m-0 font-sans text-xs leading-tight">
 			Select a data layer to visualize
 		</p>
 	</div>
 	<div class="mb-3">
-		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">Aggregation Level</p>
+		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">Aggregation Level</p>
 		<div class="relative grid grid-cols-2 bg-white">
 			<div
 				class={[
@@ -113,7 +113,7 @@
 					visualization.aggregationLevel === 'tract' && 'translate-x-full'
 				]}
 			></div>
-			<div class="relative border border-gray-200 bg-white">
+			<div class="border-earth/30 relative border bg-white">
 				<input
 					type="radio"
 					value="community"
@@ -128,13 +128,13 @@
 						'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
 						visualization.aggregationLevel === 'community'
 							? 'text-white'
-							: 'text-earth hover:bg-gray-100'
+							: 'text-earth hover:bg-earth/5'
 					]}
 				>
 					Community Areas
 				</label>
 			</div>
-			<div class="relative border border-l-0 border-gray-200 bg-white">
+			<div class="border-earth/30 relative border border-l-0 bg-white">
 				<input
 					type="radio"
 					value="tract"
@@ -149,7 +149,7 @@
 						'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
 						visualization.aggregationLevel === 'tract'
 							? 'text-white'
-							: 'text-earth hover:bg-gray-100'
+							: 'text-earth hover:bg-earth/5'
 					]}
 				>
 					Census Tracts
@@ -158,7 +158,7 @@
 		</div>
 	</div>
 	<div class="mb-3">
-		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">Data Visualization</p>
+		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">Data Visualization</p>
 		<div class="relative mb-2 grid grid-cols-3 bg-white">
 			<div
 				class={[
@@ -170,7 +170,7 @@
 				]}
 			></div>
 			{#each CHOROPLETH_MODES as mode}
-				<div class="relative border border-gray-200 bg-white not-last:border-r-0">
+				<div class="border-earth/30 relative border bg-white not-last:border-r-0">
 					<input
 						type="radio"
 						bind:group={visualization.choroplethMode}
@@ -185,7 +185,7 @@
 							'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
 							visualization.choroplethMode === mode.value
 								? 'text-white'
-								: 'text-earth hover:bg-gray-100'
+								: 'text-earth hover:bg-earth/5'
 						]}
 					>
 						{mode.label}
@@ -195,7 +195,7 @@
 		</div>
 	</div>
 	<div class="mt-3 sm:mt-4">
-		<p class="text-2xs mb-1 font-sans tracking-wider text-gray-500 uppercase">
+		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">
 			{getVariableDescription(visualization.choroplethMode)}
 		</p>
 		{#if quantileData && quantileData.dedupedQuantiles && quantileData.dedupedColors && quantileData.flexValues}
@@ -231,7 +231,7 @@
 						{/each}
 					</div>
 					<!-- Labels below the color boxes - showing every other label starting from the second, excluding the last -->
-					<div class="text-2xs relative mt-1 h-4 text-gray-500">
+					<div class="text-2xs text-earth/80 relative mt-1 h-4">
 						{#each dedupedLabels as label, i}
 							{#if i % 2 === 1 && i < dedupedLabels.length - 1}
 								<span
@@ -253,7 +253,7 @@
 						{/each}
 					</div>
 				</div>
-				<p class="mt-3 mb-0.5 font-sans text-xs leading-tight text-gray-500 italic">
+				<p class="text-earth/80 mt-3 mb-0.5 font-sans text-xs leading-tight italic">
 					Color boxes are sized proportionally to the number of {visualization.aggregationLevel ===
 					'tract'
 						? 'census tracts'
@@ -262,7 +262,7 @@
 				</p>
 			</div>
 		{:else}
-			<div class="text-2xs text-gray-500 sm:text-xs">Loading...</div>
+			<div class="text-2xs text-earth/80 sm:text-xs">Loading...</div>
 		{/if}
 	</div>
 </div>

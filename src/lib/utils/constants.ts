@@ -10,7 +10,6 @@ export const COLORS = {
 	RED: '#F5515B',
 	GOLD: '#FFB800',
 	TEAL: '#00B4B4',
-	GRAY: '#808080',
 	GREEN: '#00c04b',
 	PALE_GREEN: '#e8f5e9',
 	BLUE: '#0077cc',

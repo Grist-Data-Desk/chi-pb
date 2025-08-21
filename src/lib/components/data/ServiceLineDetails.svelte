@@ -20,7 +20,7 @@
 
 <div class="flex flex-col gap-3">
 	{#if $serviceLineCount > 1}
-		<span class="text-sm font-normal text-slate-600"
+		<span class="text-sm font-normal text-earth/80"
 			>↳ {$serviceLineCount} lines found at this address</span
 		>
 	{/if}
@@ -68,8 +68,8 @@
 					class={[
 						'border-earth flex w-20 items-center justify-center gap-1 rounded-xs border px-2 py-1 text-xs font-medium transition-colors',
 						$multiServiceLineStore.currentIndex === 0
-							? 'cursor-not-allowed text-slate-400'
-							: 'text-slate-600 hover:bg-slate-200'
+							? 'cursor-not-allowed text-earth/40'
+							: 'text-earth/80 hover:bg-earth/5'
 					]}
 				>
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@
 					</svg>
 					Previous
 				</button>
-				<span class="text-xs font-medium text-slate-700">
+				<span class="text-xs font-medium text-earth/80">
 					Line {$multiServiceLineStore.currentIndex + 1} of {$serviceLineCount}
 				</span>
 				<button
@@ -91,8 +91,8 @@
 					class={[
 						'border-earth flex w-20 items-center justify-center gap-1 rounded-xs border px-2 py-1 text-xs font-medium transition-colors',
 						$multiServiceLineStore.currentIndex === $serviceLineCount - 1
-							? 'cursor-not-allowed text-slate-400'
-							: 'text-slate-600 hover:bg-slate-200'
+							? 'cursor-not-allowed text-earth/40'
+							: 'text-earth/80 hover:bg-earth/5'
 					]}
 				>
 					Next
@@ -120,7 +120,7 @@
 	{:else}
 		<div>
 			<div class="flex items-start gap-2">
-				<svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+				<svg class="mt-0.5 h-4 w-4 shrink-0 text-earth/40" fill="currentColor" viewBox="0 0 20 20">
 					<path
 						fill-rule="evenodd"
 						d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
@@ -128,10 +128,10 @@
 					/>
 				</svg>
 				<div>
-					<p class="font-sans text-xs text-slate-500 sm:text-sm">
+					<p class="font-sans text-xs text-earth/80 sm:text-sm">
 						Detailed inventory information is not available for this address.
 					</p>
-					<p class="mt-1 font-sans text-xs text-slate-400">
+					<p class="mt-1 font-sans text-xs text-earth/40">
 						The basic lead status shown above is based on available data from the geocoded address
 						database.
 					</p>

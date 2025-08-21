@@ -17,8 +17,8 @@
 	class={[
 		'floating-panel flex h-[29px] items-center justify-center gap-1.5 px-3 text-xs',
 		{
-			'cursor-not-allowed text-slate-600/40': !isActive,
-			'text-slate-600': isActive
+			'text-earth/40 cursor-not-allowed': !isActive,
+			'text-earth/80': isActive
 		}
 	]}
 	onclick={toggleResources}
@@ -41,8 +41,8 @@
 		class={[
 			'h-3 w-3 transition-transform duration-200',
 			{
-				'text-slate-600': isActive,
-				'text-slate-600/40': !isActive
+				'text-earth/80': isActive,
+				'text-earth/40': !isActive
 			}
 		]}
 		style="transform: rotate({ui.resourcesExpanded ? '180deg' : '0deg'})"

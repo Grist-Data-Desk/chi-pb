@@ -1355,27 +1355,29 @@
 		</div>
 	{/if}
 	<div class="relative flex flex-col items-stretch gap-1">
-		<div class="relative flex gap-2">
-			<input
-				bind:this={input}
-				type="text"
-				id="search"
-				value={search.query}
-				oninput={onInput}
-				onkeydown={onKeyDown}
-				onfocus={onInputFocus}
-				onblur={onInputBlur}
-				class="border-earth bg-smog w-full rounded-sm border px-1.5 py-1 font-sans text-base transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-				placeholder="1234 N State St"
-				disabled={$isAddressDataLoading}
-			/>
-			{#if isFetchingSuggestions}
-				<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-					<div
-						class="border-earth/30 h-4 w-4 animate-spin rounded-full border-2 border-t-emerald-500"
-					></div>
-				</div>
-			{/if}
+		<div class="flex gap-2">
+			<div class="relative w-full">
+				<input
+					bind:this={input}
+					type="text"
+					id="search"
+					value={search.query}
+					oninput={onInput}
+					onkeydown={onKeyDown}
+					onfocus={onInputFocus}
+					onblur={onInputBlur}
+					class="border-earth bg-smog w-full rounded-sm border px-1.5 py-1 font-sans text-base transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+					placeholder="1234 N State St"
+					disabled={$isAddressDataLoading}
+				/>
+				{#if isFetchingSuggestions}
+					<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+						<div
+							class="border-earth/30 h-4 w-4 animate-spin rounded-full border-2 border-t-emerald-500"
+						></div>
+					</div>
+				{/if}
+			</div>
 			<button
 				onclick={handleSearch}
 				style="background-color: {searchButtonColor}; border-color: {interpolateReds(0.6)};"

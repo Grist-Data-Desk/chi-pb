@@ -1,10 +1,10 @@
 <script lang="ts">
+	import Skeleton from '$lib/components/shared/skeleton/Skeleton.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { CensusTract, CommunityArea } from '$lib/types';
 	import { formatAreaIdentifier } from '$lib/utils/formatters';
-
 	interface Props {
-		data: CensusTract | CommunityArea;
+		data: CensusTract | CommunityArea | null;
 		showServiceLineHelp?: boolean;
 	}
 
@@ -14,8 +14,16 @@
 	let areaIdentifier = $derived(formatAreaIdentifier(data, false));
 </script>
 
-<p class="font-sans text-2xs mt-0 mb-1 text-earth/80 italic sm:text-xs">
-	This address is located in {areaIdentifier}. Statistics on this
+{#snippet area(value: string)}
+	{#if !value}
+		<Skeleton class="mr-0.5 inline-block h-2.5 w-[30%] align-baseline" />
+	{:else}
+		{value}
+	{/if}
+{/snippet}
+
+<p class="text-2xs text-earth/80 mt-0 mb-1 font-sans italic sm:text-xs">
+	This address is located in {@render area(areaIdentifier)}. Statistics on this
 	{isCommunityArea ? 'community area' : 'census tract'} appear below.
 	{#if showServiceLineHelp}
 		<span class="sm:hidden">Tap</span>

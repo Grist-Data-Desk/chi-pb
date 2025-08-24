@@ -41,12 +41,12 @@ export function formatPercent(value: number | null): string {
  * @returns The formatted title.
  */
 export function formatAreaIdentifier(
-	data: CensusTract | CommunityArea,
+	data: CensusTract | CommunityArea | null,
 	capitalizeCensusTract = true
 ): string {
-	if ('community' in data) {
+	if (data && 'community' in data) {
 		return data.community;
-	} else if ('geoid' in data) {
+	} else if (data && 'geoid' in data) {
 		const prefix = capitalizeCensusTract ? 'Census Tract' : 'census tract';
 		return `${prefix} ${data.geoid}`;
 	}

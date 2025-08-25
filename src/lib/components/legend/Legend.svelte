@@ -125,13 +125,13 @@
 				<label
 					for="community-radio"
 					class={[
-						'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
+						'text-2xs relative z-10 block cursor-pointer py-1 text-center font-sans font-bold transition-colors sm:py-1.5 sm:text-xs',
 						visualization.aggregationLevel === 'community'
 							? 'text-white'
 							: 'text-earth hover:bg-earth/5'
 					]}
 				>
-					Community Areas
+					Community areas
 				</label>
 			</div>
 			<div class="border-earth/30 relative border border-l-0 bg-white">
@@ -146,13 +146,13 @@
 				<label
 					for="tract-radio"
 					class={[
-						'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
+						'text-2xs relative z-10 block cursor-pointer py-1 text-center font-sans font-bold transition-colors sm:py-1.5 sm:text-xs',
 						visualization.aggregationLevel === 'tract'
 							? 'text-white'
 							: 'text-earth hover:bg-earth/5'
 					]}
 				>
-					Census Tracts
+					Census tracts
 				</label>
 			</div>
 		</div>
@@ -182,7 +182,7 @@
 					<label
 						for="{mode.value}-radio"
 						class={[
-							'font-sans-secondary text-2xs relative z-10 block cursor-pointer py-1 text-center  transition-colors sm:py-1.5 sm:text-xs',
+							'text-2xs relative z-10 block cursor-pointer py-1 text-center font-sans font-bold transition-colors sm:py-1.5 sm:text-xs',
 							visualization.choroplethMode === mode.value
 								? 'text-white'
 								: 'text-earth hover:bg-earth/5'
@@ -253,7 +253,7 @@
 						{/each}
 					</div>
 				</div>
-				<p class="text-earth/80 mt-3 mb-0.5 font-sans text-xs leading-tight italic">
+				<p class="text-earth/80 mt-3 mb-0.5 font-sans text-xs leading-tight">
 					Color boxes are sized proportionally to the number of {visualization.aggregationLevel ===
 					'tract'
 						? 'census tracts'

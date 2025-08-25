@@ -1366,7 +1366,7 @@
 					onkeydown={onKeyDown}
 					onfocus={onInputFocus}
 					onblur={onInputBlur}
-					class="border-earth bg-smog w-full rounded-sm border px-1.5 py-1 font-sans text-base transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+					class="border-earth bg-smog w-full rounded-sm border px-1.5 py-1 font-sans text-base text-ellipsis transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
 					placeholder="1234 N State St"
 					disabled={$isAddressDataLoading}
 				/>

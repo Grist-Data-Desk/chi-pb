@@ -123,8 +123,8 @@
 
 {#if address}
 	<div class="flex flex-col gap-3 sm:gap-6">
-		<div class="flex flex-col gap-1 font-sans sm:gap-2">
-			<h3 class="font-sans-secondary text-earth mt-0 mb-0 text-base font-medium sm:text-lg">
+		<div class="flex flex-col gap-1 font-sans">
+			<h3 class="font-sans-secondary text-earth mt-0 mb-0 text-base font-medium sm:text-xl">
 				Selected address
 			</h3>
 			<p class="text-earth m-0 text-sm font-medium break-words sm:text-base">
@@ -144,7 +144,7 @@
 				</div>
 			{:else}
 				<div class="flex items-center gap-1 sm:gap-2">
-					<span class="text-earth/80 text-xs sm:text-sm">Lead Status:</span>
+					<span class="text-earth text-xs sm:text-sm">Lead Status:</span>
 					{#if isLoading}
 						<span
 							class="text-earth/80 border-earth/30 bg-earth/5 inline-flex items-center self-start rounded-full border-2 px-2 py-0.5 text-xs font-medium sm:px-2.5 sm:text-sm"

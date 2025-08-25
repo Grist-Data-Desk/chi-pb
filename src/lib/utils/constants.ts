@@ -15,8 +15,8 @@ export const COLORS = {
 	BLUE: '#0077cc',
 	PURPLE: '#9c27b0',
 	SMOG: '#f0f0f0',
-	INT_RED: '#F9694C',
-	INT_BLUE: '#6DAED5'
+	INT_RED: '#CE4746',
+	INT_BLUE: '#457AB3'
 } as const;
 
 // The breakpoint for switching between mobile and desktop views

@@ -1437,12 +1437,13 @@
 			{onSuggestionClick}
 		/>
 	</div>
-	<!-- Service Line Results Panel -->
-	<ServiceLineResults
-		selectedAddress={search.selectedAddress}
-		inventoryData={inventory.data}
-		isLoading={inventory.isLoading}
-		error={inventory.error}
-		{map}
-	/>
+	{#if map}
+		<ServiceLineResults
+			selectedAddress={search.selectedAddress}
+			inventoryData={inventory.data}
+			isLoading={inventory.isLoading}
+			error={inventory.error}
+			{map}
+		/>
+	{/if}
 </div>

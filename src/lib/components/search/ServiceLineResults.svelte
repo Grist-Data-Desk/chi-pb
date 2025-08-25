@@ -1,17 +1,18 @@
 <script lang="ts">
-	import type { Map } from 'maplibre-gl';
-	import { onDestroy } from 'svelte';
+	import type { Map, MapMouseEvent } from 'maplibre-gl';
+	import { onMount } from 'svelte';
 
+	import Demographics from '$lib/components/data/Demographics.svelte';
+	import ServiceLineDetails from '$lib/components/data/ServiceLineDetails.svelte';
+	import ServiceLineInventory from '$lib/components/data/ServiceLineInventory.svelte';
 	import Tabs from '$lib/components/shared/tabs/Tabs.svelte';
 	import TabItem from '$lib/components/shared/tabs/TabItem.svelte';
 	import { multiServiceLineStore, currentServiceLine, serviceLineCount } from '$lib/stores';
 	import { search } from '$lib/state/search.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
-	import type { AddressWithServiceLine, CensusTract } from '$lib/types';
+	import type { AddressWithServiceLine, CensusTract, CommunityArea } from '$lib/types';
+	import { LAYER_CONFIG } from '$lib/utils/config';
 	import { DISPLAY_CODES_TO_MATERIAL_LABELS, getMaterialColor } from '$lib/utils/constants';
-	import ServiceLineDetails from '../data/ServiceLineDetails.svelte';
-	import Demographics from '../data/Demographics.svelte';
-	import ServiceLineInventory from '../data/ServiceLineInventory.svelte';
 
 	// Props.
 	interface Props {
@@ -19,19 +20,14 @@
 		inventoryData: any;
 		isLoading: boolean;
 		error: string | null;
-		map: Map | null;
+		map: Map;
 	}
 
 	let { selectedAddress, inventoryData, isLoading, error, map }: Props = $props();
 
 	// State.
 	let tractData = $state<CensusTract | null>(null);
-	let communityData = $state<any | null>(null);
-	let isTractDataLoading = $state(false);
-	let isCommunityDataLoading = $state(false);
-	let pendingTractQuery = $state<{ lng: number; lat: number } | null>(null);
-	let pendingCommunityQuery = $state<{ lng: number; lat: number } | null>(null);
-	let mapMoveEndHandler = $state<(() => void) | null>(null);
+	let communityData = $state<CommunityArea | null>(null);
 	let address = $derived(
 		search.clickedServiceLineRow !== null && $multiServiceLineStore.address
 			? { ...search.selectedAddress, fullAddress: $multiServiceLineStore.address }
@@ -44,189 +40,60 @@
 			: currentInventoryData?.OverallSL_Code || currentInventoryData?.overallCode || 'U'
 	);
 
-	// Helpers.
-	async function queryTractDataWithRetry(lng: number, lat: number) {
-		setTimeout(() => {
-			if (!map?.isMoving()) {
-				getTractDataAtPoint(lng, lat);
+	onMount(() => {
+		function handleMapMoveEnd() {
+			if (address && address.long && address.lat) {
+				getTractDataAtPoint(address.long, address.lat);
+				getCommunityDataAtPoint(address.long, address.lat);
 			}
-		}, 100);
-	}
-
-	async function queryCommunityDataWithRetry(lng: number, lat: number) {
-		setTimeout(() => {
-			if (!map?.isMoving()) {
-				getCommunityDataAtPoint(lng, lat);
-			}
-		}, 100);
-	}
-
-	async function getTractDataAtPoint(lng: number, lat: number, retryCount = 0) {
-		if (!map || !pendingTractQuery) {
-			isTractDataLoading = false;
-			return;
 		}
 
-		if (pendingTractQuery.lng !== lng || pendingTractQuery.lat !== lat) {
-			return;
+		map?.on('moveend', handleMapMoveEnd);
+
+		function handleServiceLineClick(e: MapMouseEvent) {
+			const { lng, lat } = e.lngLat;
+			getTractDataAtPoint(lng, lat);
+			getCommunityDataAtPoint(lng, lat);
 		}
 
-		const maxRetries = 10;
+		map?.on('click', LAYER_CONFIG.serviceLines.id, handleServiceLineClick);
 
-		try {
-			if (!map.getLayer('census-tracts-fill')) {
-				console.log('Census tract layer not yet loaded');
-				if (retryCount < maxRetries) {
-					setTimeout(() => {
-						getTractDataAtPoint(lng, lat, retryCount + 1);
-					}, 200);
-				} else {
-					isTractDataLoading = false;
-					pendingTractQuery = null;
-				}
-				return;
-			}
+		return () => {
+			map?.off('moveend', handleMapMoveEnd);
+			map?.off('click', LAYER_CONFIG.serviceLines.id, handleServiceLineClick);
+		};
+	});
 
-			const currentCenter = map.getCenter();
-			const currentZoom = map.getZoom();
-			const distance = Math.sqrt(
-				Math.pow(currentCenter.lng - lng, 2) + Math.pow(currentCenter.lat - lat, 2)
-			);
+	function getDataAtPoint(lng: number, lat: number, layer: string) {
+		const point = map.project([lng, lat]);
+		const features = map.queryRenderedFeatures(point, {
+			layers: [layer]
+		});
 
-			if (distance > 0.1 || currentZoom < 10) {
-				console.log(`Map not positioned correctly. Distance: ${distance}, Zoom: ${currentZoom}`);
-				if (retryCount < maxRetries) {
-					setTimeout(() => {
-						getTractDataAtPoint(lng, lat, retryCount + 1);
-					}, 500);
-					return;
-				}
-			}
+		return features;
+	}
 
-			const point = map.project([lng, lat]);
-			const buffer = 5; // pixels
-			const features = map.queryRenderedFeatures(
-				[
-					[point.x - buffer, point.y - buffer],
-					[point.x + buffer, point.y + buffer]
-				],
-				{
-					layers: ['census-tracts-fill']
-				}
-			);
+	function getTractDataAtPoint(lng: number, lat: number) {
+		const features = getDataAtPoint(lng, lat, LAYER_CONFIG.censusTractsFill.id);
 
-			console.log(
-				`Query attempt ${retryCount + 1}: Found ${features.length} features at [${lng}, ${lat}]`
-			);
+		features.length > 0 ? (tractData = features[0].properties as CensusTract) : (tractData = null);
 
-			if (features.length > 0) {
-				let closestFeature = features[0];
-				if (features.length > 1) {
-					closestFeature = features[0];
-				}
-
-				tractData = closestFeature.properties as CensusTract;
-				isTractDataLoading = false;
-				pendingTractQuery = null;
-				console.log('Tract data loaded:', tractData.geoid);
-
-				// Update search state with the tract ID for the selected address
-				if (search.selectedAddress) {
-					search.selectedAddressTractId = tractData.geoid;
-				}
-			} else if (retryCount < maxRetries) {
-				// Retry (the tiles might not be loaded yet)
-				console.log(`No features found, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
-				setTimeout(() => {
-					getTractDataAtPoint(lng, lat, retryCount + 1);
-				}, 300);
-			} else {
-				console.log('Max retries reached, no tract data found');
-				tractData = null;
-				isTractDataLoading = false;
-				pendingTractQuery = null;
-			}
-		} catch (error) {
-			console.error('Error getting tract data at point:', error);
-			if (retryCount < maxRetries) {
-				setTimeout(() => {
-					getTractDataAtPoint(lng, lat, retryCount + 1);
-				}, 300);
-			} else {
-				tractData = null;
-				isTractDataLoading = false;
-				pendingTractQuery = null;
-			}
+		// Update search state with the tract ID for the selected address
+		if (search.selectedAddress && tractData?.geoid) {
+			search.selectedAddressTractId = tractData.geoid;
 		}
 	}
 
-	async function getCommunityDataAtPoint(lng: number, lat: number, retryCount = 0) {
-		if (!map || !pendingCommunityQuery) {
-			isCommunityDataLoading = false;
-			return;
-		}
+	function getCommunityDataAtPoint(lng: number, lat: number) {
+		const features = getDataAtPoint(lng, lat, LAYER_CONFIG.communityAreasFill.id);
 
-		if (pendingCommunityQuery.lng !== lng || pendingCommunityQuery.lat !== lat) {
-			return;
-		}
+		features.length > 0
+			? (communityData = features[0].properties as CommunityArea)
+			: (communityData = null);
 
-		const maxRetries = 10;
-
-		try {
-			if (!map.getLayer('community-areas-fill')) {
-				console.log('Community area layer not yet loaded');
-				if (retryCount < maxRetries) {
-					setTimeout(() => {
-						getCommunityDataAtPoint(lng, lat, retryCount + 1);
-					}, 200);
-				} else {
-					isCommunityDataLoading = false;
-					pendingCommunityQuery = null;
-				}
-				return;
-			}
-
-			const point = map.project([lng, lat]);
-			const buffer = 5; // pixels
-			const features = map.queryRenderedFeatures(
-				[
-					[point.x - buffer, point.y - buffer],
-					[point.x + buffer, point.y + buffer]
-				],
-				{
-					layers: ['community-areas-fill']
-				}
-			);
-
-			if (features.length > 0) {
-				communityData = features[0].properties;
-				isCommunityDataLoading = false;
-				pendingCommunityQuery = null;
-
-				// Update search state with the community name for the selected address
-				if (search.selectedAddress && communityData.community) {
-					search.selectedAddressCommunityName = communityData.community;
-				}
-			} else if (retryCount < maxRetries) {
-				setTimeout(() => {
-					getCommunityDataAtPoint(lng, lat, retryCount + 1);
-				}, 300);
-			} else {
-				communityData = null;
-				isCommunityDataLoading = false;
-				pendingCommunityQuery = null;
-			}
-		} catch (error) {
-			console.error('Error getting community data at point:', error);
-			if (retryCount < maxRetries) {
-				setTimeout(() => {
-					getCommunityDataAtPoint(lng, lat, retryCount + 1);
-				}, 300);
-			} else {
-				communityData = null;
-				isCommunityDataLoading = false;
-				pendingCommunityQuery = null;
-			}
+		// Update search state with the community name for the selected address
+		if (search.selectedAddress && communityData?.community) {
+			search.selectedAddressCommunityName = communityData.community;
 		}
 	}
 
@@ -246,50 +113,10 @@
 		if (!address) {
 			tractData = null;
 			communityData = null;
-			isTractDataLoading = false;
-			isCommunityDataLoading = false;
-			pendingTractQuery = null;
-			pendingCommunityQuery = null;
+
 			// Clear the tract/community info when no address is selected
 			search.selectedAddressTractId = null;
 			search.selectedAddressCommunityName = null;
-		}
-	});
-
-	$effect(() => {
-		if (map && address && address.lat && address.long) {
-			isTractDataLoading = true;
-			tractData = null;
-			pendingTractQuery = { lng: address.long, lat: address.lat };
-			queryTractDataWithRetry(address.long, address.lat);
-
-			// Also query for community area data
-			isCommunityDataLoading = true;
-			communityData = null;
-			pendingCommunityQuery = { lng: address.long, lat: address.lat };
-			queryCommunityDataWithRetry(address.long, address.lat);
-		}
-	});
-
-	$effect(() => {
-		if (map && !mapMoveEndHandler) {
-			mapMoveEndHandler = () => {
-				if (pendingTractQuery && isTractDataLoading) {
-					console.log('Map finished moving, querying tract data...');
-					getTractDataAtPoint(pendingTractQuery.lng, pendingTractQuery.lat);
-				}
-				if (pendingCommunityQuery && isCommunityDataLoading) {
-					console.log('Map finished moving, querying community data...');
-					getCommunityDataAtPoint(pendingCommunityQuery.lng, pendingCommunityQuery.lat);
-				}
-			};
-			map.on('moveend', mapMoveEndHandler);
-		}
-	});
-
-	onDestroy(() => {
-		if (map && mapMoveEndHandler) {
-			map.off('moveend', mapMoveEndHandler);
 		}
 	});
 </script>
@@ -320,7 +147,7 @@
 					<span class="text-earth/80 text-xs sm:text-sm">Lead Status:</span>
 					{#if isLoading}
 						<span
-							class="text-earth/80 border-earth/30 bg-earth/5 inline-flex items-center self-start rounded-full border px-2 py-0.5 text-xs font-medium sm:px-2.5 sm:text-sm"
+							class="text-earth/80 border-earth/30 bg-earth/5 inline-flex items-center self-start rounded-full border-2 px-2 py-0.5 text-xs font-medium sm:px-2.5 sm:text-sm"
 						>
 							<svg class="mr-1 h-3 w-3 animate-spin" viewBox="0 0 24 24">
 								<circle
@@ -373,17 +200,11 @@
 				<TabItem title={'Service line\ninventory'} open={false}>
 					<ServiceLineInventory
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
-						loading={visualization.aggregationLevel === 'tract'
-							? isTractDataLoading
-							: isCommunityDataLoading}
 					/>
 				</TabItem>
 				<TabItem title={'Demographic\ncontext'} open={false}>
 					<Demographics
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
-						loading={visualization.aggregationLevel === 'tract'
-							? isTractDataLoading
-							: isCommunityDataLoading}
 					/>
 				</TabItem>
 			</Tabs>

@@ -22,7 +22,7 @@
 	{/if}
 {/snippet}
 
-<p class="text-earth mt-0 mb-1 font-sans text-xs sm:mt-2 sm:text-sm">
+<p class="text-earth mt-0 mb-1 font-sans text-xs sm:mt-1 sm:text-sm">
 	This address is located in {@render area(areaIdentifier)}. Statistics on this
 	{isCommunityArea ? 'community area' : 'census tract'} appear below.
 	{#if showServiceLineHelp}

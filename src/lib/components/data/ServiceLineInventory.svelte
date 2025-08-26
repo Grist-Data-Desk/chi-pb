@@ -13,7 +13,7 @@
 </script>
 
 {#snippet cell(value: string, className = '')}
-	<td class={['py-0.5 text-right sm:py-1', className]}>
+	<td class={['p-0.5 text-right sm:p-1', className]}>
 		{#if !value}
 			<Skeleton class="relative left-[70%] h-4 w-[30%]" />
 		{:else}
@@ -23,7 +23,7 @@
 {/snippet}
 
 <AreaContext {data} showServiceLineHelp={true} />
-<table class="text-2xs text-earth/80 w-full border-collapse font-sans sm:text-xs">
+<table class="text-2xs text-earth/80 -mx-0.5 w-full border-collapse font-sans sm:-mx-1 sm:text-xs">
 	<colgroup>
 		<col class="w-3/5" />
 		<col class="w-1/5" />

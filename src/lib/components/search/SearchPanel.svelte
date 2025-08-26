@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { interpolateReds } from 'd3-scale-chromatic';
 	import { debounce } from 'lodash-es';
 	import type { Map } from 'maplibre-gl';
 
@@ -7,7 +6,6 @@
 	import ServiceLineResults from '$lib/components/search/ServiceLineResults.svelte';
 	import { search } from '$lib/state/search.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { visualization } from '$lib/state/visualization.svelte';
 	import {
 		isAddressDataLoading,
 		addressStore,
@@ -38,9 +36,6 @@
 	}
 
 	let { map }: Props = $props();
-
-	// Derived colors - matching search button hue
-	const searchButtonColor = interpolateReds(0.5);
 
 	// State.
 	let suggestions = $state<AddressWithServiceLine[]>([]);
@@ -1343,9 +1338,7 @@
 <div class="flex flex-col gap-3 sm:gap-4">
 	{#if !ui.searchHeaderCollapsed}
 		<div class="flex flex-col gap-2 sm:gap-4">
-			<h1
-				class="font-sans-secondary text-earth text-2.5xl m-0 font-medium text-balance sm:text-4xl"
-			>
+			<h1 class="font-sans-secondary text-earth text-hed m-0 font-medium text-balance sm:text-4xl">
 				Chicago: Does your water service line contain lead?
 			</h1>
 			<p class="text-earth m-0 font-sans text-base leading-[calc(1/0.75)]">
@@ -1366,7 +1359,7 @@
 					onkeydown={onKeyDown}
 					onfocus={onInputFocus}
 					onblur={onInputBlur}
-					class="border-earth bg-smog w-full rounded-sm border px-1.5 py-1 font-sans text-base transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+					class="border-earth bg-smog w-full rounded-sm border px-1.5 py-1 font-sans text-base text-ellipsis transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
 					placeholder="1234 N State St"
 					disabled={$isAddressDataLoading}
 				/>
@@ -1380,8 +1373,7 @@
 			</div>
 			<button
 				onclick={handleSearch}
-				style="background-color: {searchButtonColor}; border-color: {interpolateReds(0.6)};"
-				class="flex shrink-0 basis-[100px] items-center justify-center gap-2 rounded-md border p-1.5 font-sans whitespace-nowrap text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+				class="bg-int-red border-int-red/40 flex shrink-0 basis-[100px] items-center justify-center gap-2 rounded-md border p-1.5 font-sans whitespace-nowrap text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={$isAddressDataLoading || search.isSearching}
 			>
 				{#if $isAddressDataLoading || search.isSearching}

@@ -1,6 +1,11 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+
+	import { messages, type Language } from '$lib/i18n/messages';
 	import { ui } from '$lib/state/ui.svelte';
 	import { currentServiceLine, multiServiceLineStore } from '$lib/stores';
+
+	const lang = getContext<Language>('lang');
 
 	// Button is only active when we have loaded inventory data
 	let isActive = $derived($currentServiceLine !== null && !$multiServiceLineStore.isLoading);
@@ -36,7 +41,7 @@
 		<circle cx="12" cy="12" r="10" stroke-width="2" />
 		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01" />
 	</svg>
-	<span>Resources for Selected Address</span>
+	<span>{messages[lang].resourcesButton}</span>
 	<svg
 		class={[
 			'h-3 w-3 transition-transform duration-200',

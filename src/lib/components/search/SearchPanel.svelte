@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { debounce } from 'lodash-es';
 	import type { Map } from 'maplibre-gl';
+	import { getContext } from 'svelte';
 
 	import SearchSuggestions from '$lib/components/search/SearchSuggestions.svelte';
 	import ServiceLineResults from '$lib/components/search/ServiceLineResults.svelte';
+	import { messages, type Language } from '$lib/i18n/messages';
 	import { search } from '$lib/state/search.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import {
@@ -1342,8 +1344,7 @@
 				Chicago: Does your water service line contain lead?
 			</h1>
 			<p class="text-earth m-0 font-sans text-base leading-[calc(1/0.75)]">
-				Enter your address to find out whether any part of your water service line needs replacing
-				and how your neighborhood compares to others.
+				{messages[lang].dek}
 			</p>
 		</div>
 	{/if}
@@ -1414,7 +1415,7 @@
 							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 						/>
 					</svg>
-					Search
+					{messages[lang].searchButton}
 				{/if}
 			</button>
 		</div>

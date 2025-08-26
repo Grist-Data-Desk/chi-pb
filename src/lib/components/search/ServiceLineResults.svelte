@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { Map, MapMouseEvent } from 'maplibre-gl';
-	import { onMount } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 
 	import Demographics from '$lib/components/data/Demographics.svelte';
 	import ServiceLineDetails from '$lib/components/data/ServiceLineDetails.svelte';
 	import ServiceLineInventory from '$lib/components/data/ServiceLineInventory.svelte';
 	import Tabs from '$lib/components/shared/tabs/Tabs.svelte';
 	import TabItem from '$lib/components/shared/tabs/TabItem.svelte';
+	import { messages, type Language } from '$lib/i18n/messages';
 	import { multiServiceLineStore, currentServiceLine, serviceLineCount } from '$lib/stores';
 	import { search } from '$lib/state/search.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
@@ -14,6 +15,9 @@
 	import { LAYER_CONFIG } from '$lib/utils/config';
 	import { DISPLAY_CODES_TO_MATERIAL_LABELS, getMaterialColor, COLORS } from '$lib/utils/constants';
 	import { social } from '$lib/state/social.svelte';
+
+	// Context.
+	const lang = getContext<Language>('lang');
 
 	// Props.
 	interface Props {
@@ -149,9 +153,7 @@
 					<div class="flex items-start gap-2">
 						<div>
 							<p class="font-sans text-sm font-medium text-amber-800">
-								The address you searched is not in the city of Chicago's water service line
-								inventory. However, you can click on a nearby service line dot to view its
-								corresponding inventory entry.
+								{messages[lang].resultsPanel.addressNotFoundDescription}
 							</p>
 						</div>
 					</div>
@@ -199,7 +201,7 @@
 					{#if !isLoading}
 						<button
 							onclick={shareResults}
-							class="cursor-pointer inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:px-2.5 sm:text-sm"
+							class="inline-flex cursor-pointer items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:px-2.5 sm:text-sm"
 							style="background-color: {COLORS.EARTH}"
 							title="Share your results"
 						>
@@ -214,24 +216,24 @@
 				</div>
 				{#if $serviceLineCount > 1}
 					<p class="text-earth/80 m-0 text-xs italic">
-						This address is associated with {$serviceLineCount} service line records. The status shown
-						above represents the 'worst-case' scenario across all lines: If suspected lead appears in
-						any of the service lines, it'll be noted here. See individual line details below.
+						{messages[lang].resultsPanel.multipleServiceLinesDescription({
+							count: $serviceLineCount
+						})}
 					</p>
 				{/if}
 			{/if}
 		</div>
 		{#if !search.isNominatimAddress}
 			<Tabs>
-				<TabItem title={'Service line\ninformation'} open={true}>
+				<TabItem title={messages[lang].resultsPanel.serviceLineInformationTabTitle} open={true}>
 					<ServiceLineDetails {isLoading} {error} {currentInventoryData} />
 				</TabItem>
-				<TabItem title={'Service line\ninventory'} open={false}>
+				<TabItem title={messages[lang].resultsPanel.serviceLineInventoryTabTitle} open={false}>
 					<ServiceLineInventory
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>
 				</TabItem>
-				<TabItem title={'Demographic\ncontext'} open={false}>
+				<TabItem title={messages[lang].resultsPanel.demographicContextTabTitle} open={false}>
 					<Demographics
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>

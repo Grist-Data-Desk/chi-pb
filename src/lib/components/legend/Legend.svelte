@@ -1,21 +1,36 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+
+	import { messages, type Language } from '$lib/i18n/messages';
 	import { removeSelectedFeatureState } from '$lib/state/feature.svelte';
 	import { mapState } from '$lib/state/map.svelte';
 	import { popup } from '$lib/state/popup.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { AggregationLevel, ChoroplethMode } from '$lib/types';
-	import { CHOROPLETH_CATEGORIES, LAYER_CONFIG, SOURCE_CONFIG } from '$lib/utils/config';
+	import { CHOROPLETH_CATEGORIES } from '$lib/utils/config';
 	import {
 		fetchQuantileData,
 		formatQuantileValue,
 		getQuantileColorExpression
 	} from '$lib/utils/quantiles';
-	// Constants.
-	const CHOROPLETH_MODES = Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => ({
-		value: key,
-		label: label.replace('Household ', '').replace('Percent ', '% ')
-	}));
+
+	// Context.
+	const lang = getContext<Language>('lang');
+
+	let CHOROPLETH_MODES = $derived(
+		Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => {
+			const i18nKey = `${label.toLowerCase()}Button` as
+				| 'leadButton'
+				| 'povertyButton'
+				| 'raceButton';
+
+			return {
+				value: key,
+				label: messages[lang].legend[i18nKey]
+			};
+		})
+	);
 
 	// State.
 	let quantileData = $derived(
@@ -26,11 +41,11 @@
 	function getVariableDescription(mode: ChoroplethMode) {
 		switch (mode) {
 			case 'pct_requires_replacement':
-				return 'Percentage of service lines requiring replacement';
+				return messages[lang].legend.pctRequiresReplacementLabel;
 			case 'pct_poverty':
-				return 'Percentage of population below poverty line';
+				return messages[lang].legend.pctPovertyLabel;
 			case 'pct_minority':
-				return 'Percentage of population that is non-white';
+				return messages[lang].legend.pctRaceLabel;
 			default:
 				return '';
 		}
@@ -101,11 +116,13 @@
 			/>
 		</svg>
 		<p class="text-earth/80 m-0 font-sans text-xs leading-tight">
-			Select a data layer to visualize
+			{messages[lang].legend.title}
 		</p>
 	</div>
 	<div class="mb-3">
-		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">Aggregation Level</p>
+		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">
+			{messages[lang].legend.aggregationLevelLabel}
+		</p>
 		<div class="relative grid grid-cols-2 bg-white">
 			<div
 				class={[
@@ -158,7 +175,9 @@
 		</div>
 	</div>
 	<div class="mb-3">
-		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">Data Visualization</p>
+		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">
+			{messages[lang].legend.dataVisualizationLabel}
+		</p>
 		<div class="relative mb-2 grid grid-cols-3 bg-white">
 			<div
 				class={[

@@ -13,7 +13,7 @@
 </script>
 
 {#snippet cell(value: string, className = '')}
-	<td class={['py-0.5 pr-0.5 text-right sm:py-1 sm:pr-1', className]}>
+	<td class={['p-0.5 text-right sm:p-1', className]}>
 		{#if !value}
 			<Skeleton class="relative left-[70%] h-4 w-[30%]" />
 		{:else}
@@ -71,7 +71,7 @@
 		<tr class="border-earth/30 border-t">
 			<td class="p-0.5 sm:p-1">Total</td>
 			{@render cell(data ? formatCount(data.total) : '')}
-			<td class="py-0.5 pr-0.5 sm:p-1 sm:pr-1"></td>
+			<td class="px-0.5 py-0.5 sm:p-1 sm:px-1"></td>
 		</tr>
 		<tr class="bg-red-100 text-red-600">
 			<td class="p-0.5 font-semibold sm:p-1">Requires Replacement</td>

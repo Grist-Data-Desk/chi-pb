@@ -71,7 +71,7 @@
 		<tr class="border-earth/30 border-t">
 			<td class="p-0.5 sm:p-1">Total</td>
 			{@render cell(data ? formatCount(data.total) : '')}
-			<td class="px-0.5 py-0.5 sm:p-1 sm:px-1"></td>
+			<td class="p-0.5 sm:p-1"></td>
 		</tr>
 		<tr class="bg-red-100 text-red-600">
 			<td class="p-0.5 font-semibold sm:p-1">Requires Replacement</td>

@@ -126,6 +126,13 @@
 			search.selectedAddressCommunityName = null;
 		}
 	});
+
+	// Cleanup social state on component destroy
+	$effect(() => {
+		return () => {
+			social.cleanup();
+		};
+	});
 </script>
 
 {#if address}

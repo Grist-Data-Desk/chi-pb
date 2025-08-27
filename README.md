@@ -143,10 +143,12 @@ The map displays water service lines in four categories:
 The map supports visualization at two aggregation levels with three demographic overlays:
 
 ### Aggregation Levels
+
 - **Census Tracts**: Fine-grained view at the census tract level
 - **Community Areas**: Broader view at the community area level (77 areas in Chicago)
 
 ### Data Overlays
+
 - **Percent Requires Replacement**: Percentage of addresses requiring lead pipe replacement
 - **Percent Poverty**: Poverty rate percentage
 - **Percent Minority**: Minority population percentage

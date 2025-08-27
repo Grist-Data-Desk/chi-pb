@@ -199,12 +199,14 @@
 					{#if !isLoading}
 						<button
 							onclick={shareResults}
-							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm hover:opacity-90 transition-opacity"
+							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:px-2.5 sm:text-sm"
 							style="background-color: {COLORS.EARTH}"
 							title="Share your results"
 						>
 							<svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-								<path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+								<path
+									d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"
+								/>
 							</svg>
 							Share
 						</button>
@@ -238,4 +240,3 @@
 		{/if}
 	</div>
 {/if}
-

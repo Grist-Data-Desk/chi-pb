@@ -26,7 +26,7 @@
 			<!-- Close button -->
 			<button
 				onclick={() => social.closeSharePreview()}
-				class="bg-smog absolute top-4 right-4 sm:top-6 sm:right-6 z-10 flex h-6 w-6 items-center justify-center border-none transition-opacity hover:opacity-70"
+				class="bg-smog absolute top-4 right-4 z-10 flex h-6 w-6 items-center justify-center border-none transition-opacity hover:opacity-70 sm:top-6 sm:right-6"
 				aria-label="Close preview"
 			>
 				<svg class="text-earth/80 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,7 +41,9 @@
 
 			<!-- Preview content -->
 			<div class="flex flex-col gap-4">
-				<h3 class="font-sans-secondary text-earth mt-0 mb-2 pr-6 text-base font-medium sm:mb-3 sm:text-xl">
+				<h3
+					class="font-sans-secondary text-earth mt-0 mb-2 pr-6 text-base font-medium sm:mb-3 sm:text-xl"
+				>
 					Share your results
 				</h3>
 
@@ -59,7 +61,7 @@
 					<!-- Download button styled like the share pill -->
 					<button
 						onclick={() => social.downloadShareImage()}
-						class="inline-flex items-center rounded-full border-2 border-white px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+						class="inline-flex items-center rounded-full border-2 border-white px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
 						style="background-color: {COLORS.EARTH}"
 					>
 						<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +75,7 @@
 						Download Image
 					</button>
 
-					<p class="text-earth/60 text-sm text-center font-sans">
+					<p class="text-earth/60 text-center font-sans text-sm">
 						Save this image to share on social media
 					</p>
 				</div>

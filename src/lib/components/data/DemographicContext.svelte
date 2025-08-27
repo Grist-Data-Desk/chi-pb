@@ -14,7 +14,7 @@
 	let { data }: Props = $props();
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 </script>
 
 {#snippet cell(value: string)}
@@ -35,31 +35,33 @@
 	</colgroup>
 	<tbody>
 		<tr>
-			<td class="py-0.5 sm:py-1">{messages[lang].demographicContext.medianHouseholdIncomeLabel}</td>
+			<td class="py-0.5 sm:py-1"
+				>{messages[lang()].demographicContext.medianHouseholdIncomeLabel}</td
+			>
 			{@render cell(data ? formatCurrency(data.median_household_income) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">{messages[lang].demographicContext.povertyRateLabel}</td>
+			<td class="py-0.5 sm:py-1">{messages[lang()].demographicContext.povertyRateLabel}</td>
 			{@render cell(data ? formatPercent(data.pct_poverty) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">{messages[lang].demographicContext.blackPopulationLabel}</td>
+			<td class="py-0.5 sm:py-1">{messages[lang()].demographicContext.blackPopulationLabel}</td>
 			{@render cell(data ? formatPercent(data.pct_black_nonhispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">{messages[lang].demographicContext.latinoPopulationLabel}</td>
+			<td class="py-0.5 sm:py-1">{messages[lang()].demographicContext.latinoPopulationLabel}</td>
 			{@render cell(data ? formatPercent(data.pct_hispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">{messages[lang].demographicContext.whitePopulationLabel}</td>
+			<td class="py-0.5 sm:py-1">{messages[lang()].demographicContext.whitePopulationLabel}</td>
 			{@render cell(data ? formatPercent(data.pct_white_nonhispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">{messages[lang].demographicContext.asianPopulationLabel}</td>
+			<td class="py-0.5 sm:py-1">{messages[lang()].demographicContext.asianPopulationLabel}</td>
 			{@render cell(data ? formatPercent(data.pct_asian_nonhispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">{messages[lang].demographicContext.nonWhitePopulationLabel}</td>
+			<td class="py-0.5 sm:py-1">{messages[lang()].demographicContext.nonWhitePopulationLabel}</td>
 			{@render cell(data ? formatPercent(data.pct_minority) : '')}
 		</tr>
 	</tbody>

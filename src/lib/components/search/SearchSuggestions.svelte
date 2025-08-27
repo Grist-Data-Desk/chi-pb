@@ -30,7 +30,7 @@
 	const highlightColor = interpolateReds(0.15);
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 	function onSuggestionKeyDown(event: KeyboardEvent, suggestion: AddressWithServiceLine) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
@@ -61,7 +61,7 @@
 		>
 			{#if suggestions.length === 0 && nominatimSuggestions.length > 0}
 				<div class="text-earth/80 border-earth/5 border-b px-4 py-2 text-xs">
-					{messages[lang].search.noResultsFoundDescription}
+					{messages[lang()].search.noResultsFoundDescription}
 				</div>
 			{/if}
 			{#each [...suggestions, ...nominatimSuggestions] as suggestion, index}

@@ -17,7 +17,7 @@
 	import { social } from '$lib/state/social.svelte';
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 
 	// Props.
 	interface Props {
@@ -153,7 +153,7 @@
 					<div class="flex items-start gap-2">
 						<div>
 							<p class="font-sans text-sm font-medium text-amber-800">
-								{messages[lang].selectedAddress.addressNotFoundDescription}
+								{messages[lang()].selectedAddress.addressNotFoundDescription}
 							</p>
 						</div>
 					</div>
@@ -181,21 +181,21 @@
 									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 								></path>
 							</svg>
-							{messages[lang].selectedAddress.leadStatusLoadingLabel}
+							{messages[lang()].selectedAddress.leadStatusLoadingLabel}
 						</span>
 					{:else if displayCode === 'L' || displayCode === 'GRR' || displayCode === 'NL'}
 						<span
 							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor(displayCode)}"
 						>
-							{messages[lang].selectedAddress[`leadStatus${displayCode}Label`]}
+							{messages[lang()].selectedAddress[`leadStatus${displayCode}Label`]}
 						</span>
 					{:else}
 						<span
 							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor('U')}"
 						>
-							{messages[lang].selectedAddress.leadStatusSuspectedLeadLabel}
+							{messages[lang()].selectedAddress.leadStatusSuspectedLeadLabel}
 						</span>
 					{/if}
 					{#if !isLoading}
@@ -216,7 +216,7 @@
 				</div>
 				{#if $serviceLineCount > 1}
 					<p class="text-earth/80 m-0 text-xs italic">
-						{messages[lang].resultsPanel.multipleServiceLinesDescription({
+						{messages[lang()].resultsPanel.multipleServiceLinesDescription({
 							count: $serviceLineCount
 						})}
 					</p>
@@ -225,15 +225,15 @@
 		</div>
 		{#if !search.isNominatimAddress}
 			<Tabs>
-				<TabItem title={messages[lang].tabs.serviceLineInformationTabTitle} open={true}>
+				<TabItem title={messages[lang()].tabs.serviceLineInformationTabTitle} open={true}>
 					<ServiceLineDetails {isLoading} {error} {currentInventoryData} />
 				</TabItem>
-				<TabItem title={messages[lang].tabs.serviceLineInventoryTabTitle} open={false}>
+				<TabItem title={messages[lang()].tabs.serviceLineInventoryTabTitle} open={false}>
 					<ServiceLineInventory
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>
 				</TabItem>
-				<TabItem title={messages[lang].tabs.demographicContextTabTitle} open={false}>
+				<TabItem title={messages[lang()].tabs.demographicContextTabTitle} open={false}>
 					<DemographicContext
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>

@@ -16,7 +16,7 @@
 	} from '$lib/utils/quantiles';
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 
 	let CHOROPLETH_MODES = $derived(
 		Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => {
@@ -27,7 +27,7 @@
 
 			return {
 				value: key,
-				label: messages[lang].legend[i18nKey]
+				label: messages[lang()].legend[i18nKey]
 			};
 		})
 	);
@@ -41,11 +41,11 @@
 	function getVariableDescription(mode: ChoroplethMode) {
 		switch (mode) {
 			case 'pct_requires_replacement':
-				return messages[lang].legend.pctRequiresReplacementLabel;
+				return messages[lang()].legend.pctRequiresReplacementLabel;
 			case 'pct_poverty':
-				return messages[lang].legend.pctPovertyLabel;
+				return messages[lang()].legend.pctPovertyLabel;
 			case 'pct_minority':
-				return messages[lang].legend.pctRaceLabel;
+				return messages[lang()].legend.pctRaceLabel;
 			default:
 				return '';
 		}
@@ -116,12 +116,12 @@
 			/>
 		</svg>
 		<p class="text-earth/80 m-0 font-sans text-xs leading-tight">
-			{messages[lang].legend.title}
+			{messages[lang()].legend.title}
 		</p>
 	</div>
 	<div class="mb-3">
 		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">
-			{messages[lang].legend.aggregationLevelLabel}
+			{messages[lang()].legend.aggregationLevelLabel}
 		</p>
 		<div class="relative grid grid-cols-2 bg-white">
 			<div
@@ -176,7 +176,7 @@
 	</div>
 	<div class="mb-3">
 		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">
-			{messages[lang].legend.dataVisualizationLabel}
+			{messages[lang()].legend.dataVisualizationLabel}
 		</p>
 		<div class="relative mb-2 grid grid-cols-3 bg-white">
 			<div
@@ -281,7 +281,7 @@
 				</p>
 			</div>
 		{:else}
-			<div class="text-2xs text-earth/80 sm:text-xs">{messages[lang].legend.loadingLabel}</div>
+			<div class="text-2xs text-earth/80 sm:text-xs">{messages[lang()].legend.loadingLabel}</div>
 		{/if}
 	</div>
 </div>

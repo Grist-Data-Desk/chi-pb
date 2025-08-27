@@ -45,8 +45,8 @@
 	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
 
-	const lang = page.url.searchParams.get('lang') === 'es' ? 'es' : 'en';
-	setContext<Language>('lang', lang);
+	let lang = $state<Language>('en');
+	setContext<() => Language>('lang', () => lang);
 
 	// Helper function to check if a polygon should be interactive (clickable/hoverable)
 	function isPolygonInteractive(properties: any, aggregationLevel: 'tract' | 'community'): boolean {
@@ -119,6 +119,8 @@
 	});
 
 	onMount(() => {
+		lang = page.url.searchParams.get('lang') === 'es' ? 'es' : 'en';
+
 		const protocol = new pmtiles.Protocol();
 		maplibregl.addProtocol('pmtiles', protocol.tile);
 

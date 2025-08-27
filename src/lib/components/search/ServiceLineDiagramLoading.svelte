@@ -4,7 +4,7 @@
 	import { messages, type Language } from '$lib/i18n/messages';
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 
 	// State.
 	let waterProgress = $state(0);
@@ -46,7 +46,7 @@
 			opacity="0.5"
 		/>
 		<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">
-			{messages[lang].serviceLineInformation.leadStatusLoadingLabel}
+			{messages[lang()].serviceLineInformation.leadStatusLoadingLabel}
 		</text>
 	</g>
 
@@ -72,10 +72,10 @@
 
 	<!-- Labels -->
 	<text x="40" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
-		>{messages[lang].serviceLineInformation.waterMainLabel}</text
+		>{messages[lang()].serviceLineInformation.waterMainLabel}</text
 	>
 	<text x="140" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
-		>{messages[lang].serviceLineInformation.gooseneckLabel}</text
+		>{messages[lang()].serviceLineInformation.gooseneckLabel}</text
 	>
 
 	<!-- Utility portion label with text wrapping -->
@@ -178,6 +178,6 @@
 
 	<!-- Loading text below -->
 	<text x="275" y="240" text-anchor="middle" class="fill-earth/40 animate-pulse text-sm">
-		{messages[lang].serviceLineInformation.loadingServiceLineInformationLabel}
+		{messages[lang()].serviceLineInformation.loadingServiceLineInformationLabel}
 	</text>
 </svg>

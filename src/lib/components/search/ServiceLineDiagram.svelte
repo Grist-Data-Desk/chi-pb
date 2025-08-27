@@ -16,7 +16,7 @@
 		$props();
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 
 	// State.
 	let utilityColor = $derived(getMaterialColor(utilitySideMaterial));
@@ -30,25 +30,25 @@
 
 		switch (material.toUpperCase()) {
 			case 'C':
-				return messages[lang].serviceLineInformation.leadStatusCLabel;
+				return messages[lang()].serviceLineInformation.leadStatusCLabel;
 			case 'CLS':
-				return messages[lang].serviceLineInformation.leadStatusCLSLabel;
+				return messages[lang()].serviceLineInformation.leadStatusCLSLabel;
 			case 'G':
-				return messages[lang].serviceLineInformation.leadStatusGLabel;
+				return messages[lang()].serviceLineInformation.leadStatusGLabel;
 			case 'GRR':
-				return messages[lang].serviceLineInformation.leadStatusGRRLabel;
+				return messages[lang()].serviceLineInformation.leadStatusGRRLabel;
 			case 'L':
-				return messages[lang].serviceLineInformation.leadStatusLeadLabel;
+				return messages[lang()].serviceLineInformation.leadStatusLeadLabel;
 			case 'O':
-				return messages[lang].serviceLineInformation.leadStatusOLabel;
+				return messages[lang()].serviceLineInformation.leadStatusOLabel;
 			case 'P':
-				return messages[lang].serviceLineInformation.leadStatusPLabel;
+				return messages[lang()].serviceLineInformation.leadStatusPLabel;
 			case 'U':
-				return messages[lang].serviceLineInformation.leadStatusULabel;
+				return messages[lang()].serviceLineInformation.leadStatusULabel;
 			case 'UNL':
-				return messages[lang].serviceLineInformation.leadStatusUNLLabel;
+				return messages[lang()].serviceLineInformation.leadStatusUNLLabel;
 			case 'NL':
-				return messages[lang].serviceLineInformation.leadStatusNLLabel;
+				return messages[lang()].serviceLineInformation.leadStatusNLLabel;
 			default:
 				return material;
 		}
@@ -62,38 +62,38 @@
 		switch (label) {
 			case 'Suspected Lead':
 				return {
-					line1: messages[lang].serviceLineInformation.splitUnknownLabel,
-					line2: `(${messages[lang].serviceLineInformation.leadStatusULabel})`
+					line1: messages[lang()].serviceLineInformation.splitUnknownLabel,
+					line2: `(${messages[lang()].serviceLineInformation.leadStatusULabel})`
 				};
 			case 'Unknown (Not Lead)':
 				return {
-					line1: messages[lang].serviceLineInformation.splitUnknownLabel,
-					line2: `(${messages[lang].serviceLineInformation.leadStatusUNLLabel})`
+					line1: messages[lang()].serviceLineInformation.splitUnknownLabel,
+					line2: `(${messages[lang()].serviceLineInformation.leadStatusUNLLabel})`
 				};
 			case 'Galvanized Requiring Replacement':
 				return {
-					line1: messages[lang].serviceLineInformation.splitGalvanizedRequiringLabel,
-					line2: messages[lang].serviceLineInformation.splitReplacementLabel
+					line1: messages[lang()].serviceLineInformation.splitGalvanizedRequiringLabel,
+					line2: messages[lang()].serviceLineInformation.splitReplacementLabel
 				};
 			case 'Cast/Ductile Iron or Transite':
 				return {
-					line1: messages[lang].serviceLineInformation.splitCastDuctileLabel,
-					line2: messages[lang].serviceLineInformation.splitOrTransiteLabel
+					line1: messages[lang()].serviceLineInformation.splitCastDuctileLabel,
+					line2: messages[lang()].serviceLineInformation.splitOrTransiteLabel
 				};
 			case 'Copper - No Lead Solder':
 				return {
-					line1: `${messages[lang].serviceLineInformation.splitCopperLabel} -`,
-					line2: messages[lang].serviceLineInformation.splitNoLeadSolderLabel
+					line1: `${messages[lang()].serviceLineInformation.splitCopperLabel} -`,
+					line2: messages[lang()].serviceLineInformation.splitNoLeadSolderLabel
 				};
 			case 'Copper - Lead Solder':
 				return {
-					line1: `${messages[lang].serviceLineInformation.splitCopperLabel} -`,
-					line2: messages[lang].serviceLineInformation.splitLeadSolderLabel
+					line1: `${messages[lang()].serviceLineInformation.splitCopperLabel} -`,
+					line2: messages[lang()].serviceLineInformation.splitLeadSolderLabel
 				};
 			case 'Plastic - PVC, HDPE, PEX':
 				return {
-					line1: `${messages[lang].serviceLineInformation.splitPlasticLabel} -`,
-					line2: messages[lang].serviceLineInformation.splitPVCHDPEPEXLabel
+					line1: `${messages[lang()].serviceLineInformation.splitPlasticLabel} -`,
+					line2: messages[lang()].serviceLineInformation.splitPVCHDPEPEXLabel
 				};
 			default: {
 				const words = label.split(' ');
@@ -128,7 +128,7 @@
 				opacity="0.9"
 			/>
 			<text x="0" y="4" text-anchor="middle" class="fill-white text-sm">
-				{messages[lang].serviceLineInformation.leadStatusLeadLabel}
+				{messages[lang()].serviceLineInformation.leadStatusLeadLabel}
 			</text>
 		{:else if overallCode === 'GRR'}
 			<rect
@@ -143,7 +143,7 @@
 				opacity="0.9"
 			/>
 			<text x="0" y="4" text-anchor="middle" class="fill-white text-sm"
-				>{messages[lang].serviceLineInformation.leadStatusGRRLabel}</text
+				>{messages[lang()].serviceLineInformation.leadStatusGRRLabel}</text
 			>
 		{:else if overallCode === 'NL'}
 			<rect
@@ -158,7 +158,7 @@
 				opacity="0.9"
 			/>
 			<text x="0" y="4" text-anchor="middle" class="fill-white text-sm">
-				{messages[lang].serviceLineInformation.leadStatusNLLabel}
+				{messages[lang()].serviceLineInformation.leadStatusNLLabel}
 			</text>
 		{:else if overallCode === 'U'}
 			<rect
@@ -173,7 +173,7 @@
 				opacity="0.9"
 			/>
 			<text x="0" y="4" text-anchor="middle" class="fill-white text-sm">
-				{messages[lang].serviceLineInformation.leadStatusULabel}
+				{messages[lang()].serviceLineInformation.leadStatusULabel}
 			</text>
 		{:else}
 			<rect
@@ -188,7 +188,7 @@
 				opacity="0.9"
 			/>
 			<text x="0" y="4" text-anchor="middle" class="fill-white text-sm">
-				{messages[lang].serviceLineInformation.leadStatusUnknownLabel}
+				{messages[lang()].serviceLineInformation.leadStatusUnknownLabel}
 			</text>
 		{/if}
 	</g>
@@ -233,10 +233,10 @@
 
 	<!-- Labels -->
 	<text x="40" y="110" text-anchor="middle" class="fill-earth/80 text-sm font-medium"
-		>{messages[lang].serviceLineInformation.waterMainLabel}</text
+		>{messages[lang()].serviceLineInformation.waterMainLabel}</text
 	>
 	<text x="140" y="110" text-anchor="middle" class="fill-earth/80 text-sm font-medium"
-		>{messages[lang].serviceLineInformation.gooseneckLabel}</text
+		>{messages[lang()].serviceLineInformation.gooseneckLabel}</text
 	>
 
 	<!-- Utility portion label with text wrapping -->
@@ -253,7 +253,7 @@
 
 	<!-- Water main (Circle on far left) -->
 	<circle cx="40" cy="160" r="25" fill={COLORS.EARTH} stroke="#ffffff" stroke-width="2">
-		<title>{messages[lang].serviceLineInformation.waterMainLabel}</title>
+		<title>{messages[lang()].serviceLineInformation.waterMainLabel}</title>
 	</circle>
 
 	<!-- Gooseneck (Connects water main to utility side) -->
@@ -267,7 +267,7 @@
 			stroke-linecap="round"
 		>
 			<title
-				>{messages[lang].serviceLineInformation.gooseneckLabel}: {getMaterialLabel(
+				>{messages[lang()].serviceLineInformation.gooseneckLabel}: {getMaterialLabel(
 					gooseneckMaterial
 				)}</title
 			>
@@ -304,7 +304,7 @@
 		rx="4"
 	>
 		<title
-			>{messages[lang].serviceLineInformation.utilitySideLabel}: {getMaterialLabel(
+			>{messages[lang()].serviceLineInformation.utilitySideLabel}: {getMaterialLabel(
 				utilitySideMaterial
 			)}</title
 		>
@@ -322,7 +322,7 @@
 		rx="4"
 	>
 		<title
-			>{messages[lang].serviceLineInformation.customerSideLabel}: {getMaterialLabel(
+			>{messages[lang()].serviceLineInformation.customerSideLabel}: {getMaterialLabel(
 				customerSideMaterial
 			)}</title
 		>

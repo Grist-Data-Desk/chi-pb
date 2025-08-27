@@ -12,7 +12,7 @@
 	let { classification, children }: Props = $props();
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 
 	// State.
 	let showTooltip = $state(false);
@@ -56,6 +56,6 @@
 		role="tooltip"
 		style="z-index: 99999; top: {tooltipPosition.top}px; left: {tooltipPosition.left}px;"
 	>
-		{messages[lang].tooltips[`${classification}Definition`]}
+		{messages[lang()].tooltips[`${classification}Definition`]}
 	</div>
 {/if}

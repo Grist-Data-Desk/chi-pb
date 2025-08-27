@@ -1344,7 +1344,7 @@
 				Chicago: Does your water service line contain lead?
 			</h1>
 			<p class="text-earth m-0 font-sans text-base leading-[calc(1/0.75)]">
-				{messages[lang].dek}
+				{messages[lang()].dek}
 			</p>
 		</div>
 	{/if}
@@ -1415,7 +1415,7 @@
 							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 						/>
 					</svg>
-					{messages[lang].searchButton}
+					{messages[lang()].searchButton}
 				{/if}
 			</button>
 		</div>

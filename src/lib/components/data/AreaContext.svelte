@@ -14,11 +14,13 @@
 	let { data, showServiceLineHelp = false }: Props = $props();
 
 	// Context.
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 
 	// State.
 	let isCommunityArea = $derived(visualization.aggregationLevel === 'community');
-	let areaIdentifier = $derived(formatAreaIdentifier(data, { lang, capitalizeCensusTract: false }));
+	let areaIdentifier = $derived(
+		formatAreaIdentifier(data, { lang: lang(), capitalizeCensusTract: false })
+	);
 </script>
 
 {#snippet area(value: string)}
@@ -33,8 +35,8 @@
 	This address is located in {@render area(areaIdentifier)}. Statistics on this
 	{isCommunityArea ? 'community area' : 'census tract'} appear below.
 	{#if showServiceLineHelp}
-		<span class="sm:hidden">{messages[lang].areaContext.tapLabel}</span>
-		<span class="hidden sm:inline">{messages[lang].areaContext.hoverOverLabel}</span>
-		{messages[lang].areaContext.serviceLineHelpDescription}
+		<span class="sm:hidden">{messages[lang()].areaContext.tapLabel}</span>
+		<span class="hidden sm:inline">{messages[lang()].areaContext.hoverOverLabel}</span>
+		{messages[lang()].areaContext.serviceLineHelpDescription}
 	{/if}
 </p>

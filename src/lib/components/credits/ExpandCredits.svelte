@@ -4,7 +4,7 @@
 	import { messages, type Language } from '$lib/i18n/messages';
 	import { ui } from '$lib/state/ui.svelte';
 
-	const lang = getContext<Language>('lang');
+	const lang = getContext<() => Language>('lang');
 
 	function toggleCredits() {
 		ui.creditsExpanded = !ui.creditsExpanded;
@@ -17,7 +17,7 @@
 	onclick={toggleCredits}
 	aria-label={ui.creditsExpanded ? 'Collapse notes' : 'Expand notes'}
 >
-	<span>{messages[lang].notesButton}</span>
+	<span>{messages[lang()].notesButton}</span>
 	<svg
 		class="text-earth/80 h-3 w-3 transition-transform duration-200"
 		style="transform: rotate({ui.creditsExpanded ? '180deg' : '0deg'})"

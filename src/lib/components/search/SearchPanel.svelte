@@ -239,11 +239,21 @@
 		if (queryNumber !== null && normalizedStreetPart.length > 0) {
 			// Find addresses where the number is in range AND the street matches
 			combinedIndex.addresses.forEach((addr) => {
-				if (addr.n1 > 0 && addr.n2 > 0 && queryNumber >= addr.n1 && queryNumber <= addr.n2) {
+				// Check if the query number matches this address
+				// For single addresses (n2 === 0), match exact number
+				// For range addresses (n2 > 0), check if number is in range
+				const numberMatches = addr.n1 > 0 && (
+					(addr.n2 === 0 && queryNumber === addr.n1) ||
+					(addr.n2 > 0 && queryNumber >= addr.n1 && queryNumber <= addr.n2)
+				);
+				
+				if (numberMatches) {
 					// Only match against the street portion of the address, not the city
 					// addr.a is already in the format "1234 N CHICAGO AVE, 60601" or similar
-					// We want to exclude the zip code from matching to avoid matching "chicago" against city name
-					const streetPortion = addr.a.replace(/, \d{5}$/, ''); // Remove zip code
+					// First remove zip code (with or without comma), then remove the street number for comparison
+					const streetPortion = addr.a
+						.replace(/,?\s*\d{5}$/, '') // Remove zip code (with or without comma)
+						.replace(/^\d+(-\d+)?\s*/, ''); // Remove street number(s) from beginning
 					const normalizedAddr = normalizeAddress(streetPortion);
 					const addressWords = normalizedAddr.split(/\s+/);
 					const streetWords = normalizedStreetPart.split(/\s+/).filter((w) => w.length > 0);
@@ -265,17 +275,20 @@
 		} else if (queryNumber !== null) {
 			// Just number search
 			combinedIndex.addresses.forEach((addr) => {
-				// For single addresses (n1 === n2), match exact number
-				// For range addresses (n1 !== n2), only match if the range starts with our number
-				if (addr.n1 === addr.n2) {
-					// Single address - exact match
-					if (addr.n1 === queryNumber) {
-						matchingAddresses.push(addr);
-					}
-				} else {
-					// Range address - only match if it starts with our query number
-					if (addr.n1 === queryNumber) {
-						matchingAddresses.push(addr);
+				// Check if the query number matches this address
+				// For single addresses (n2 === 0 or n1 === n2), match exact number
+				// For range addresses (n2 > 0 && n1 !== n2), check if in range
+				if (addr.n1 > 0) {
+					if (addr.n2 === 0 || addr.n1 === addr.n2) {
+						// Single address - exact match
+						if (addr.n1 === queryNumber) {
+							matchingAddresses.push(addr);
+						}
+					} else if (addr.n2 > 0) {
+						// Range address - check if query number is in range
+						if (queryNumber >= addr.n1 && queryNumber <= addr.n2) {
+							matchingAddresses.push(addr);
+						}
 					}
 				}
 			});
@@ -406,7 +419,7 @@
 		return topResults.map((addr) => {
 			// Check if this is a ranged address
 			let displayAddress = addr.a;
-			if (addr.n1 !== addr.n2 && addr.n1 > 0 && addr.n2 > 0) {
+			if (addr.n2 > 0 && addr.n1 !== addr.n2 && addr.n1 > 0) {
 				// This is a ranged address - format it as "947-959 W CHICAGO AVE"
 				// First, we need to replace the single number with the range
 				const addressParts = addr.a.split(' ');
@@ -531,15 +544,19 @@
 		if (queryNumber !== null && normalizedStreetPart.length > 0) {
 			// Find addresses where the number is in range AND the street matches
 			searchIndex.addresses.forEach((addr) => {
-				// Check if query number falls within the address range
-				if (
-					addr.num1 > 0 &&
-					addr.num2 > 0 &&
-					queryNumber >= addr.num1 &&
-					queryNumber <= addr.num2
-				) {
+				// Check if query number matches this address
+				// For single addresses (num2 === 0), match exact number
+				// For range addresses (num2 > 0), check if number is in range
+				const numberMatches = addr.num1 > 0 && (
+					(addr.num2 === 0 && queryNumber === addr.num1) ||
+					(addr.num2 > 0 && queryNumber >= addr.num1 && queryNumber <= addr.num2)
+				);
+				
+				if (numberMatches) {
 					// Now check if the street part matches
-					const normalizedAddr = normalizeAddress(addr.display);
+					// Remove the street number from the display address before normalizing
+					const streetOnly = addr.display.replace(/^\d+(-\d+)?\s*/, '');
+					const normalizedAddr = normalizeAddress(streetOnly);
 					const addressWords = normalizedAddr.split(/\s+/);
 					const streetWords = normalizedStreetPart.split(/\s+/).filter((w) => w.length > 0);
 
@@ -566,15 +583,23 @@
 				}
 			});
 		} else if (queryNumber !== null) {
-			// Just number search (find all addresses in that range)
+			// Just number search (find all addresses with that number)
 			searchIndex.addresses.forEach((addr) => {
-				if (
-					addr.num1 > 0 &&
-					addr.num2 > 0 &&
-					queryNumber >= addr.num1 &&
-					queryNumber <= addr.num2
-				) {
-					matchingAddresses.push(addr);
+				// Check if the query number matches this address
+				// For single addresses (num2 === 0 or num1 === num2), match exact number
+				// For range addresses (num2 > 0 && num1 !== num2), check if in range
+				if (addr.num1 > 0) {
+					if (addr.num2 === 0 || addr.num1 === addr.num2) {
+						// Single address - exact match
+						if (addr.num1 === queryNumber) {
+							matchingAddresses.push(addr);
+						}
+					} else if (addr.num2 > 0) {
+						// Range address - check if query number is in range
+						if (queryNumber >= addr.num1 && queryNumber <= addr.num2) {
+							matchingAddresses.push(addr);
+						}
+					}
 				}
 			});
 		} else if (normalizedStreetPart.length > 0) {
@@ -720,7 +745,7 @@
 		return topResults.map((minimalAddr) => {
 			// Check if this is a ranged address and format accordingly
 			let displayAddress = minimalAddr.display;
-			if (minimalAddr.num1 !== minimalAddr.num2 && minimalAddr.num1 > 0 && minimalAddr.num2 > 0) {
+			if (minimalAddr.num2 > 0 && minimalAddr.num1 !== minimalAddr.num2 && minimalAddr.num1 > 0) {
 				// This is a ranged address - ensure it shows the full range
 				const addressParts = minimalAddr.display.split(' ');
 				if (addressParts[0] && /^\d+(-\d+)?$/.test(addressParts[0])) {
@@ -1282,7 +1307,7 @@
 				if (addressData) {
 					// Check if this is a ranged address and format accordingly
 					let displayAddress = addressData.a;
-					if (addressData.n1 !== addressData.n2 && addressData.n1 > 0 && addressData.n2 > 0) {
+					if (addressData.n2 > 0 && addressData.n1 !== addressData.n2 && addressData.n1 > 0) {
 						// This is a ranged address - format it as "947-959 W CHICAGO AVE"
 						const addressParts = addressData.a.split(' ');
 						if (addressParts[0] && /^\d+$/.test(addressParts[0])) {

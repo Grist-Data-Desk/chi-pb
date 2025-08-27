@@ -204,7 +204,7 @@
 			}
 
 			// Initialize the popup.
-			popup.node = new Popup(map, isTabletOrAbove);
+			popup.node = new Popup(map, isTabletOrAbove, lang);
 
 			if (!isTabletOrAbove) {
 				const attrib = document.querySelector('.maplibregl-ctrl-attrib');

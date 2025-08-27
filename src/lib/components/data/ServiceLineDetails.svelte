@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+
+	import { messages, type Language } from '$lib/i18n/messages';
 	import ServiceLineDiagram from '$lib/components/search/ServiceLineDiagram.svelte';
 	import ServiceLineDiagramLoading from '$lib/components/search/ServiceLineDiagramLoading.svelte';
 	import {
@@ -16,12 +19,15 @@
 	}
 
 	let { isLoading, error, currentInventoryData }: Props = $props();
+
+	// Context.
+	const lang = getContext<Language>('lang');
 </script>
 
 <div class="flex flex-col gap-3">
 	{#if $serviceLineCount > 1}
 		<span class="text-earth/80 text-sm font-normal"
-			>↳ {$serviceLineCount} lines found at this address</span
+			>↳ {$serviceLineCount} {messages[lang].serviceLineInformation.linesFoundLabel}</span
 		>
 	{/if}
 	{#if isLoading}
@@ -80,10 +86,13 @@
 							d="M15 19l-7-7 7-7"
 						/>
 					</svg>
-					Previous
+					{messages[lang].serviceLineInformation.previousButtonLabel}
 				</button>
 				<span class="text-earth/80 text-xs font-medium">
-					Line {$multiServiceLineStore.currentIndex + 1} of {$serviceLineCount}
+					{messages[lang].serviceLineInformation.lineOfLabel({
+						current: $multiServiceLineStore.currentIndex + 1,
+						total: $serviceLineCount
+					})}
 				</span>
 				<button
 					onclick={nextServiceLine}
@@ -95,7 +104,7 @@
 							: 'text-earth/80 hover:bg-earth/5'
 					]}
 				>
-					Next
+					{messages[lang].serviceLineInformation.nextButtonLabel}
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -112,7 +121,7 @@
 			<div class="mt-2 space-y-2 font-sans text-xs sm:text-sm">
 				<div class="flex items-start gap-2">
 					<span class="font-medium text-red-700"
-						>⚠️ This address is considered a high-risk property by the city of Chicago.</span
+						>{messages[lang].serviceLineInformation.highRiskDescription}</span
 					>
 				</div>
 			</div>
@@ -129,11 +138,10 @@
 				</svg>
 				<div>
 					<p class="text-earth/80 font-sans text-xs sm:text-sm">
-						Detailed inventory information is not available for this address.
+						{messages[lang].serviceLineInformation.detailedInventoryUnavailableDescription}
 					</p>
 					<p class="text-earth/40 mt-1 font-sans text-xs">
-						The basic lead status shown above is based on available data from the geocoded address
-						database.
+						{messages[lang].serviceLineInformation.leadStatusFromGeocoderDescription}
 					</p>
 				</div>
 			</div>

@@ -2,7 +2,7 @@
 	import type { Map, MapMouseEvent } from 'maplibre-gl';
 	import { onMount, getContext } from 'svelte';
 
-	import Demographics from '$lib/components/data/Demographics.svelte';
+	import DemographicContext from '$lib/components/data/DemographicContext.svelte';
 	import ServiceLineDetails from '$lib/components/data/ServiceLineDetails.svelte';
 	import ServiceLineInventory from '$lib/components/data/ServiceLineInventory.svelte';
 	import Tabs from '$lib/components/shared/tabs/Tabs.svelte';
@@ -153,7 +153,7 @@
 					<div class="flex items-start gap-2">
 						<div>
 							<p class="font-sans text-sm font-medium text-amber-800">
-								{messages[lang].resultsPanel.addressNotFoundDescription}
+								{messages[lang].selectedAddress.addressNotFoundDescription}
 							</p>
 						</div>
 					</div>
@@ -181,21 +181,21 @@
 									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 								></path>
 							</svg>
-							Loading...
+							{messages[lang].selectedAddress.leadStatusLoadingLabel}
 						</span>
 					{:else if displayCode === 'L' || displayCode === 'GRR' || displayCode === 'NL'}
 						<span
 							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor(displayCode)}"
 						>
-							{DISPLAY_CODES_TO_MATERIAL_LABELS[displayCode]}
+							{messages[lang].selectedAddress[`leadStatus${displayCode}Label`]}
 						</span>
 					{:else}
 						<span
 							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor('U')}"
 						>
-							Suspected Lead
+							{messages[lang].selectedAddress.leadStatusSuspectedLeadLabel}
 						</span>
 					{/if}
 					{#if !isLoading}
@@ -225,16 +225,16 @@
 		</div>
 		{#if !search.isNominatimAddress}
 			<Tabs>
-				<TabItem title={messages[lang].resultsPanel.serviceLineInformationTabTitle} open={true}>
+				<TabItem title={messages[lang].tabs.serviceLineInformationTabTitle} open={true}>
 					<ServiceLineDetails {isLoading} {error} {currentInventoryData} />
 				</TabItem>
-				<TabItem title={messages[lang].resultsPanel.serviceLineInventoryTabTitle} open={false}>
+				<TabItem title={messages[lang].tabs.serviceLineInventoryTabTitle} open={false}>
 					<ServiceLineInventory
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>
 				</TabItem>
-				<TabItem title={messages[lang].resultsPanel.demographicContextTabTitle} open={false}>
-					<Demographics
+				<TabItem title={messages[lang].tabs.demographicContextTabTitle} open={false}>
+					<DemographicContext
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>
 				</TabItem>

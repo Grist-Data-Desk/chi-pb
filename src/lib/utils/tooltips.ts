@@ -1,15 +1,3 @@
-export type ServiceLineClassification = 'lead' | 'suspected' | 'galvanized' | 'non-lead';
-
-export const SERVICE_LINE_DEFINITIONS: Record<ServiceLineClassification, string> = {
-	lead: 'At least one component of the service line is known to be made of lead.',
-	suspected:
-		"The composition of the service line is marked unknown in the city's inventory, but is suspected to contain lead components, usually based on the building's age.",
-	galvanized:
-		'No components of the service line are known to be made of lead, but at least one part is made of galvanized steel, which can become contaminated with lead from upstream pipes.',
-	'non-lead':
-		'None of the components of the service line are made of or may be contaminated with lead.'
-};
-
 export interface TooltipPosition {
 	top: number;
 	left: number;

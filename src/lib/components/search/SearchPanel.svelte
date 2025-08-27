@@ -1420,7 +1420,6 @@
 			</button>
 		</div>
 		<SearchSuggestions
-			isFetching={isFetchingSuggestions}
 			{showSuggestions}
 			{suggestions}
 			{nominatimSuggestions}

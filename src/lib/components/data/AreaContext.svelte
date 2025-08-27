@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+
+	import { messages, type Language } from '$lib/i18n/messages';
 	import Skeleton from '$lib/components/shared/skeleton/Skeleton.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { CensusTract, CommunityArea } from '$lib/types';
@@ -10,8 +13,12 @@
 
 	let { data, showServiceLineHelp = false }: Props = $props();
 
+	// Context.
+	const lang = getContext<Language>('lang');
+
+	// State.
 	let isCommunityArea = $derived(visualization.aggregationLevel === 'community');
-	let areaIdentifier = $derived(formatAreaIdentifier(data, false));
+	let areaIdentifier = $derived(formatAreaIdentifier(data, { lang, capitalizeCensusTract: false }));
 </script>
 
 {#snippet area(value: string)}
@@ -26,8 +33,8 @@
 	This address is located in {@render area(areaIdentifier)}. Statistics on this
 	{isCommunityArea ? 'community area' : 'census tract'} appear below.
 	{#if showServiceLineHelp}
-		<span class="sm:hidden">Tap</span>
-		<span class="hidden sm:inline">Hover over</span>
-		a line classification to learn more.
+		<span class="sm:hidden">{messages[lang].areaContext.tapLabel}</span>
+		<span class="hidden sm:inline">{messages[lang].areaContext.hoverOverLabel}</span>
+		{messages[lang].areaContext.serviceLineHelpDescription}
 	{/if}
 </p>

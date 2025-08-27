@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { interpolateReds } from 'd3-scale-chromatic';
+	import { getContext } from 'svelte';
 
 	import Portal from '$lib/components/shared/portal/Portal.svelte';
+	import { messages, type Language } from '$lib/i18n/messages';
 	import type { AddressWithServiceLine } from '$lib/types';
 
 	interface Props {
-		isFetching: boolean;
 		input: HTMLInputElement | null;
 		nominatimSuggestions: AddressWithServiceLine[];
 		onSuggestionClick: (suggestion: AddressWithServiceLine) => void;
@@ -16,7 +17,6 @@
 	}
 
 	let {
-		isFetching,
 		input = $bindable(null),
 		onSuggestionClick,
 		showSuggestions,
@@ -25,8 +25,12 @@
 		suggestionsContainer = $bindable(null),
 		selectedIndex = $bindable(-1)
 	}: Props = $props();
+
+	// Constants.
 	const highlightColor = interpolateReds(0.15);
 
+	// Context.
+	const lang = getContext<Language>('lang');
 	function onSuggestionKeyDown(event: KeyboardEvent, suggestion: AddressWithServiceLine) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
@@ -34,6 +38,7 @@
 		}
 	}
 
+	// Helpers.
 	function getPortalPosition() {
 		if (input) {
 			const { top, left, width, height } = input.getBoundingClientRect();
@@ -56,7 +61,7 @@
 		>
 			{#if suggestions.length === 0 && nominatimSuggestions.length > 0}
 				<div class="text-earth/80 border-earth/5 border-b px-4 py-2 text-xs">
-					No inventory results found. Showing general address search:
+					{messages[lang].search.noResultsFoundDescription}
 				</div>
 			{/if}
 			{#each [...suggestions, ...nominatimSuggestions] as suggestion, index}

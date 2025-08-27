@@ -14,7 +14,8 @@
 		verify any information before acting on it.
 	</p>
 	<p class="m-0">
-		<strong>{messages[lang].credits.sources}</strong> City of Chicago / Census Bureau
+		<strong>{messages[lang].credits.sources}</strong>
+		{messages[lang].credits.cityOfChicago} / {messages[lang].credits.censusBureau}
 	</p>
 	<p class="m-0">
 		<strong>{messages[lang].credits.analysis}</strong> Peter Aldhous / Inside Climate News; Amy Qin /
@@ -29,7 +30,6 @@
 			class="text-emerald-600 no-underline hover:text-emerald-700 hover:underline"
 		>
 			{messages[lang].credits.methods}
-		</a>
-		.
+		</a>.
 	</p>
 </div>

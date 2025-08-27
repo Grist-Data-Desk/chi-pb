@@ -281,7 +281,7 @@
 				</p>
 			</div>
 		{:else}
-			<div class="text-2xs text-earth/80 sm:text-xs">Loading...</div>
+			<div class="text-2xs text-earth/80 sm:text-xs">{messages[lang].legend.loadingLabel}</div>
 		{/if}
 	</div>
 </div>

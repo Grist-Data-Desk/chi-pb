@@ -1,12 +1,17 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+	import { messages, type Language } from '$lib/i18n/messages';
+
 	import { currentServiceLine } from '$lib/stores';
 	import { qualifiesForWaterFilter } from '$lib/utils/resources';
 	import { ui } from '$lib/state/ui.svelte';
 
+	// Context.
+	const lang = getContext<Language>('lang');
+
+	// State.
 	let serviceLine = $derived($currentServiceLine);
-
 	let overallCode = $derived(serviceLine?.OverallSL_Code || serviceLine?.overallCode || 'U');
-
 	let qualifiesForFilter = $derived(qualifiesForWaterFilter(overallCode));
 </script>
 
@@ -26,20 +31,20 @@
 		</svg>
 	</button>
 	<h3 class="font-sans-secondary text-earth mt-0 mb-3 pr-6 text-base font-medium sm:text-lg">
-		What can I do?
+		{messages[lang].resources.title}
 	</h3>
 
 	<p class="text-earth/80 mb-3 font-sans text-xs sm:text-sm">
-		Based on your service line result, the following {qualifiesForFilter
-			? 'resources are'
-			: 'resource is'} available to you:
+		{messages[lang].resources.resultDescription({ plural: qualifiesForFilter })}
 	</p>
 
 	<div class="space-y-2">
 		<div class="rounded-sm border border-blue-200 bg-blue-50 p-2">
-			<p class="mt-0 mb-1 font-sans text-xs font-semibold text-blue-900">Free Water Testing Kit</p>
+			<p class="mt-0 mb-1 font-sans text-xs font-semibold text-blue-900">
+				{messages[lang].resources.freeWaterTestingKitLabel}
+			</p>
 			<p class="mb-2 font-sans text-xs text-blue-800">
-				All Chicago residents can request a free water testing kit to check lead levels.
+				{messages[lang].resources.freeWaterTestingKitDescription}
 			</p>
 			<a
 				href="https://311.chicago.gov/s/new-service-request?typecodeid=a1Pt0000000Q7fiEAC&language=en_US"
@@ -47,7 +52,7 @@
 				rel="noopener noreferrer"
 				class="inline-flex items-center gap-1 font-sans text-xs font-medium text-blue-700 underline hover:text-blue-900"
 			>
-				Request a free water testing kit
+				{messages[lang].resources.freeWaterTestingKitCTA}
 				<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -61,9 +66,11 @@
 
 		{#if qualifiesForFilter}
 			<div class="rounded-sm border border-red-200 bg-red-50 p-2">
-				<p class="mt-0 mb-1 font-sans text-xs font-semibold text-red-900">Free Water Filter</p>
+				<p class="mt-0 mb-1 font-sans text-xs font-semibold text-red-900">
+					{messages[lang].resources.freeWaterFilterLabel}
+				</p>
 				<p class="mb-2 font-sans text-xs text-red-800">
-					Check if your address qualifies for a free water filter from the city of Chicago.
+					{messages[lang].resources.freeWaterFilterDescription}
 				</p>
 				<a
 					href="https://chicagowaterquality.org/filters"
@@ -71,7 +78,7 @@
 					rel="noopener noreferrer"
 					class="inline-flex items-center gap-1 font-sans text-xs font-medium text-red-700 underline hover:text-red-900"
 				>
-					Register for a free water filter
+					{messages[lang].resources.freeWaterFilterCTA}
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -87,10 +94,10 @@
 		{#if qualifiesForFilter}
 			<div class="rounded-sm border border-green-200 bg-green-50 p-2">
 				<p class="mt-0 mb-1 font-sans text-xs font-semibold text-green-900">
-					Lead Pipe Replacement Assistance
+					{messages[lang].resources.leadPipeReplacementAssistanceLabel}
 				</p>
 				<p class="mb-2 font-sans text-xs text-green-800">
-					Depending on your household income, you may qualify for free lead pipe replacement.
+					{messages[lang].resources.leadPipeReplacementAssistanceDescription}
 				</p>
 				<a
 					href="https://www.chicagowaterquality.org/LSLREquity"
@@ -98,7 +105,7 @@
 					rel="noopener noreferrer"
 					class="inline-flex items-center gap-1 font-sans text-xs font-medium text-green-700 underline hover:text-green-900"
 				>
-					Apply for replacement assistance
+					{messages[lang].resources.leadPipeReplacementAssistanceCTA}
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"

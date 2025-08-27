@@ -1,3 +1,4 @@
+import { messages, type Language } from '$lib/i18n/messages';
 import type { CensusTract, CommunityArea } from '$lib/types';
 
 /**
@@ -42,12 +43,21 @@ export function formatPercent(value: number | null): string {
  */
 export function formatAreaIdentifier(
 	data: CensusTract | CommunityArea | null,
-	capitalizeCensusTract = true
+	{
+		capitalizeCensusTract = true,
+		lang = 'en'
+	}: {
+		capitalizeCensusTract?: boolean;
+		lang?: Language;
+	}
 ): string {
 	if (data && 'community' in data) {
 		return data.community;
 	} else if (data && 'geoid' in data) {
-		const prefix = capitalizeCensusTract ? 'Census Tract' : 'census tract';
+		const prefix = capitalizeCensusTract
+			? messages[lang].areaContext.censusTractLabel.charAt(0).toUpperCase() +
+				messages[lang].areaContext.censusTractLabel.slice(1)
+			: messages[lang].areaContext.censusTractLabel;
 		return `${prefix} ${data.geoid}`;
 	}
 

@@ -27,7 +27,7 @@
 	xmlns="http://www.w3.org/2000/svg"
 >
 	<!-- Overall classification indicator (loading state) -->
-	<g transform="translate(275, 35)">
+	<g transform="translate(255, 35)">
 		<rect
 			x="-50"
 			y="-12"
@@ -43,10 +43,10 @@
 	</g>
 
 	<!-- Public/Customer Side Headers -->
-	<text x="170" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
+	<text x="200" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
 		>Public Side</text
 	>
-	<text x="450" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
+	<text x="440" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
 		>Private Side</text
 	>
 
@@ -73,13 +73,13 @@
 	<!-- Utility portion label with text wrapping -->
 	<text x="285" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
 		<tspan x="285" dy="0">Utility portion</tspan>
-		<tspan x="285" dy="14">of service line</tspan>
+		<tspan x="283" dy="14">of service line</tspan>
 	</text>
 
 	<!-- Customer portion label with text wrapping -->
 	<text x="450" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
-		<tspan x="450" dy="0">Customer portion</tspan>
-		<tspan x="450" dy="14">of service line</tspan>
+		<tspan x="442" dy="0">Customer portion</tspan>
+		<tspan x="442" dy="14">of service line</tspan>
 	</text>
 
 	<!-- Define gradient for water flow -->

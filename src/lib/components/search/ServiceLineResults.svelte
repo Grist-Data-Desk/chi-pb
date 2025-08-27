@@ -199,7 +199,7 @@
 					{#if !isLoading}
 						<button
 							onclick={shareResults}
-							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:px-2.5 sm:text-sm"
+							class="cursor-pointer inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:px-2.5 sm:text-sm"
 							style="background-color: {COLORS.EARTH}"
 							title="Share your results"
 						>

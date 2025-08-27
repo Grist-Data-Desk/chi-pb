@@ -83,7 +83,7 @@
 
 <div
 	class={[
-		'floating-panel appear absolute z-15 w-[94%] p-2 shadow-lg sm:p-4 md:top-4 md:right-16 md:bottom-auto md:left-auto md:block md:w-[370px]',
+		'floating-panel appear absolute z-20 w-[94%] p-2 shadow-lg sm:p-4 md:top-4 md:right-16 md:bottom-auto md:left-auto md:block md:w-[370px]',
 		ui.legendExpanded ? 'right-[3%] bottom-16 left-[3%] md:right-16 md:left-auto' : 'hidden'
 	]}
 >

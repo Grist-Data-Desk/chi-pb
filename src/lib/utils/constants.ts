@@ -45,6 +45,12 @@ export const DISPLAY_CODES_TO_MATERIAL_LABELS = {
 	NL: 'Non-Lead'
 } as const;
 
+export const DISPLAY_CODES_TO_MATERIAL_LABELS_SOCIAL = {
+	L: 'Lead',
+	GRR: 'Galvanized Requiring Replacement',
+	NL: 'Non-Lead'
+} as const;
+
 // Function to get material color (for use in Svelte components)
 export function getMaterialColor(material: string): string {
 	if (!material) {

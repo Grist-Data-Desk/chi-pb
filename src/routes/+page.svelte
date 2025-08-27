@@ -12,6 +12,7 @@
 	import ExpandResources from '$lib/components/resources/ExpandResources.svelte';
 	import ExpandLegend from '$lib/components/legend/ExpandLegend.svelte';
 	import Legend from '$lib/components/legend/Legend.svelte';
+	import SharePreview from '$lib/components/social/SharePreview.svelte';
 	import GristLogo from '$lib/components/logos/GristLogo.svelte';
 	import ICNLogo from '$lib/components/logos/ICNLogo.svelte';
 	import WBEZLogo from '$lib/components/logos/WBEZLogo.svelte';
@@ -554,6 +555,7 @@
 </script>
 
 <svelte:window bind:innerWidth />
+<SharePreview />
 <main class="absolute inset-0 flex flex-col overflow-hidden font-sans">
 	<div class="relative flex-1">
 		<div id="map-container" class="relative h-full">

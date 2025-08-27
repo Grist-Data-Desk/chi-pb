@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 
 	import { calculateTooltipPosition, type TooltipPosition } from '$lib/utils/tooltips';
 
@@ -18,6 +18,7 @@
 	let showTooltip = $state(false);
 	let iconRef = $state<HTMLElement | null>(null);
 	let tooltipPosition = $state<TooltipPosition>({ top: 0, left: 0 });
+	let messages = $derived(i18nMessages[lang()]);
 
 	// Effects.
 	$effect(() => {
@@ -56,6 +57,6 @@
 		role="tooltip"
 		style="z-index: 99999; top: {tooltipPosition.top}px; left: {tooltipPosition.left}px;"
 	>
-		{messages[lang()].tooltips[`${classification}Definition`]}
+		{messages.tooltips.definitions[classification]}
 	</div>
 {/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 	import { removeSelectedFeatureState } from '$lib/state/feature.svelte';
 	import { mapState } from '$lib/state/map.svelte';
 	import { popup } from '$lib/state/popup.svelte';
@@ -18,6 +18,11 @@
 	// Context.
 	const lang = getContext<() => Language>('lang');
 
+	// State.
+	let quantileData = $derived(
+		fetchQuantileData(visualization.aggregationLevel, visualization.choroplethMode)
+	);
+	let messages = $derived(i18nMessages[lang()]);
 	let CHOROPLETH_MODES = $derived(
 		Object.entries(CHOROPLETH_CATEGORIES).map(([key, label]) => {
 			const i18nKey = `${label.toLowerCase()}Button` as
@@ -27,25 +32,20 @@
 
 			return {
 				value: key,
-				label: messages[lang()].legend[i18nKey]
+				label: messages.legend.dataVisualization[i18nKey]
 			};
 		})
-	);
-
-	// State.
-	let quantileData = $derived(
-		fetchQuantileData(visualization.aggregationLevel, visualization.choroplethMode)
 	);
 
 	// Event handlers.
 	function getVariableDescription(mode: ChoroplethMode) {
 		switch (mode) {
 			case 'pct_requires_replacement':
-				return messages[lang()].legend.pctRequiresReplacementLabel;
+				return messages.legend.variable.pctRequiresReplacementLabel;
 			case 'pct_poverty':
-				return messages[lang()].legend.pctPovertyLabel;
+				return messages.legend.variable.pctPovertyLabel;
 			case 'pct_minority':
-				return messages[lang()].legend.pctRaceLabel;
+				return messages.legend.variable.pctRaceLabel;
 			default:
 				return '';
 		}
@@ -116,12 +116,12 @@
 			/>
 		</svg>
 		<p class="text-earth/80 m-0 font-sans text-xs leading-tight">
-			{messages[lang()].legend.title}
+			{messages.legend.title}
 		</p>
 	</div>
 	<div class="mb-3">
 		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">
-			{messages[lang()].legend.aggregationLevelLabel}
+			{messages.legend.aggregationLevel.label}
 		</p>
 		<div class="relative grid grid-cols-2 bg-white">
 			<div
@@ -148,7 +148,7 @@
 							: 'text-earth hover:bg-earth/5'
 					]}
 				>
-					Community areas
+					{messages.legend.aggregationLevel.communityAreasButton}
 				</label>
 			</div>
 			<div class="border-earth/30 relative border border-l-0 bg-white">
@@ -169,14 +169,14 @@
 							: 'text-earth hover:bg-earth/5'
 					]}
 				>
-					Census tracts
+					{messages.legend.aggregationLevel.censusTractsButton}
 				</label>
 			</div>
 		</div>
 	</div>
 	<div class="mb-3">
 		<p class="text-2xs text-earth/80 mb-1 font-sans tracking-wider uppercase">
-			{messages[lang()].legend.dataVisualizationLabel}
+			{messages.legend.dataVisualization.label}
 		</p>
 		<div class="relative mb-2 grid grid-cols-3 bg-white">
 			<div
@@ -273,15 +273,13 @@
 					</div>
 				</div>
 				<p class="text-earth/80 mt-3 mb-0.5 font-sans text-xs leading-tight">
-					Color boxes are sized proportionally to the number of {visualization.aggregationLevel ===
-					'tract'
-						? 'census tracts'
-						: 'community areas'} they contain, with finer detail offered for the top and bottom of the
-					range.
+					{visualization.aggregationLevel === 'tract'
+						? messages.legend.annotation.censusTracts
+						: messages.legend.annotation.communityAreas}
 				</p>
 			</div>
 		{:else}
-			<div class="text-2xs text-earth/80 sm:text-xs">{messages[lang()].legend.loadingLabel}</div>
+			<div class="text-2xs text-earth/80 sm:text-xs">{messages.legend.loading}</div>
 		{/if}
 	</div>
 </div>

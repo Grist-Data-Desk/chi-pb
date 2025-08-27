@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 	import Skeleton from '$lib/components/shared/skeleton/Skeleton.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { CensusTract, CommunityArea } from '$lib/types';
@@ -21,6 +21,7 @@
 	let areaIdentifier = $derived(
 		formatAreaIdentifier(data, { lang: lang(), capitalizeCensusTract: false })
 	);
+	let messages = $derived(i18nMessages[lang()]);
 </script>
 
 {#snippet area(value: string)}
@@ -32,11 +33,12 @@
 {/snippet}
 
 <p class="text-earth mt-0 mb-1 font-sans text-xs sm:mt-1 sm:text-sm">
-	This address is located in {@render area(areaIdentifier)}. Statistics on this
-	{isCommunityArea ? 'community area' : 'census tract'} appear below.
+	{messages.areaContext.locatedIn}
+	{@render area(areaIdentifier)}.
+	{messages.areaContext.statisticsOn[isCommunityArea ? 'communityArea' : 'censusTract']}
 	{#if showServiceLineHelp}
-		<span class="sm:hidden">{messages[lang()].areaContext.tapLabel}</span>
-		<span class="hidden sm:inline">{messages[lang()].areaContext.hoverOverLabel}</span>
-		{messages[lang()].areaContext.serviceLineHelpDescription}
+		<span class="sm:hidden">{messages.areaContext.interaction.tap}</span>
+		<span class="hidden sm:inline">{messages.areaContext.interaction.hoverOver}</span>
+		{messages.areaContext.learnMore}
 	{/if}
 </p>

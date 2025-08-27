@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 	import ServiceLineDiagram from '$lib/components/search/ServiceLineDiagram.svelte';
 	import ServiceLineDiagramLoading from '$lib/components/search/ServiceLineDiagramLoading.svelte';
 	import {
@@ -22,12 +22,13 @@
 
 	// Context.
 	const lang = getContext<() => Language>('lang');
+	let messages = $derived(i18nMessages[lang()]);
 </script>
 
 <div class="flex flex-col gap-3">
 	{#if $serviceLineCount > 1}
 		<span class="text-earth/80 text-sm font-normal"
-			>↳ {$serviceLineCount} {messages[lang()].serviceLineInformation.linesFoundLabel}</span
+			>↳ {$serviceLineCount} {messages.serviceLineInformation.linesFound}</span
 		>
 	{/if}
 	{#if isLoading}
@@ -86,10 +87,10 @@
 							d="M15 19l-7-7 7-7"
 						/>
 					</svg>
-					{messages[lang()].serviceLineInformation.previousButtonLabel}
+					{messages.serviceLineInformation.pagination.previousButton}
 				</button>
 				<span class="text-earth/80 text-xs font-medium">
-					{messages[lang()].serviceLineInformation.lineOfLabel({
+					{messages.serviceLineInformation.pagination.lineOf({
 						current: $multiServiceLineStore.currentIndex + 1,
 						total: $serviceLineCount
 					})}
@@ -104,7 +105,7 @@
 							: 'text-earth/80 hover:bg-earth/5'
 					]}
 				>
-					{messages[lang()].serviceLineInformation.nextButtonLabel}
+					{messages.serviceLineInformation.pagination.nextButton}
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -121,7 +122,7 @@
 			<div class="mt-2 space-y-2 font-sans text-xs sm:text-sm">
 				<div class="flex items-start gap-2">
 					<span class="font-medium text-red-700"
-						>{messages[lang()].serviceLineInformation.highRiskDescription}</span
+						>{messages.serviceLineInformation.exceptions.highRisk}</span
 					>
 				</div>
 			</div>
@@ -138,10 +139,10 @@
 				</svg>
 				<div>
 					<p class="text-earth/80 font-sans text-xs sm:text-sm">
-						{messages[lang()].serviceLineInformation.detailedInventoryUnavailableDescription}
+						{messages.serviceLineInformation.exceptions.detailedInventoryUnavailable}
 					</p>
 					<p class="text-earth/40 mt-1 font-sans text-xs">
-						{messages[lang()].serviceLineInformation.leadStatusFromGeocoderDescription}
+						{messages.serviceLineInformation.exceptions.leadStatusFromGeocoder}
 					</p>
 				</div>
 			</div>

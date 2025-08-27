@@ -5,7 +5,7 @@
 
 	import SearchSuggestions from '$lib/components/search/SearchSuggestions.svelte';
 	import ServiceLineResults from '$lib/components/search/ServiceLineResults.svelte';
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 	import { search } from '$lib/state/search.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import {
@@ -39,6 +39,9 @@
 
 	let { map }: Props = $props();
 
+	// Context.
+	const lang = getContext<() => Language>('lang');
+
 	// State.
 	let suggestions = $state<AddressWithServiceLine[]>([]);
 	let isFetchingSuggestions = $state(false);
@@ -58,6 +61,7 @@
 		error: null,
 		address: null
 	});
+	let messages = $derived(i18nMessages[lang()]);
 
 	// Perform Nominatim search when no inventory results are found
 	async function performNominatimSearch(query: string): Promise<void> {
@@ -1340,11 +1344,13 @@
 <div class="flex flex-col gap-3 sm:gap-4">
 	{#if !ui.searchHeaderCollapsed}
 		<div class="flex flex-col gap-2 sm:gap-4">
-			<h1 class="font-sans-secondary text-earth text-hed m-0 font-medium text-balance sm:text-4xl">
-				Chicago: Does your water service line contain lead?
+			<h1
+				class="font-sans-secondary text-earth text-hed m-0 font-medium text-balance sm:-mt-1 sm:text-4xl"
+			>
+				{messages.hed}
 			</h1>
 			<p class="text-earth m-0 font-sans text-base leading-[calc(1/0.75)]">
-				{messages[lang()].dek}
+				{messages.dek}
 			</p>
 		</div>
 	{/if}
@@ -1415,7 +1421,7 @@
 							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 						/>
 					</svg>
-					{messages[lang()].searchButton}
+					{messages.search.button}
 				{/if}
 			</button>
 		</div>

@@ -7,13 +7,13 @@
 	import ServiceLineInventory from '$lib/components/data/ServiceLineInventory.svelte';
 	import Tabs from '$lib/components/shared/tabs/Tabs.svelte';
 	import TabItem from '$lib/components/shared/tabs/TabItem.svelte';
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 	import { multiServiceLineStore, currentServiceLine, serviceLineCount } from '$lib/stores';
 	import { search } from '$lib/state/search.svelte';
 	import { visualization } from '$lib/state/visualization.svelte';
 	import type { AddressWithServiceLine, CensusTract, CommunityArea } from '$lib/types';
 	import { LAYER_CONFIG } from '$lib/utils/config';
-	import { DISPLAY_CODES_TO_MATERIAL_LABELS, getMaterialColor, COLORS } from '$lib/utils/constants';
+	import { getMaterialColor, COLORS } from '$lib/utils/constants';
 	import { social } from '$lib/state/social.svelte';
 
 	// Context.
@@ -44,6 +44,7 @@
 			? getWorstCode($multiServiceLineStore.inventoryList)
 			: currentInventoryData?.OverallSL_Code || currentInventoryData?.overallCode || 'U'
 	);
+	let messages = $derived(i18nMessages[lang()]);
 
 	onMount(() => {
 		function handleMapMoveEnd() {
@@ -143,7 +144,7 @@
 	<div class="flex flex-col gap-3 sm:gap-6">
 		<div class="flex flex-col gap-1 font-sans">
 			<h3 class="font-sans-secondary text-earth mt-0 mb-0 text-base font-medium sm:text-xl">
-				Selected address
+				{messages.selectedAddress.label}
 			</h3>
 			<p class="text-earth m-0 text-sm font-medium break-words sm:text-base">
 				{address.fullAddress}
@@ -153,14 +154,16 @@
 					<div class="flex items-start gap-2">
 						<div>
 							<p class="font-sans text-sm font-medium text-amber-800">
-								{messages[lang()].selectedAddress.addressNotFoundDescription}
+								{messages.selectedAddress.addressNotFound}
 							</p>
 						</div>
 					</div>
 				</div>
 			{:else}
 				<div class="flex items-center gap-1 sm:gap-2">
-					<span class="text-earth text-xs sm:text-sm">Lead Status:</span>
+					<span class="text-earth text-xs sm:text-sm"
+						>{messages.selectedAddress.leadStatus.label}:</span
+					>
 					{#if isLoading}
 						<span
 							class="text-earth/80 border-earth/30 bg-earth/5 inline-flex items-center self-start rounded-full border-2 px-2 py-0.5 text-xs font-medium sm:px-2.5 sm:text-sm"
@@ -181,21 +184,21 @@
 									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 								></path>
 							</svg>
-							{messages[lang()].selectedAddress.leadStatusLoadingLabel}
+							{messages.selectedAddress.leadStatus.loading}
 						</span>
 					{:else if displayCode === 'L' || displayCode === 'GRR' || displayCode === 'NL'}
 						<span
 							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor(displayCode)}"
 						>
-							{messages[lang()].selectedAddress[`leadStatus${displayCode}Label`]}
+							{messages.selectedAddress.leadStatus[displayCode]}
 						</span>
 					{:else}
 						<span
 							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor('U')}"
 						>
-							{messages[lang()].selectedAddress.leadStatusSuspectedLeadLabel}
+							{messages.selectedAddress.leadStatus.U}
 						</span>
 					{/if}
 					{#if !isLoading}
@@ -216,7 +219,7 @@
 				</div>
 				{#if $serviceLineCount > 1}
 					<p class="text-earth/80 m-0 text-xs italic">
-						{messages[lang()].resultsPanel.multipleServiceLinesDescription({
+						{messages.selectedAddress.multipleServiceLines({
 							count: $serviceLineCount
 						})}
 					</p>
@@ -225,15 +228,15 @@
 		</div>
 		{#if !search.isNominatimAddress}
 			<Tabs>
-				<TabItem title={messages[lang()].tabs.serviceLineInformationTabTitle} open={true}>
+				<TabItem title={messages.tabs.serviceLineInformationTabTitle} open={true}>
 					<ServiceLineDetails {isLoading} {error} {currentInventoryData} />
 				</TabItem>
-				<TabItem title={messages[lang()].tabs.serviceLineInventoryTabTitle} open={false}>
+				<TabItem title={messages.tabs.serviceLineInventoryTabTitle} open={false}>
 					<ServiceLineInventory
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>
 				</TabItem>
-				<TabItem title={messages[lang()].tabs.demographicContextTabTitle} open={false}>
+				<TabItem title={messages.tabs.demographicContextTabTitle} open={false}>
 					<DemographicContext
 						data={visualization.aggregationLevel === 'tract' ? tractData : communityData}
 					/>

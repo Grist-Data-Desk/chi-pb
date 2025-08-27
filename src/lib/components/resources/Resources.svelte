@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 
 	import { currentServiceLine } from '$lib/stores';
 	import { qualifiesForWaterFilter } from '$lib/utils/resources';
@@ -13,6 +13,7 @@
 	let serviceLine = $derived($currentServiceLine);
 	let overallCode = $derived(serviceLine?.OverallSL_Code || serviceLine?.overallCode || 'U');
 	let qualifiesForFilter = $derived(qualifiesForWaterFilter(overallCode));
+	let messages = $derived(i18nMessages[lang()]);
 </script>
 
 <div class="relative w-full">
@@ -31,20 +32,20 @@
 		</svg>
 	</button>
 	<h3 class="font-sans-secondary text-earth mt-0 mb-3 pr-6 text-base font-medium sm:text-lg">
-		{messages[lang()].resources.title}
+		{messages.resources.title}
 	</h3>
 
 	<p class="text-earth/80 mb-3 font-sans text-xs sm:text-sm">
-		{messages[lang()].resources.resultDescription({ plural: qualifiesForFilter })}
+		{messages.resources.resultDescription({ plural: qualifiesForFilter })}
 	</p>
 
 	<div class="space-y-2">
 		<div class="rounded-sm border border-blue-200 bg-blue-50 p-2">
 			<p class="mt-0 mb-1 font-sans text-xs font-semibold text-blue-900">
-				{messages[lang()].resources.freeWaterTestingKitLabel}
+				{messages.resources.freeWaterTestingKit.label}
 			</p>
 			<p class="mb-2 font-sans text-xs text-blue-800">
-				{messages[lang()].resources.freeWaterTestingKitDescription}
+				{messages.resources.freeWaterTestingKit.description}
 			</p>
 			<a
 				href="https://311.chicago.gov/s/new-service-request?typecodeid=a1Pt0000000Q7fiEAC&language=en_US"
@@ -52,7 +53,7 @@
 				rel="noopener noreferrer"
 				class="inline-flex items-center gap-1 font-sans text-xs font-medium text-blue-700 underline hover:text-blue-900"
 			>
-				{messages[lang()].resources.freeWaterTestingKitCTA}
+				{messages.resources.freeWaterTestingKit.CTA}
 				<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -67,10 +68,10 @@
 		{#if qualifiesForFilter}
 			<div class="rounded-sm border border-red-200 bg-red-50 p-2">
 				<p class="mt-0 mb-1 font-sans text-xs font-semibold text-red-900">
-					{messages[lang()].resources.freeWaterFilterLabel}
+					{messages.resources.freeWaterFilter.label}
 				</p>
 				<p class="mb-2 font-sans text-xs text-red-800">
-					{messages[lang()].resources.freeWaterFilterDescription}
+					{messages.resources.freeWaterFilter.description}
 				</p>
 				<a
 					href="https://chicagowaterquality.org/filters"
@@ -78,7 +79,7 @@
 					rel="noopener noreferrer"
 					class="inline-flex items-center gap-1 font-sans text-xs font-medium text-red-700 underline hover:text-red-900"
 				>
-					{messages[lang()].resources.freeWaterFilterCTA}
+					{messages.resources.freeWaterFilter.CTA}
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -94,10 +95,10 @@
 		{#if qualifiesForFilter}
 			<div class="rounded-sm border border-green-200 bg-green-50 p-2">
 				<p class="mt-0 mb-1 font-sans text-xs font-semibold text-green-900">
-					{messages[lang()].resources.leadPipeReplacementAssistanceLabel}
+					{messages.resources.leadPipeReplacementAssistance.label}
 				</p>
 				<p class="mb-2 font-sans text-xs text-green-800">
-					{messages[lang()].resources.leadPipeReplacementAssistanceDescription}
+					{messages.resources.leadPipeReplacementAssistance.description}
 				</p>
 				<a
 					href="https://www.chicagowaterquality.org/LSLREquity"
@@ -105,7 +106,7 @@
 					rel="noopener noreferrer"
 					class="inline-flex items-center gap-1 font-sans text-xs font-medium text-green-700 underline hover:text-green-900"
 				>
-					{messages[lang()].resources.leadPipeReplacementAssistanceCTA}
+					{messages.resources.leadPipeReplacementAssistance.CTA}
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"

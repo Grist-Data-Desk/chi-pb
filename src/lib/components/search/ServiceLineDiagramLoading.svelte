@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
 
-	import { messages, type Language } from '$lib/i18n/messages';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 
 	// Context.
 	const lang = getContext<() => Language>('lang');
@@ -9,6 +9,7 @@
 	// State.
 	let waterProgress = $state(0);
 	let animationId = $state<number | null>(null);
+	let messages = $derived(i18nMessages[lang()]);
 
 	onMount(() => {
 		const animate = () => {
@@ -46,7 +47,7 @@
 			opacity="0.5"
 		/>
 		<text x="0" y="4" text-anchor="middle" class="fill-white text-sm font-bold">
-			{messages[lang()].serviceLineInformation.leadStatusLoadingLabel}
+			{messages.serviceLineInformation.leadStatus.loading}
 		</text>
 	</g>
 
@@ -72,22 +73,22 @@
 
 	<!-- Labels -->
 	<text x="40" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
-		>{messages[lang()].serviceLineInformation.waterMainLabel}</text
+		>{messages.serviceLineInformation.components.waterMain}</text
 	>
 	<text x="140" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
-		>{messages[lang()].serviceLineInformation.gooseneckLabel}</text
+		>{messages.serviceLineInformation.components.gooseneck}</text
 	>
 
 	<!-- Utility portion label with text wrapping -->
 	<text x="285" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
-		<tspan x="285" dy="0">Utility portion</tspan>
-		<tspan x="283" dy="14">of service line</tspan>
+		<tspan x="285" dy="0">{messages.serviceLineInformation.components.utilityPortion}</tspan>
+		<tspan x="283" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
 	</text>
 
 	<!-- Customer portion label with text wrapping -->
 	<text x="450" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
-		<tspan x="442" dy="0">Customer portion</tspan>
-		<tspan x="442" dy="14">of service line</tspan>
+		<tspan x="442" dy="0">{messages.serviceLineInformation.components.customerPortion}</tspan>
+		<tspan x="442" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
 	</text>
 
 	<!-- Define gradient for water flow -->
@@ -178,6 +179,6 @@
 
 	<!-- Loading text below -->
 	<text x="275" y="240" text-anchor="middle" class="fill-earth/40 animate-pulse text-sm">
-		{messages[lang()].serviceLineInformation.loadingServiceLineInformationLabel}
+		{messages.serviceLineInformation.loading}
 	</text>
 </svg>

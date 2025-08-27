@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
+
 	import AreaContext from '$lib/components/data/AreaContext.svelte';
 	import Skeleton from '$lib/components/shared/skeleton/Skeleton.svelte';
 	import type { CensusTract, CommunityArea } from '$lib/types';
@@ -9,6 +12,9 @@
 	}
 
 	let { data }: Props = $props();
+
+	const lang = getContext<() => Language>('lang');
+	let messages = $derived(i18nMessages[lang()]);
 </script>
 
 {#snippet cell(value: string)}
@@ -29,31 +35,31 @@
 	</colgroup>
 	<tbody>
 		<tr>
-			<td class="py-0.5 sm:py-1">Median Household Income</td>
+			<td class="py-0.5 sm:py-1">{messages.demographicContext.medianHouseholdIncome}</td>
 			{@render cell(data ? formatCurrency(data.median_household_income) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">Poverty Rate</td>
+			<td class="py-0.5 sm:py-1">{messages.demographicContext.povertyRate}</td>
 			{@render cell(data ? formatPercent(data.pct_poverty) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">Black Population</td>
+			<td class="py-0.5 sm:py-1">{messages.demographicContext.blackPopulation}</td>
 			{@render cell(data ? formatPercent(data.pct_black_nonhispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">Latino Population</td>
+			<td class="py-0.5 sm:py-1">{messages.demographicContext.latinoPopulation}</td>
 			{@render cell(data ? formatPercent(data.pct_hispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">White Population</td>
+			<td class="py-0.5 sm:py-1">{messages.demographicContext.whitePopulation}</td>
 			{@render cell(data ? formatPercent(data.pct_white_nonhispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">Asian Population</td>
+			<td class="py-0.5 sm:py-1">{messages.demographicContext.asianPopulation}</td>
 			{@render cell(data ? formatPercent(data.pct_asian_nonhispanic) : '')}
 		</tr>
 		<tr>
-			<td class="py-0.5 sm:py-1">Non-White Population</td>
+			<td class="py-0.5 sm:py-1">{messages.demographicContext.nonWhitePopulation}</td>
 			{@render cell(data ? formatPercent(data.pct_minority) : '')}
 		</tr>
 	</tbody>

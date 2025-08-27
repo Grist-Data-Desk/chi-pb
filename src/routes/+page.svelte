@@ -1,9 +1,10 @@
 <script lang="ts">
+	import * as turf from '@turf/turf';
 	import maplibregl from 'maplibre-gl';
 	import * as pmtiles from 'pmtiles';
-	import * as turf from '@turf/turf';
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 
+	import { page } from '$app/state';
 	import { Popup } from '$lib/classes/Popup';
 	import { ResetViewControl } from '$lib/classes/ResetViewControl';
 	import Credits from '$lib/components/credits/Credits.svelte';
@@ -17,6 +18,7 @@
 	import ICNLogo from '$lib/components/logos/ICNLogo.svelte';
 	import WBEZLogo from '$lib/components/logos/WBEZLogo.svelte';
 	import SearchPanel from '$lib/components/search/SearchPanel.svelte';
+	import type { Language } from '$lib/i18n/messages';
 	import { removeSelectedFeatureState, setSelectedFeatureState } from '$lib/state/feature.svelte';
 	import { mapState } from '$lib/state/map.svelte';
 	import { popup } from '$lib/state/popup.svelte';
@@ -42,6 +44,9 @@
 	} from '$lib/utils/config';
 	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
+
+	let lang = $state<Language>('en');
+	setContext<() => Language>('lang', () => lang);
 
 	// Helper function to check if a polygon should be interactive (clickable/hoverable)
 	function isPolygonInteractive(properties: any, aggregationLevel: 'tract' | 'community'): boolean {
@@ -114,6 +119,8 @@
 	});
 
 	onMount(() => {
+		lang = page.url.searchParams.get('lang') === 'es' ? 'es' : 'en';
+
 		const protocol = new pmtiles.Protocol();
 		maplibregl.addProtocol('pmtiles', protocol.tile);
 
@@ -199,7 +206,7 @@
 			}
 
 			// Initialize the popup.
-			popup.node = new Popup(map, isTabletOrAbove);
+			popup.node = new Popup(map, isTabletOrAbove, lang);
 
 			if (!isTabletOrAbove) {
 				const attrib = document.querySelector('.maplibregl-ctrl-attrib');

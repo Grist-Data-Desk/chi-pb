@@ -1,4 +1,5 @@
-import { DISPLAY_CODES_TO_MATERIAL_LABELS_SOCIAL, getMaterialColor } from '$lib/utils/constants';
+import { messages, type Language } from '$lib/i18n/messages';
+import { getMaterialColor } from '$lib/utils/constants';
 
 // Base64 encoded logos
 const GRIST_LOGO_BASE64 =
@@ -16,7 +17,8 @@ class SocialState {
 	// Generate share image
 	async generateShareImage(
 		displayCode: string,
-		communityName: string | null | undefined
+		communityName: string | null | undefined,
+		lang: Language
 	): Promise<void> {
 		// Create canvas
 		const canvas = document.createElement('canvas');
@@ -83,16 +85,21 @@ class SocialState {
 		const lnspc = 70;
 		ctx.font = '60px "PolySans", -apple-system, sans-serif';
 
-		ctx.fillText('I looked up my address', 80, ln1);
-		ctx.fillText('in ' + community + ' and', 80, ln1 + lnspc);
-		ctx.fillText('found out the water', 80, ln1 + lnspc * 2);
-		ctx.fillText('service line is made of', 80, ln1 + lnspc * 3);
+		ctx.fillText(messages[lang].share.image.iLookedUp, 80, ln1);
+		ctx.fillText(
+			messages[lang].share.image.in + ' ' + community + ' ' + messages[lang].share.image.and,
+			80,
+			ln1 + lnspc
+		);
+		ctx.fillText(messages[lang].share.image.foundOut, 80, ln1 + lnspc * 2);
+		ctx.fillText(messages[lang].share.image.serviceLineMadeOf, 80, ln1 + lnspc * 3);
 
 		// Lead status pill
 		const statusLabel =
-			DISPLAY_CODES_TO_MATERIAL_LABELS_SOCIAL[
-				displayCode as keyof typeof DISPLAY_CODES_TO_MATERIAL_LABELS_SOCIAL
-			] || (displayCode === 'U' ? 'Suspected Lead' : 'Unknown');
+			messages[lang].share.image.leadStatus[displayCode as 'L' | 'GRR' | 'NL' | 'U'] ||
+			(displayCode === 'U'
+				? messages[lang].share.image.leadStatus.U
+				: messages[lang].share.image.leadStatus.Unknown);
 		const pillColor = getMaterialColor(displayCode);
 
 		ctx.font = '700 50px "Basis Grotesque", -apple-system, sans-serif';
@@ -116,7 +123,7 @@ class SocialState {
 
 		ctx.fillStyle = 'white';
 		ctx.font = '48px "Basis Grotesque", -apple-system, sans-serif';
-		ctx.fillText('Chicago, check your lead status:', 80, 920);
+		ctx.fillText(`Chicago, ${messages[lang].share.image.checkYourLeadStatus}:`, 80, 920);
 		ctx.fillText('grist.org/chicago-lead', 80, 980);
 
 		// Convert to blob and show preview

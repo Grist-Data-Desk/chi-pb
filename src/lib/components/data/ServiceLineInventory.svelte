@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
+
 	import AreaContext from '$lib/components/data/AreaContext.svelte';
 	import Skeleton from '$lib/components/shared/skeleton/Skeleton.svelte';
 	import ServiceLineTooltip from '$lib/components/shared/ServiceLineTooltip.svelte';
@@ -10,6 +13,9 @@
 	}
 
 	let { data }: Props = $props();
+
+	const lang = getContext<() => Language>('lang');
+	let messages = $derived(i18nMessages[lang()]);
 </script>
 
 {#snippet cell(value: string, className = '')}
@@ -33,7 +39,7 @@
 		<tr>
 			<td class="p-0.5 sm:p-1">
 				<ServiceLineTooltip classification="lead">
-					<span>Lead</span>
+					<span>{messages.serviceLineInventory.lead}</span>
 				</ServiceLineTooltip>
 			</td>
 			{@render cell(data ? formatCount(data.L) : '')}
@@ -41,8 +47,8 @@
 		</tr>
 		<tr>
 			<td class="p-0.5 sm:p-1">
-				<ServiceLineTooltip classification="suspected">
-					<span>Suspected Lead</span>
+				<ServiceLineTooltip classification="suspectedLead">
+					<span>{messages.serviceLineInventory.suspectedLead}</span>
 				</ServiceLineTooltip>
 			</td>
 			{@render cell(data ? formatCount(data.U) : '')}
@@ -51,7 +57,7 @@
 		<tr>
 			<td class="p-0.5 sm:p-1">
 				<ServiceLineTooltip classification="galvanized">
-					<span>Galvanized (Replace)</span>
+					<span>{messages.serviceLineInventory.galvanizedReplace}</span>
 				</ServiceLineTooltip>
 			</td>
 			{@render cell(data ? formatCount(data.GRR) : '')}
@@ -59,8 +65,8 @@
 		</tr>
 		<tr>
 			<td class="p-0.5 sm:p-1">
-				<ServiceLineTooltip classification="non-lead">
-					<span>Non-Lead</span>
+				<ServiceLineTooltip classification="nonLead">
+					<span>{messages.serviceLineInventory.nonLead}</span>
 				</ServiceLineTooltip>
 			</td>
 			{@render cell(data ? formatCount(data.NL) : '')}
@@ -69,12 +75,14 @@
 	</tbody>
 	<tfoot>
 		<tr class="border-earth/30 border-t">
-			<td class="p-0.5 sm:p-1">Total</td>
+			<td class="p-0.5 sm:p-1">{messages.serviceLineInventory.total}</td>
 			{@render cell(data ? formatCount(data.total) : '')}
 			<td class="p-0.5 sm:p-1"></td>
 		</tr>
 		<tr class="bg-red-100 text-red-600">
-			<td class="p-0.5 font-semibold sm:p-1">Requires Replacement</td>
+			<td class="p-0.5 font-semibold sm:p-1">
+				{messages.serviceLineInventory.requiresReplacement}
+			</td>
 			{@render cell(data ? formatCount(data.requires_replacement) : '', 'font-semibold')}
 			{@render cell(data ? formatPercent(data.pct_requires_replacement) : '', 'font-semibold')}
 		</tr>

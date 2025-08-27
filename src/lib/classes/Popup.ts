@@ -1,5 +1,6 @@
 import maplibregl from 'maplibre-gl';
 
+import { messages, type Language } from '$lib/i18n/messages';
 import type { CensusTract, CommunityArea } from '$lib/types';
 import {
 	formatCount,
@@ -7,16 +8,18 @@ import {
 	formatPercent,
 	formatAreaIdentifier
 } from '$lib/utils/formatters';
-import { SERVICE_LINE_DEFINITIONS, getTooltipPositioningScript } from '$lib/utils/tooltips';
+import { getTooltipPositioningScript } from '$lib/utils/tooltips';
 
 export class Popup {
 	private map: maplibregl.Map;
 	private popup: maplibregl.Popup | null = null;
 	private isTabletOrAbove: boolean;
+	private lang: Language;
 
-	constructor(map: maplibregl.Map, isTabletOrAbove: boolean) {
+	constructor(map: maplibregl.Map, isTabletOrAbove: boolean, lang: Language) {
 		this.map = map;
 		this.isTabletOrAbove = isTabletOrAbove;
+		this.lang = lang;
 	}
 
 	showPopup(lngLat: maplibregl.LngLat, data: CensusTract | CommunityArea): maplibregl.Popup {
@@ -175,7 +178,9 @@ export class Popup {
 		return `
 			${tooltipStyles}
 			${tooltipScript}
-			<h3 class="m-0 mb-1 text-base font-medium sm:mb-2 sm:text-lg">${formatAreaIdentifier(data)}</h3>
+			<h3 class="m-0 mb-1 text-base font-medium sm:mb-2 sm:text-lg">${formatAreaIdentifier(data, {
+				lang: this.lang
+			})}</h3>
 			<div>
 				<ul class="-mx-1.5 my-0 flex list-none gap-4 border-b border-earth px-1.5 sm:-mx-3 sm:px-3 font-sans">
 					<li class="active-tab border-b-2 border-b-transparent pb-1 transition-all">
@@ -183,7 +188,7 @@ export class Popup {
 							class="text-xs border-0 bg-transparent p-0 text-earth sm:text-sm"
 							data-popup-tab="service-line-inventory"
 						>
-							Service line inventory
+							${messages[this.lang].tabs.serviceLineInventoryTabTitle}
 						</button>
 					</li>
 					<li class="border-b-2 border-b-transparent pb-1 transition-all">
@@ -191,7 +196,7 @@ export class Popup {
 							class="text-xs border-0 bg-transparent p-0 text-earth sm:text-sm"
 							data-popup-tab="demographics"
 						>
-							Demographic context
+							${messages[this.lang].tabs.demographicContextTabTitle}
 						</button>
 					</li>
 				</ul>
@@ -205,12 +210,12 @@ export class Popup {
 							</colgroup>
 							<tr>
 								<td class="p-1">
-									Lead
+									${messages[this.lang].serviceLineInventory.lead}
 									<span class="tooltip-container">
 										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
 											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
 										</svg>
-										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.lead}</span>
+										<span class="tooltip-content">${messages[this.lang].tooltips.definitions.lead}</span>
 									</span>
 								</td>
 								<td class="p-1 text-right">${formatCount(data.L)}</td>
@@ -218,12 +223,12 @@ export class Popup {
 							</tr>
 							<tr>
 								<td class="p-1">
-									Suspected Lead
+									${messages[this.lang].serviceLineInventory.suspectedLead}
 									<span class="tooltip-container">
 										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
 											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
 										</svg>
-										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.suspected}</span>
+										<span class="tooltip-content">${messages[this.lang].tooltips.definitions.suspectedLead}</span>
 									</span>
 								</td>
 								<td class="p-1 text-right">${formatCount(data.U)}</td>
@@ -231,12 +236,12 @@ export class Popup {
 							</tr>
 							<tr>
 								<td class="p-1">
-									Galvanized (Replace)
+									${messages[this.lang].serviceLineInventory.galvanizedReplace}
 									<span class="tooltip-container">
 										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
 											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
 										</svg>
-										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS.galvanized}</span>
+										<span class="tooltip-content">${messages[this.lang].tooltips.definitions.galvanized}</span>
 									</span>
 								</td>
 								<td class="p-1 text-right">${formatCount(data.GRR)}</td>
@@ -244,12 +249,12 @@ export class Popup {
 							</tr>
 							<tr>
 								<td class="p-1">
-									Non-Lead
+									${messages[this.lang].serviceLineInventory.nonLead}
 									<span class="tooltip-container">
 										<svg class="tooltip-trigger" width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
 											<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
 										</svg>
-										<span class="tooltip-content">${SERVICE_LINE_DEFINITIONS['non-lead']}</span>
+										<span class="tooltip-content">${messages[this.lang].tooltips.definitions.nonLead}</span>
 									</span>
 								</td>
 								<td class="p-1 text-right">${formatCount(data.NL)}</td>
@@ -258,11 +263,11 @@ export class Popup {
 						</tbody>
 						<tfoot class="border-t border-earth/30">
 							<tr>
-								<td class="p-1">Total</td>
+								<td class="p-1">${messages[this.lang].serviceLineInventory.total}</td>
 								<td class="p-1 text-right">${formatCount(data.total)}</td>
 							</tr>
 							<tr class="rounded bg-red-100 text-red-600">
-								<td class="p-1">Requires Replacement</td>
+								<td class="p-1">${messages[this.lang].serviceLineInventory.requiresReplacement}</td>
 								<td class="p-1 text-right font-semibold">${formatCount(data.requires_replacement)}</td>
 								<td class="p-1 text-right font-semibold">
 									${formatPercent(data.pct_requires_replacement)}
@@ -279,41 +284,41 @@ export class Popup {
 								<col width="35%" />
 							</colgroup>
 							<tr>
-								<td class="p-1 ">Median Household Income</td>
+								<td class="p-1 ">${messages[this.lang].demographicContext.medianHouseholdIncome}</td>
 								<td class="p-1 text-right">
 									${formatCurrency(data.median_household_income)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 ">Poverty Rate</td>
+								<td class="p-1 ">${messages[this.lang].demographicContext.povertyRate}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_poverty)}</td>
 							</tr>
 							<tr>
-								<td class="p-1 ">Black Population</td>
+								<td class="p-1 ">${messages[this.lang].demographicContext.blackPopulation}</td>
 								<td class="p-1 text-right">
 									${formatPercent(data.pct_black_nonhispanic)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 ">Latino Population</td>
+								<td class="p-1 ">${messages[this.lang].demographicContext.latinoPopulation}</td>
 								<td class="p-1 text-right">
 									${formatPercent(data.pct_hispanic)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 ">White Population</td>
+								<td class="p-1 ">${messages[this.lang].demographicContext.whitePopulation}</td>
 								<td class="p-1 text-right">
 									${formatPercent(data.pct_white_nonhispanic)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 ">Asian Population</td>
+								<td class="p-1 ">${messages[this.lang].demographicContext.asianPopulation}</td>
 								<td class="p-1 text-right">
 									${formatPercent(data.pct_asian_nonhispanic)}
 								</td>
 							</tr>
 							<tr>
-								<td class="p-1 ">Non-White Population</td>
+								<td class="p-1 ">${messages[this.lang].demographicContext.nonWhitePopulation}</td>
 								<td class="p-1 text-right">${formatPercent(data.pct_minority)}</td>
 							</tr>
 						</tbody>

@@ -45,7 +45,7 @@
 	import { TABLET_BREAKPOINT, COLORS } from '$lib/utils/constants';
 	import { fetchQuantileData, getQuantileColorExpression } from '$lib/utils/quantiles';
 
-	const lang = (page.url.searchParams.get('lang') || 'en') as Language;
+	const lang = page.url.searchParams.get('lang') === 'es' ? 'es' : 'en';
 	setContext<Language>('lang', lang);
 
 	// Helper function to check if a polygon should be interactive (clickable/hoverable)

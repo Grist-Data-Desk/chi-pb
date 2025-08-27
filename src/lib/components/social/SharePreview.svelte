@@ -1,6 +1,12 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
+
 	import { social } from '$lib/state/social.svelte';
 	import { COLORS } from '$lib/utils/constants';
+	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
+
+	const lang = getContext<() => Language>('lang');
+	let messages = $derived(i18nMessages[lang()]);
 </script>
 
 {#if social.showSharePreview}
@@ -44,7 +50,7 @@
 				<h3
 					class="font-sans-secondary text-earth mt-0 mb-2 pr-6 text-base font-medium sm:mb-3 sm:text-xl"
 				>
-					Share your results
+					{messages.share.title}
 				</h3>
 
 				<!-- Image preview -->
@@ -72,11 +78,11 @@
 								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
 							/>
 						</svg>
-						Download image
+						{messages.share.downloadImage}
 					</button>
 
 					<p class="text-earth/60 text-center font-sans text-sm">
-						Save this image to share on social media
+						{messages.share.saveToShare}
 					</p>
 				</div>
 			</div>

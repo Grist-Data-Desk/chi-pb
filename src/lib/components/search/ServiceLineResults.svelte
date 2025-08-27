@@ -117,7 +117,7 @@
 	// Handle share button click
 	async function shareResults() {
 		const community = communityData?.community || search.selectedAddressCommunityName;
-		await social.generateShareImage(displayCode, community);
+		await social.generateShareImage(displayCode, community, lang());
 	}
 
 	// Effects.
@@ -213,12 +213,12 @@
 									d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"
 								/>
 							</svg>
-							Share
+							{messages.selectedAddress.share.button}
 						</button>
 					{/if}
 				</div>
 				{#if $serviceLineCount > 1}
-					<p class="text-earth/80 m-0 text-xs italic">
+					<p class="text-earth/80 m-0 font-sans text-xs">
 						{messages.selectedAddress.multipleServiceLines({
 							count: $serviceLineCount
 						})}

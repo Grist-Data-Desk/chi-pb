@@ -57,6 +57,9 @@ interface Messages {
 		};
 		addressNotFound: string;
 		multipleServiceLines: ({ count }: { count: number }) => string;
+		share: {
+			button: string;
+		};
 	};
 	tabs: {
 		serviceLineInformationTabTitle: string;
@@ -172,6 +175,26 @@ interface Messages {
 			CTA: string;
 		};
 	};
+	share: {
+		title: string;
+		downloadImage: string;
+		saveToShare: string;
+		image: {
+			iLookedUp: string;
+			in: string;
+			and: string;
+			foundOut: string;
+			serviceLineMadeOf: string;
+			leadStatus: {
+				L: string;
+				GRR: string;
+				NL: string;
+				U: string;
+				Unknown: string;
+			};
+			checkYourLeadStatus: string;
+		};
+	};
 }
 
 export const messages: Record<Language, Messages> = {
@@ -236,7 +259,10 @@ export const messages: Record<Language, Messages> = {
 			addressNotFound:
 				"The address you searched is not in the city of Chicago's water service line inventory. However, you can click on a nearby service line dot to view its corresponding inventory entry.",
 			multipleServiceLines: ({ count }) =>
-				`This address is associated with ${count} service line records. The status shown above represents the 'worst-case' scenario across all lines: If suspected lead appears in any of the service lines, it'll be noted here. See individual line details below.`
+				`This address is associated with ${count} service line records. The status shown above represents the 'worst-case' scenario across all lines: If suspected lead appears in any of the service lines, it'll be noted here. See individual line details below.`,
+			share: {
+				button: 'Share'
+			}
 		},
 		tabs: {
 			serviceLineInformationTabTitle: 'Service line\ninformation',
@@ -360,6 +386,26 @@ export const messages: Record<Language, Messages> = {
 					'Depending on your household income, you may qualify for free lead pipe replacement.',
 				CTA: 'Apply for replacement assistance'
 			}
+		},
+		share: {
+			title: 'Share your results',
+			downloadImage: 'Download image',
+			saveToShare: 'Save this image to share on social media',
+			image: {
+				iLookedUp: 'I looked up my address',
+				in: 'in',
+				and: 'and',
+				foundOut: 'found out the water',
+				serviceLineMadeOf: 'service line is made of',
+				leadStatus: {
+					L: 'Lead',
+					GRR: 'Galvanized Requiring Replacement',
+					NL: 'Non-Lead',
+					U: 'Suspected Lead',
+					Unknown: 'Unknown'
+				},
+				checkYourLeadStatus: 'check your lead status'
+			}
 		}
 	},
 	es: {
@@ -418,7 +464,10 @@ export const messages: Record<Language, Messages> = {
 				U: 'TK'
 			},
 			addressNotFound: 'TK',
-			multipleServiceLines: ({ count }) => `TK ${count}`
+			multipleServiceLines: ({ count }) => `TK ${count}`,
+			share: {
+				button: 'TK'
+			}
 		},
 		tabs: {
 			serviceLineInformationTabTitle: 'TK',
@@ -532,6 +581,26 @@ export const messages: Record<Language, Messages> = {
 				label: 'TK',
 				description: 'TK',
 				CTA: 'TK'
+			}
+		},
+		share: {
+			title: 'TK',
+			downloadImage: 'TK',
+			saveToShare: 'TK',
+			image: {
+				iLookedUp: 'TK',
+				in: 'TK',
+				and: 'TK',
+				foundOut: 'TK',
+				serviceLineMadeOf: 'TK',
+				leadStatus: {
+					L: 'TK',
+					GRR: 'TK',
+					NL: 'TK',
+					U: 'TK',
+					Unknown: 'TK'
+				},
+				checkYourLeadStatus: 'TK'
 			}
 		}
 	}

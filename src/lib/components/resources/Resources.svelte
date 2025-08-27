@@ -35,7 +35,7 @@
 		{messages.resources.title}
 	</h3>
 
-	<p class="text-earth/80 mb-3 font-sans text-xs sm:text-sm">
+	<p class="text-earth/80 mt-0 mb-3 font-sans text-xs sm:text-sm">
 		{messages.resources.resultDescription({ plural: qualifiesForFilter })}
 	</p>
 

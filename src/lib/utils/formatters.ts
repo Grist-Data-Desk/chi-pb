@@ -55,9 +55,8 @@ export function formatAreaIdentifier(
 		return data.community;
 	} else if (data && 'geoid' in data) {
 		const prefix = capitalizeCensusTract
-			? messages[lang].areaContext.censusTractLabel.charAt(0).toUpperCase() +
-				messages[lang].areaContext.censusTractLabel.slice(1)
-			: messages[lang].areaContext.censusTractLabel;
+			? messages[lang].legend.aggregationLevel.censusTractsButton.slice(0, -1)
+			: messages[lang].legend.aggregationLevel.censusTractsButton.slice(0, -1).toLowerCase();
 		return `${prefix} ${data.geoid}`;
 	}
 

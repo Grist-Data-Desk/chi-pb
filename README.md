@@ -12,7 +12,7 @@ An interactive map helping Chicago residents check if their water service lines 
 
 ## Live Demo
 
-🌐 **Try it now:** [https://grist.org/chicago-lead](https://grist.org/project/updates/interactive-chicago-lead-map/)
+🌐 **Try it now:** [https://grist.org/chicago-lead/](https://grist.org/chicago-lead)
 
 ## Features
 

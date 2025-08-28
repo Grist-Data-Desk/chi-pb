@@ -61,35 +61,51 @@ chi-pb/
 ├── src/
 │   ├── routes/
 │   │   ├── +layout.svelte        # Root layout
-│   │   ├── +page.svelte          # Main map application
-│   │   └── +page.ts              # Page data loading
+│   │   ├── +layout.ts            # Layout data loading
+│   │   └── +page.svelte          # Main map application
 │   │
 │   ├── lib/
 │   │   ├── components/
 │   │   │   ├── credits/          # Credit and attribution components
 │   │   │   │   ├── Credits.svelte
-│   │   │   │   └── Notes.svelte
+│   │   │   │   └── ExpandCredits.svelte
 │   │   │   ├── data/             # Data display components
 │   │   │   │   ├── AreaContext.svelte
-│   │   │   │   └── DemographicData.svelte
+│   │   │   │   ├── DemographicContext.svelte
+│   │   │   │   ├── ServiceLineDetails.svelte
+│   │   │   │   └── ServiceLineInventory.svelte
 │   │   │   ├── legend/           # Map legend components
-│   │   │   │   ├── ChoroplethLegend.svelte
-│   │   │   │   ├── ExpandedLegend.svelte
+│   │   │   │   ├── ExpandLegend.svelte
 │   │   │   │   └── Legend.svelte
 │   │   │   ├── logos/            # Organization logos
-│   │   │   │   ├── ChiWorks.svelte
-│   │   │   │   ├── CCHI.svelte
-│   │   │   │   └── GristLogoText.svelte
+│   │   │   │   ├── GristLogo.svelte
+│   │   │   │   ├── ICNLogo.svelte
+│   │   │   │   └── WBEZLogo.svelte
 │   │   │   ├── resources/        # Resources panel
-│   │   │   │   └── ResourcesPanel.svelte
+│   │   │   │   ├── ExpandResources.svelte
+│   │   │   │   └── Resources.svelte
 │   │   │   ├── search/           # Search functionality
-│   │   │   │   ├── SearchBar.svelte
-│   │   │   │   ├── SearchResults.svelte
+│   │   │   │   ├── SearchPanel.svelte
+│   │   │   │   ├── SearchSuggestions.svelte
+│   │   │   │   ├── ServiceLineDiagram.svelte
+│   │   │   │   ├── ServiceLineDiagramLoading.svelte
 │   │   │   │   └── ServiceLineResults.svelte
-│   │   │   └── shared/           # Shared UI components
-│   │   │       ├── LegendTooltip.svelte
-│   │   │       ├── Portal.svelte
-│   │   │       └── Tabs.svelte
+│   │   │   ├── shared/           # Shared UI components
+│   │   │   │   ├── ServiceLineTooltip.svelte
+│   │   │   │   ├── portal/
+│   │   │   │   │   └── Portal.svelte
+│   │   │   │   ├── skeleton/
+│   │   │   │   │   └── Skeleton.svelte
+│   │   │   │   └── tabs/
+│   │   │   │       ├── TabItem.svelte
+│   │   │   │       ├── Tabs.svelte
+│   │   │   │       └── index.ts
+│   │   │   └── social/           # Social sharing components
+│   │   │       └── SharePreview.svelte
+│   │   │
+│   │   ├── classes/              # Class-based utilities
+│   │   │   ├── Popup.ts         # Popup class
+│   │   │   └── ResetViewControl.ts  # Map reset control
 │   │   │
 │   │   ├── state/                # Svelte 5 state management
 │   │   │   ├── feature.svelte.ts         # Selected feature state
@@ -97,56 +113,97 @@ chi-pb/
 │   │   │   ├── map.svelte.ts             # Map instance state
 │   │   │   ├── popup.svelte.ts           # Map popup state
 │   │   │   ├── search.svelte.ts          # Search functionality state
+│   │   │   ├── social.svelte.ts          # Social sharing state
 │   │   │   ├── spatial-index.svelte.ts   # Spatial indexing for performance
 │   │   │   ├── ui.svelte.ts              # UI visibility states
 │   │   │   └── visualization.svelte.ts   # Choropleth and aggregation state
 │   │   │
-│   │   ├── types/                # TypeScript definitions
-│   │   │   └── index.ts
+│   │   ├── i18n/                 # Internationalization
+│   │   │   └── messages.ts      # Localized messages
 │   │   │
-│   │   └── utils/                # Utility functions
-│   │       ├── config.ts         # Map configuration
-│   │       ├── constants.ts      # Application constants
-│   │       ├── formatters.ts     # Data formatters
-│   │       ├── popup.ts          # Popup utilities
-│   │       └── search.ts         # Search utilities
+│   │   ├── types/                # TypeScript definitions (empty dir)
+│   │   │
+│   │   ├── utils/                # Utility functions
+│   │   │   ├── config.ts         # Map configuration
+│   │   │   ├── constants.ts      # Application constants
+│   │   │   ├── formatters.ts     # Data formatters
+│   │   │   ├── nominatim.ts      # Geocoding utilities
+│   │   │   ├── quantile-data.ts  # Quantile data definitions
+│   │   │   ├── quantiles.ts      # Quantile calculations
+│   │   │   ├── resources.ts      # Resource links
+│   │   │   ├── tooltips.ts       # Tooltip utilities
+│   │   │   └── url.ts            # URL utilities
+│   │   │
+│   │   ├── buildInfo.ts          # Build information
+│   │   ├── stores.ts             # Legacy Svelte stores
+│   │   └── types.ts              # Main TypeScript types
 │   │
+│   ├── app.css                   # Global styles
+│   ├── app.d.ts                  # App type definitions
 │   └── app.html                  # HTML template
 │
 ├── scripts/                      # Data processing scripts
 │   ├── src/
 │   │   ├── clip-to-boundary.py  # Clip data to Chicago boundary (Python)
 │   │   ├── generate-inventory-lookup.ts   # Generate inventory lookup
-│   │   ├── geojson-to-pmtiles.ts       # Convert to PMTiles format
-│   │   ├── calculate-quantiles.ts     # Calculate quantile breakpoints
 │   │   ├── generate-minimal-search-index.ts  # Generate search index
 │   │   ├── generate-service-lines-geojson.ts # Process service line data
-│   │   └── upload-*.ts          # Various upload scripts
+│   │   ├── geojson-to-pmtiles.ts       # Convert to PMTiles format
+│   │   ├── calculate-quantiles.ts     # Calculate quantile breakpoints
+│   │   ├── deploy.ts            # Deployment script
+│   │   ├── upload-csv.ts        # Upload CSV data
+│   │   ├── upload-inventory-lookup.ts  # Upload inventory lookup
+│   │   ├── upload-pmtiles.ts    # Upload PMTiles
+│   │   ├── upload-search-index.ts      # Upload search index
+│   │   └── upload-styles.ts     # Upload map styles
 │   │
 │   └── data/
 │       ├── raw/                  # Input data files
-│       │   ├── inventory.csv    # Chicago water service inventory
-│       │   ├── census-tracts.geojson    # Census tract boundaries
-│       │   └── community-areas.geojson  # Community area boundaries
+│       │   ├── service-lines.csv       # Chicago water service inventory
+│       │   ├── service-lines.geojson   # Geocoded service lines
+│       │   ├── chi-tracts-filled.geojson    # Census tract boundaries
+│       │   ├── chi-tracts-filled-original.geojson
+│       │   ├── chi-comm-areas.geojson       # Community area boundaries
+│       │   ├── chi-comm-areas-original.geojson
+│       │   └── chi-boundary.geojson    # Chicago city boundary
 │       │
 │       └── processed/            # Generated files
-│           ├── *.pmtiles        # PMTiles vector tiles
-│           ├── search-index.json # Address search index
-│           └── inventory-lookup.json # Service line lookup
+│           ├── service-lines.pmtiles   # Service lines vector tiles
+│           ├── chi-tracts-filled.pmtiles # Census tracts tiles
+│           ├── chi-comm-areas.pmtiles  # Community areas tiles
+│           ├── combined-index.json*    # Combined search/material index
+│           ├── inventory-lookup.json*  # Inventory lookup data
+│           ├── minimal-search-index.json* # Search index
+│           └── service-lines-spatial-index.json* # Spatial index
+│           (* includes .br compressed versions)
 │
 ├── functions/                    # Serverless functions
-│   └── packages/
-│       └── inventory/
-│           └── lookup/          # Inventory lookup API
-│               ├── index.js
-│               └── package.json
+│   ├── packages/
+│   │   └── inventory/
+│   │       └── lookup/          # Inventory lookup API (empty dir)
+│   └── project.yml              # Digital Ocean functions config
 │
 ├── styles/                       # Map styles
-│   ├── light.json               # Light theme map style
-│   └── satellite.json           # Satellite imagery style
+│   └── map-style.json           # Map style configuration
 │
-└── static/                       # Static assets
-    └── favicon.ico
+├── static/                       # Static assets
+│   ├── favicon.png              # Site favicon
+│   ├── Grist.svg                # Grist logo
+│   ├── ICN.png                  # ICN logo
+│   └── WBEZ.svg                 # WBEZ logo
+│
+├── build/                        # Build output (gitignored)
+├── node_modules/                 # Dependencies (gitignored)
+│
+├── DEVELOPER.md                  # Developer documentation (this file)
+├── README.md                     # Project readme
+├── eslint.config.js              # ESLint configuration
+├── package.json                  # Package configuration
+├── pnpm-lock.yaml                # Lock file
+├── requirements.txt              # Python dependencies
+├── svelte.config.js              # SvelteKit configuration
+├── tsconfig.json                 # TypeScript configuration
+└── vite.config.ts                # Vite configuration
 ```
 
 ## Data Processing Pipeline

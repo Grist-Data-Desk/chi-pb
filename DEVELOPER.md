@@ -7,7 +7,6 @@ This document provides comprehensive technical details for developers working on
 - [Available Scripts](#available-scripts)
 - [Detailed Project Structure](#detailed-project-structure)
 - [Data Processing Pipeline](#data-processing-pipeline)
-- [Development Workflow](#development-workflow)
 - [Architecture Details](#architecture-details)
 - [Search Implementation](#search-implementation)
 - [Deployment](#deployment)
@@ -198,31 +197,6 @@ pnpm process:data
 
 # Upload everything to CDN
 pnpm upload:all
-```
-
-## Development Workflow
-
-### Initial Setup
-
-1. Clone the repository
-2. Install dependencies: `pnpm install`
-3. Configure Digital Ocean credentials (see notes on environment variables [below](#deployment))
-4. Run development server: `pnpm dev`
-
-### Working with Data
-
-1. Place raw data files in `scripts/data/raw/`
-2. Run processing pipeline: `pnpm process:data`
-3. Test locally with processed data
-4. Upload to CDN when ready: `pnpm upload:all`
-
-### Code Quality Checks
-
-Before committing:
-```bash
-pnpm check    # TypeScript type checking
-pnpm lint     # ESLint checks
-pnpm format   # Format with Prettier
 ```
 
 ## Architecture Details

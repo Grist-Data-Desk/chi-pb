@@ -93,6 +93,8 @@ An interactive map helping Chicago residents check if their water service lines 
 
 ## Data Information
 
+See the [Inside Climate News companion repository](https://github.com/InsideClimateNews/2025-08-chicago-lead-service-lines) for detailed analysis methodology.
+
 ### Data Sources
 
 - **Water Service Line Inventory**: City of Chicago water service line inventory data
@@ -143,4 +145,4 @@ The map can be embedded in other websites using an `iframe` suited to their styl
 
 Development by [Clayton Aldern](https://github.com/clayton-aldern) and [Parker Ziegler](https://github.com/parkerziegler) for [Grist](https://grist.org).
 
-Data analysis by [Peter Aldhous](https://github.com/paldhous) (Inside Climate News) and [Amy Qin](https://github.com/amyq96) (WBEZ). See the [Inside Climate News companion repository](https://github.com/InsideClimateNews/2025-08-chicago-lead-service-lines) for detailed analysis methodology.
+Data analysis by [Peter Aldhous](https://github.com/paldhous) (Inside Climate News) and [Amy Qin](https://github.com/amyq96) (WBEZ). See the [Inside Climate News companion repository](https://github.com/InsideClimateNews/2025-08-chicago-lead-service-lines) for data analysis details.

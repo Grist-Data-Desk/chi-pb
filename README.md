@@ -1,6 +1,6 @@
 # Chicago Water Service Line Map
 
-An interactive map helping Chicago residents check if their water service lines contain lead and need replacement. Developed for Grist, WBEZ, and Inside Climate News.
+An interactive map helping Chicago residents check if their water service lines contain lead and need replacement. Developed for [Grist](https://grist.org/), [WBEZ](https://www.wbez.org/), and [Inside Climate News](https://insideclimatenews.org/).
 
 ## Related Coverage
 

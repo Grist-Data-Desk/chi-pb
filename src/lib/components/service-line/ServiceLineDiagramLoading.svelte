@@ -53,10 +53,10 @@
 
 	<!-- Public/Customer Side Headers -->
 	<text x="200" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
-		>Public Side</text
+		>{messages.serviceLineInformation.components.publicSide}</text
 	>
 	<text x="440" y="80" text-anchor="middle" class="fill-earth/40 text-sm font-semibold"
-		>Private Side</text
+		>{messages.serviceLineInformation.components.privateSide}</text
 	>
 
 	<!-- Dividing line between public and customer sides -->
@@ -72,23 +72,66 @@
 	/>
 
 	<!-- Labels -->
-	<text x="40" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
-		>{messages.serviceLineInformation.components.waterMain}</text
-	>
+	{#if lang() === 'en'}
+		<text x="40" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
+			>{messages.serviceLineInformation.components.waterMain}</text
+		>
+	{:else}
+		<text x="40" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
+			<tspan x="41" dy="0"
+				>{messages.serviceLineInformation.components.waterMain.split(' ')[0]}</tspan
+			>
+			<tspan x="40" dy="14"
+				>{messages.serviceLineInformation.components.waterMain.split(' ').slice(1).join(' ')}</tspan
+			>
+		</text>
+	{/if}
 	<text x="140" y="110" text-anchor="middle" class="fill-earth/40 text-sm font-medium"
 		>{messages.serviceLineInformation.components.gooseneck}</text
 	>
 
 	<!-- Utility portion label with text wrapping -->
 	<text x="285" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
-		<tspan x="285" dy="0">{messages.serviceLineInformation.components.utilityPortion}</tspan>
-		<tspan x="283" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{#if lang() === 'en'}
+			<tspan x="285" dy="0">{messages.serviceLineInformation.components.utilityPortion}</tspan>
+			<tspan x="283" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{:else}
+			<tspan x="285" dy="0"
+				>{messages.serviceLineInformation.components.utilityPortion
+					.split(' ')
+					.slice(0, 2)
+					.join(' ')}</tspan
+			>
+			<tspan x="285" dy="14"
+				>{messages.serviceLineInformation.components.utilityPortion
+					.split(' ')
+					.slice(2)
+					.join(' ')}</tspan
+			>
+			<tspan x="283" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{/if}
 	</text>
 
 	<!-- Customer portion label with text wrapping -->
 	<text x="450" y="105" text-anchor="middle" class="fill-earth/40 text-sm font-medium">
-		<tspan x="442" dy="0">{messages.serviceLineInformation.components.customerPortion}</tspan>
-		<tspan x="442" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{#if lang() === 'en'}
+			<tspan x="442" dy="0">{messages.serviceLineInformation.components.customerPortion}</tspan>
+			<tspan x="442" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{:else}
+			<tspan x="442" dy="0">{messages.serviceLineInformation.components.customerPortion}</tspan>
+			<tspan x="442" dy="14"
+				>{messages.serviceLineInformation.components.ofServiceLine
+					.split(' ')
+					.slice(0, 3)
+					.join(' ')}</tspan
+			>
+			<tspan x="442" dy="14"
+				>{messages.serviceLineInformation.components.ofServiceLine
+					.split(' ')
+					.slice(3)
+					.join(' ')}</tspan
+			>
+		{/if}
 	</text>
 
 	<!-- Define gradient for water flow -->

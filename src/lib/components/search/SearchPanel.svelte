@@ -4,7 +4,7 @@
 	import { getContext } from 'svelte';
 
 	import SearchSuggestions from '$lib/components/search/SearchSuggestions.svelte';
-	import ServiceLineResults from '$lib/components/search/ServiceLineResults.svelte';
+	import ServiceLineResults from '$lib/components/service-line/ServiceLineResults.svelte';
 	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 	import { search } from '$lib/state/search.svelte';
 	import { ui } from '$lib/state/ui.svelte';
@@ -242,11 +242,11 @@
 				// Check if the query number matches this address
 				// For single addresses (n2 === 0), match exact number
 				// For range addresses (n2 > 0), check if number is in range
-				const numberMatches = addr.n1 > 0 && (
-					(addr.n2 === 0 && queryNumber === addr.n1) ||
-					(addr.n2 > 0 && queryNumber >= addr.n1 && queryNumber <= addr.n2)
-				);
-				
+				const numberMatches =
+					addr.n1 > 0 &&
+					((addr.n2 === 0 && queryNumber === addr.n1) ||
+						(addr.n2 > 0 && queryNumber >= addr.n1 && queryNumber <= addr.n2));
+
 				if (numberMatches) {
 					// Only match against the street portion of the address, not the city
 					// addr.a is already in the format "1234 N CHICAGO AVE, 60601" or similar
@@ -547,11 +547,11 @@
 				// Check if query number matches this address
 				// For single addresses (num2 === 0), match exact number
 				// For range addresses (num2 > 0), check if number is in range
-				const numberMatches = addr.num1 > 0 && (
-					(addr.num2 === 0 && queryNumber === addr.num1) ||
-					(addr.num2 > 0 && queryNumber >= addr.num1 && queryNumber <= addr.num2)
-				);
-				
+				const numberMatches =
+					addr.num1 > 0 &&
+					((addr.num2 === 0 && queryNumber === addr.num1) ||
+						(addr.num2 > 0 && queryNumber >= addr.num1 && queryNumber <= addr.num2));
+
 				if (numberMatches) {
 					// Now check if the street part matches
 					// Remove the street number from the display address before normalizing

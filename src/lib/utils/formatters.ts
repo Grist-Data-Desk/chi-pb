@@ -62,3 +62,40 @@ export function formatAreaIdentifier(
 
 	return '';
 }
+
+/**
+ * Format the display name of a service line material given its code.
+ *
+ * @param material – The material code to format.
+ * @param lang – The language to use.
+ * @returns The formatted display name of the service line material.
+ */
+export function formatServiceLineMaterial(
+	material: string,
+	{ lang = 'en' }: { lang?: Language }
+): string {
+	switch (material.toUpperCase()) {
+		case 'C':
+			return messages[lang].serviceLineInformation.leadStatus.C;
+		case 'CLS':
+			return messages[lang].serviceLineInformation.leadStatus.CLS;
+		case 'G':
+			return messages[lang].serviceLineInformation.leadStatus.G;
+		case 'GRR':
+			return messages[lang].serviceLineInformation.leadStatus.GRR;
+		case 'L':
+			return messages[lang].serviceLineInformation.leadStatus.L;
+		case 'O':
+			return messages[lang].serviceLineInformation.leadStatus.O;
+		case 'P':
+			return messages[lang].serviceLineInformation.leadStatus.P;
+		case 'U':
+			return messages[lang].serviceLineInformation.leadStatus.U;
+		case 'UNL':
+			return messages[lang].serviceLineInformation.leadStatus.UNL;
+		case 'NL':
+			return messages[lang].serviceLineInformation.leadStatus.NL;
+		default:
+			return material;
+	}
+}

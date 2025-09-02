@@ -97,7 +97,9 @@ interface Messages {
 		};
 		split: {
 			unknown: string;
-			galvanizedRequiring: string;
+			notLead: string;
+			galvanized: string;
+			requiring: string;
 			replacement: string;
 			castDuctile: string;
 			orTransite: string;
@@ -300,11 +302,13 @@ export const messages: Record<Language, Messages> = {
 			},
 			split: {
 				unknown: 'Unknown',
-				galvanizedRequiring: 'Galvanized Requiring',
+				notLead: '(Not Lead)',
+				galvanized: 'Galvanized',
+				requiring: 'Requiring',
 				replacement: 'Replacement',
 				castDuctile: 'Cast/Ductile Iron',
 				orTransite: 'or Transite',
-				copper: 'Copper',
+				copper: 'Copper -',
 				noLeadSolder: 'No Lead Solder',
 				leadSolder: 'Lead Solder',
 				plastic: 'Plastic',
@@ -409,198 +413,216 @@ export const messages: Record<Language, Messages> = {
 		}
 	},
 	es: {
-		hed: 'TK',
-		dek: 'TK',
+		hed: '¿Las pipas de agua de tu propiedad contienen plomo?',
+		dek: 'Escribe tu dirección para saber si tu línea de servicio de agua necesita ser reemplazada y cómo se compara tu vecindario con otros.',
 		search: {
-			button: 'TK',
-			noResults: 'TK'
+			button: 'Buscar',
+			noResults:
+				'No se encontraron resultados de inventario. Se muestra un resultado generalizado de la dirección:'
 		},
 		credits: {
-			importantInformation: 'TK',
-			dataDisclaimer: 'TK',
-			sources: 'TK',
-			cityOfChicago: 'TK',
-			censusBureau: 'TK',
-			analysis: 'TK',
-			development: 'TK',
-			seeOur: 'TK',
-			methods: 'TK'
+			importantInformation: 'Información importante',
+			dataDisclaimer:
+				'Los datos están actualizados según el inventario de líneas de servicio de agua de la ciudad en 2025. Los datos municipales están incompletos y podrían contener inexactitudes y repeticiones. Es posible que varias direcciones reciban el servicio de la misma línea de servicio. Algunas direcciones aparecerán como rangos. Recomendamos a los usuarios que verifiquen la información de forma independiente antes de tomar decisiones.',
+			sources: 'Fuentes',
+			cityOfChicago: 'Ciudad de Chicago',
+			censusBureau: 'Buró del Censo',
+			analysis: 'Análisis',
+			development: 'Producción',
+			seeOur: 'Ve nuestros',
+			methods: 'métodos'
 		},
 		notes: {
-			button: 'TK'
+			button: 'Notas'
 		},
 		legend: {
-			title: 'TK',
+			title: 'Selecciona una capa de datos para visualizarla',
 			aggregationLevel: {
-				label: 'TK',
-				censusTractsButton: 'TK',
-				communityAreasButton: 'TK'
+				label: 'Nivel de agregación',
+				censusTractsButton: 'Áreas comunitarias',
+				communityAreasButton: 'Tramos del Censo'
 			},
 			dataVisualization: {
-				label: 'TK',
-				leadButton: 'TK',
-				povertyButton: 'TK',
-				raceButton: 'TK'
+				label: 'Visualización de datos',
+				leadButton: 'Plomo',
+				povertyButton: 'Pobreza',
+				raceButton: 'Raza'
 			},
 			variable: {
-				pctRequiresReplacementLabel: 'TK',
-				pctPovertyLabel: 'TK',
-				pctRaceLabel: 'TK'
+				pctRequiresReplacementLabel: 'Porcentaje de líneas de servicio que requieren reemplazo',
+				pctPovertyLabel: 'Porcentaje de población por debajo de la línea de pobreza',
+				pctRaceLabel: 'Porcentaje de población que no es blanca'
 			},
 			annotation: {
-				censusTracts: 'TK',
-				communityAreas: 'TK'
+				censusTracts:
+					'Los cuadros de color tienen un tamaño proporcional al número de áreas comunitarias que contienen, y se ofrecen detalles más pequeños en cada extremo del rango.',
+				communityAreas:
+					'Los cuadros de color tienen un tamaño proporcional al número de tramos del Censo que contienen, y se ofrecen detalles más pequeños en cada extremo del rango.'
 			},
-			loading: 'TK'
+			loading: 'Cargando...'
 		},
 		selectedAddress: {
-			label: 'TK',
+			label: 'Dirección seleccionada',
 			leadStatus: {
-				label: 'TK',
-				loading: 'TK',
-				L: 'TK',
-				GRR: 'TK',
-				NL: 'TK',
-				U: 'TK'
+				label: 'Estado de plomo',
+				loading: 'Cargando...',
+				L: 'Plomo',
+				GRR: 'Acero galvanizado (Reemplazar)',
+				NL: 'Sin plomo',
+				U: 'Sospecha de plomo'
 			},
-			addressNotFound: 'TK',
-			multipleServiceLines: ({ count }) => `TK ${count}`,
+			addressNotFound:
+				'La dirección que buscas no figura en el inventario de líneas de agua de la Ciudad de Chicago. Sin embargo, puedes hacer clic en una línea de servicio cercana para ver su condición.',
+			multipleServiceLines: ({ count }) =>
+				`Esta dirección está asociada con ${count} registros de la línea de servicio. La condición que se muestra arriba representa el peor caso posible en todas las líneas: Si se sospecha la presencia de plomo en alguna de las líneas de servicio, se indicará aquí. Consulta los detalles de cada línea a continuación.`,
 			share: {
-				button: 'TK'
+				button: 'Compartir'
 			}
 		},
 		tabs: {
-			serviceLineInformationTabTitle: 'TK',
-			serviceLineInventoryTabTitle: 'TK',
-			demographicContextTabTitle: 'TK'
+			serviceLineInformationTabTitle: 'Información de la\nlínea de servicio',
+			serviceLineInventoryTabTitle: 'Inventario de la\nlínea de servicio',
+			demographicContextTabTitle: 'Contexto\ndemográfico'
 		},
 		serviceLineInformation: {
-			loading: 'TK',
-			linesFound: 'TK',
+			loading: 'Cargando información de la línea de servicio...',
+			linesFound: 'líneas en esta dirección',
 			leadStatus: {
-				label: 'TK',
-				loading: 'TK',
-				C: 'TK',
-				CLS: 'TK',
-				G: 'TK',
-				GRR: 'TK',
-				L: 'TK',
-				NL: 'TK',
-				O: 'TK',
-				P: 'TK',
-				U: 'TK',
-				UNL: 'TK',
-				Unknown: 'TK'
+				label: 'Estado de plomo',
+				loading: 'Cargando...',
+				C: 'Cobre - Soldadura sin Plomo',
+				CLS: 'Cobre - Soldadura con Plomo',
+				G: 'Acero Galvanizado',
+				GRR: 'Acero Galvanizado que Requiere Reemplazo',
+				L: 'Plomo',
+				NL: 'Sin Plomo',
+				O: 'Hierro Fundido o Fibrocemento',
+				P: 'Plástico - PVC, HDPE, PEX',
+				U: 'Sospecha de Plomo',
+				UNL: 'Desconocido (Sin Plomo)',
+				Unknown: 'Desconocido'
 			},
 			components: {
-				publicSide: 'TK',
-				privateSide: 'TK',
-				waterMain: 'TK',
-				gooseneck: 'TK',
-				utilityPortion: 'TK',
-				customerPortion: 'TK',
-				ofServiceLine: 'TK',
-				utilitySide: 'TK',
-				customerSide: 'TK'
+				publicSide: 'Lado Público',
+				privateSide: 'Lado Privado',
+				waterMain: 'Tubería de agua',
+				gooseneck: 'Conector',
+				utilityPortion: 'Porción de servicio público',
+				customerPortion: 'Porción del cliente',
+				ofServiceLine: 'de la línea de servicio',
+				utilitySide: 'Lado de servicio público',
+				customerSide: 'Lado del cliente de la línea de servicio'
 			},
 			split: {
-				unknown: 'TK',
-				galvanizedRequiring: 'TK',
-				replacement: 'TK',
-				castDuctile: 'TK',
-				orTransite: 'TK',
-				copper: 'TK',
-				noLeadSolder: 'TK',
-				leadSolder: 'TK',
-				plastic: 'TK',
-				pvchdpepex: 'TK'
+				unknown: 'Desconocido',
+				notLead: '(Sin Plomo)',
+				galvanized: 'Acero Galvanizado',
+				requiring: 'que Requiere',
+				replacement: 'Reemplazo',
+				castDuctile: 'Hierro Fundido',
+				orTransite: 'o Fibrocemento',
+				copper: 'Cobre -',
+				noLeadSolder: 'Soldadura sin Plomo',
+				leadSolder: 'Soldadura con Plomo',
+				plastic: 'Plástico - ',
+				pvchdpepex: 'PVC, HDPE, PEX'
 			},
 			pagination: {
-				nextButton: 'TK',
-				previousButton: 'TK',
-				lineOf: ({ current, total }) => `TK ${current} TK ${total}`
+				nextButton: 'Próxima',
+				previousButton: 'Anterior',
+				lineOf: ({ current, total }) => `Línea ${current} de ${total}`
 			},
 			exceptions: {
-				highRisk: 'TK',
-				detailedInventoryUnavailable: 'TK',
-				leadStatusFromGeocoder: 'TK'
+				highRisk:
+					'⚠️ Esta dirección es considerada una propiedad de alto riesgo por la ciudad de Chicago.',
+				detailedInventoryUnavailable:
+					'Información detallada del inventario no está disponible para esta dirección.',
+				leadStatusFromGeocoder:
+					'La condición básica de plomo que se muestra arriba es según los datos disponibles en la base de datos de direcciones geocodificadas.'
 			}
 		},
 		areaContext: {
-			locatedIn: 'TK',
+			locatedIn: 'Esta dirección se encuentra en',
 			statisticsOn: {
-				communityArea: 'TK',
-				censusTract: 'TK'
+				communityArea: 'Las estadísticas de esta area comunitaria se encuentran abajo.',
+				censusTract: 'Las estadísticas sobre este tramo del Censo aparecen a continuación.'
 			},
 			interaction: {
-				tap: 'TK',
-				hoverOver: 'TK'
+				tap: 'Haz clic en',
+				hoverOver: 'Pasa el cursor sobre'
 			},
-			learnMore: 'TK'
+			learnMore: 'una condición de línea para obtener más información.'
 		},
 		serviceLineInventory: {
-			lead: 'TK',
-			suspectedLead: 'TK',
-			galvanizedReplace: 'TK',
-			nonLead: 'TK',
-			total: 'TK',
-			requiresReplacement: 'TK'
+			lead: 'Plomo',
+			suspectedLead: 'Sospecha de plomo',
+			galvanizedReplace: 'Acero galvanizado (Reemplazar)',
+			nonLead: 'Sin plomo',
+			total: 'Total',
+			requiresReplacement: 'Requiere reemplazar'
 		},
 		demographicContext: {
-			medianHouseholdIncome: 'TK',
-			povertyRate: 'TK',
-			blackPopulation: 'TK',
-			latinoPopulation: 'TK',
-			whitePopulation: 'TK',
-			asianPopulation: 'TK',
-			nonWhitePopulation: 'TK'
+			medianHouseholdIncome: 'Ingreso promedio',
+			povertyRate: 'Tasa de pobreza',
+			blackPopulation: 'Población afroamericana',
+			latinoPopulation: 'Población latina',
+			whitePopulation: 'Población blanca anglosajona',
+			asianPopulation: 'Población asiática',
+			nonWhitePopulation: 'Población no-blanca anglosajona'
 		},
 		tooltips: {
 			definitions: {
-				lead: 'TK',
-				suspectedLead: 'TK',
-				galvanized: 'TK',
-				nonLead: 'TK'
+				lead: 'Se sabe que al menos un componente de la línea de servicio está hecho de plomo.',
+				suspectedLead:
+					'La composición de la línea de servicio está marcada como desconocida en el inventario municipal, pero se sospecha que contiene componentes de plomo, generalmente debido a la antigüedad del edificio.',
+				galvanized:
+					'No se sabe de algún componente de la línea de servicio que esté hecho de plomo, pero al menos una parte es de acero galvanizado, que puede contaminarse con plomo de las tuberías de agua más elevadas.',
+				nonLead:
+					'Ninguno de los componentes de la línea de servicio está hecho ni puede estar contaminado con plomo.'
 			}
 		},
 		resources: {
-			button: 'TK',
+			button: 'Recursos para dirección seleccionada',
 			title: '¿Qué puedo hacer?',
-			resultDescription: ({ plural }) => `TK ${plural ? 'TK' : 'TK'}`,
+			resultDescription: ({ plural }) =>
+				`Según el resultado de su línea de servicio, ${plural ? 'los siguientes recursos están disponibles' : 'el siguiente recurso está disponible'}`,
 			freeWaterTestingKit: {
-				label: 'TK',
-				description: 'TK',
-				CTA: 'TK'
+				label: 'Kit de pruebas de agua gratuito',
+				description:
+					'Todos los residentes de Chicago pueden solicitar un kit de prueba de agua gratuito para verificar los niveles de plomo.',
+				CTA: 'Solicita un kit de pruebas de agua gratis'
 			},
 			freeWaterFilter: {
-				label: 'TK',
-				description: 'TK',
-				CTA: 'TK'
+				label: 'Filtro de agua gratuito',
+				description:
+					'Verifica si su dirección califica para un filtro de agua gratuito de la ciudad de Chicago.',
+				CTA: 'Inscríbete para un filtro de agua gratis'
 			},
 			leadPipeReplacementAssistance: {
-				label: 'TK',
-				description: 'TK',
-				CTA: 'TK'
+				label: 'Ayuda para reemplazar las pipas con plomo',
+				description:
+					'Dependiendo de tus ingresos, podrías calificar para el reemplazo gratuito de tuberías de plomo.',
+				CTA: 'Solicita ayuda para reemplazarlas'
 			}
 		},
 		share: {
-			title: 'TK',
-			downloadImage: 'TK',
-			saveToShare: 'TK',
+			title: 'Comparte tus resultados',
+			downloadImage: 'Descargar imagen',
+			saveToShare: 'Guardar esta imagen para compartir en redes sociales',
 			image: {
-				iLookedUp: 'TK',
-				in: 'TK',
-				and: 'TK',
-				foundOut: 'TK',
-				serviceLineMadeOf: 'TK',
+				iLookedUp: 'Busqué mi dirección',
+				in: 'en',
+				and: 'y',
+				foundOut: 'aprendí',
+				serviceLineMadeOf: 'de qué está hecha mi línea de servicio de agua',
 				leadStatus: {
-					L: 'TK',
-					GRR: 'TK',
-					NL: 'TK',
-					U: 'TK',
-					Unknown: 'TK'
+					L: 'Plomo',
+					GRR: 'Acero galvanizado que requiere reemplazo',
+					NL: 'Sin plomo',
+					U: 'Sospecha de plomo',
+					Unknown: 'Desconocido'
 				},
-				checkYourLeadStatus: 'TK'
+				checkYourLeadStatus: 'revisa la condición de plomo de tu hogar'
 			}
 		}
 	}

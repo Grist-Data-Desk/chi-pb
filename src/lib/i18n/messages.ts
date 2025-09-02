@@ -613,8 +613,8 @@ export const messages: Record<Language, Messages> = {
 				iLookedUp: 'Busqué mi dirección',
 				in: 'en',
 				and: 'y',
-				foundOut: 'aprendí',
-				serviceLineMadeOf: 'de qué está hecha mi línea de servicio de agua',
+				foundOut: 'aprendí de qué está hecha',
+				serviceLineMadeOf: 'mi línea de servicio de agua',
 				leadStatus: {
 					L: 'Plomo',
 					GRR: 'Acero galvanizado que requiere reemplazo',

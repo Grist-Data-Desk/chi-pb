@@ -439,8 +439,8 @@ export const messages: Record<Language, Messages> = {
 			title: 'Selecciona una capa de datos para visualizarla',
 			aggregationLevel: {
 				label: 'Nivel de agregación',
-				censusTractsButton: 'Áreas comunitarias',
-				communityAreasButton: 'Tramos del Censo'
+				censusTractsButton: 'Tramos del Censo',
+				communityAreasButton: 'Áreas comunitarias'
 			},
 			dataVisualization: {
 				label: 'Visualización de datos',
@@ -455,9 +455,9 @@ export const messages: Record<Language, Messages> = {
 			},
 			annotation: {
 				censusTracts:
-					'Los cuadros de color tienen un tamaño proporcional al número de áreas comunitarias que contienen, y se ofrecen detalles más pequeños en cada extremo del rango.',
+					'Los cuadros de color tienen un tamaño proporcional al número de tramos del Censo que contienen, y se ofrecen detalles más pequeños en cada extremo del rango.',
 				communityAreas:
-					'Los cuadros de color tienen un tamaño proporcional al número de tramos del Censo que contienen, y se ofrecen detalles más pequeños en cada extremo del rango.'
+					'Los cuadros de color tienen un tamaño proporcional al número de áreas comunitarias que contienen, y se ofrecen detalles más pequeños en cada extremo del rango.'
 			},
 			loading: 'Cargando...'
 		},

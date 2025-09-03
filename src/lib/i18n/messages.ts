@@ -421,7 +421,7 @@ export const messages: Record<Language, Messages> = {
 				'No se encontraron resultados de inventario. Se muestra un resultado generalizado de la dirección:'
 		},
 		credits: {
-			importantInformation: 'Información importante',
+			importantInformation: 'Información Importante',
 			dataDisclaimer:
 				'Los datos están actualizados según el inventario de líneas de servicio de agua de la ciudad en 2025. Los datos municipales están incompletos y podrían contener inexactitudes y repeticiones. Es posible que varias direcciones reciban el servicio de la misma línea de servicio. Algunas direcciones aparecerán como rangos. Recomendamos a los usuarios que verifiquen la información de forma independiente antes de tomar decisiones.',
 			sources: 'Fuentes',
@@ -464,12 +464,12 @@ export const messages: Record<Language, Messages> = {
 		selectedAddress: {
 			label: 'Dirección seleccionada',
 			leadStatus: {
-				label: 'Estado de plomo',
+				label: 'Estado de Plomo',
 				loading: 'Cargando...',
 				L: 'Plomo',
-				GRR: 'Acero galvanizado (Reemplazar)',
-				NL: 'Sin plomo',
-				U: 'Sospecha de plomo'
+				GRR: 'Acero Galvanizado (Reemplazar)',
+				NL: 'Sin Plomo',
+				U: 'Sospecha de Plomo'
 			},
 			addressNotFound:
 				'La dirección que buscas no figura en el inventario de líneas de agua de la Ciudad de Chicago. Sin embargo, puedes hacer clic en una línea de servicio cercana para ver su condición.',
@@ -488,7 +488,7 @@ export const messages: Record<Language, Messages> = {
 			loading: 'Cargando información de la línea de servicio...',
 			linesFound: 'líneas en esta dirección',
 			leadStatus: {
-				label: 'Estado de plomo',
+				label: 'Estado de Plomo',
 				loading: 'Cargando...',
 				C: 'Cobre - Soldadura sin Plomo',
 				CLS: 'Cobre - Soldadura con Plomo',
@@ -510,8 +510,8 @@ export const messages: Record<Language, Messages> = {
 				utilityPortion: 'Porción de servicio público',
 				customerPortion: 'Porción del cliente',
 				ofServiceLine: 'de la línea de servicio',
-				utilitySide: 'Lado de servicio público',
-				customerSide: 'Lado del cliente de la línea de servicio'
+				utilitySide: 'Lado de Servicio Público',
+				customerSide: 'Lado del Cliente de la Línea de Servicio'
 			},
 			split: {
 				unknown: 'Desconocido',
@@ -555,20 +555,20 @@ export const messages: Record<Language, Messages> = {
 		},
 		serviceLineInventory: {
 			lead: 'Plomo',
-			suspectedLead: 'Sospecha de plomo',
-			galvanizedReplace: 'Acero galvanizado (Reemplazar)',
-			nonLead: 'Sin plomo',
+			suspectedLead: 'Sospecha de Plomo',
+			galvanizedReplace: 'Acero Galvanizado (Reemplazar)',
+			nonLead: 'Sin Plomo',
 			total: 'Total',
-			requiresReplacement: 'Requiere reemplazar'
+			requiresReplacement: 'Requiere Reemplazar'
 		},
 		demographicContext: {
-			medianHouseholdIncome: 'Ingreso promedio',
-			povertyRate: 'Tasa de pobreza',
-			blackPopulation: 'Población afroamericana',
-			latinoPopulation: 'Población latina',
-			whitePopulation: 'Población blanca anglosajona',
-			asianPopulation: 'Población asiática',
-			nonWhitePopulation: 'Población no-blanca anglosajona'
+			medianHouseholdIncome: 'Ingreso Promedio',
+			povertyRate: 'Tasa de Pobreza',
+			blackPopulation: 'Población Afroamericana',
+			latinoPopulation: 'Población Latina',
+			whitePopulation: 'Población Blanca Anglosajona',
+			asianPopulation: 'Población Asiática',
+			nonWhitePopulation: 'Población No-Blanca Anglosajona'
 		},
 		tooltips: {
 			definitions: {
@@ -582,24 +582,24 @@ export const messages: Record<Language, Messages> = {
 			}
 		},
 		resources: {
-			button: 'Recursos para dirección seleccionada',
+			button: 'Recursos para Dirección Seleccionada',
 			title: '¿Qué puedo hacer?',
 			resultDescription: ({ plural }) =>
 				`Según el resultado de su línea de servicio, ${plural ? 'los siguientes recursos están disponibles' : 'el siguiente recurso está disponible'}`,
 			freeWaterTestingKit: {
-				label: 'Kit de pruebas de agua gratuito',
+				label: 'Kit de Pruebas de Agua Gratuito',
 				description:
 					'Todos los residentes de Chicago pueden solicitar un kit de prueba de agua gratuito para verificar los niveles de plomo.',
 				CTA: 'Solicita un kit de pruebas de agua gratis'
 			},
 			freeWaterFilter: {
-				label: 'Filtro de agua gratuito',
+				label: 'Filtro de Agua Gratuito',
 				description:
 					'Verifica si su dirección califica para un filtro de agua gratuito de la ciudad de Chicago.',
 				CTA: 'Inscríbete para un filtro de agua gratis'
 			},
 			leadPipeReplacementAssistance: {
-				label: 'Ayuda para reemplazar las pipas con plomo',
+				label: 'Ayuda para Reemplazar las Pipas con Plomo',
 				description:
 					'Dependiendo de tus ingresos, podrías calificar para el reemplazo gratuito de tuberías de plomo.',
 				CTA: 'Solicita ayuda para reemplazarlas'
@@ -617,9 +617,9 @@ export const messages: Record<Language, Messages> = {
 				serviceLineMadeOf: 'mi línea de servicio de agua',
 				leadStatus: {
 					L: 'Plomo',
-					GRR: 'Acero galvanizado que requiere reemplazo',
-					NL: 'Sin plomo',
-					U: 'Sospecha de plomo',
+					GRR: 'Acero Galvanizado que Requiere Reemplazar',
+					NL: 'Sin Plomo',
+					U: 'Sospecha de Plomo',
 					Unknown: 'Desconocido'
 				},
 				checkYourLeadStatus: 'revisa la condición de plomo de tu hogar'

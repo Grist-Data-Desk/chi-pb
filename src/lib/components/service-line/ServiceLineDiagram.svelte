@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 
+	import MaterialLabel from '$lib/components/service-line/MaterialLabel.svelte';
 	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
 	import { multiServiceLineStore, serviceLineCount } from '$lib/stores';
 	import { COLORS, getMaterialColor } from '$lib/utils/constants';
+	import { formatServiceLineMaterial } from '$lib/utils/formatters';
 
 	interface Props {
 		utilitySideMaterial: string;
@@ -23,89 +25,6 @@
 	let gooseneckColor = $derived(getMaterialColor(gooseneckMaterial));
 	let customerColor = $derived(getMaterialColor(customerSideMaterial));
 	let messages = $derived(i18nMessages[lang()]);
-
-	function getMaterialLabel(material: string): string {
-		if (!material) {
-			return messages.serviceLineInformation.leadStatus.Unknown;
-		}
-
-		switch (material.toUpperCase()) {
-			case 'C':
-				return messages.serviceLineInformation.leadStatus.C;
-			case 'CLS':
-				return messages.serviceLineInformation.leadStatus.CLS;
-			case 'G':
-				return messages.serviceLineInformation.leadStatus.G;
-			case 'GRR':
-				return messages.serviceLineInformation.leadStatus.GRR;
-			case 'L':
-				return messages.serviceLineInformation.leadStatus.L;
-			case 'O':
-				return messages.serviceLineInformation.leadStatus.O;
-			case 'P':
-				return messages.serviceLineInformation.leadStatus.P;
-			case 'U':
-				return messages.serviceLineInformation.leadStatus.U;
-			case 'UNL':
-				return messages.serviceLineInformation.leadStatus.UNL;
-			case 'NL':
-				return messages.serviceLineInformation.leadStatus.NL;
-			default:
-				return material;
-		}
-	}
-
-	function splitLabel(label: string): { line1: string; line2?: string } {
-		if (label.length <= 20) {
-			return { line1: label };
-		}
-
-		switch (label) {
-			case 'Suspected Lead':
-				return {
-					line1: messages.serviceLineInformation.split.unknown,
-					line2: `(${messages.serviceLineInformation.leadStatus.U})`
-				};
-			case 'Unknown (Not Lead)':
-				return {
-					line1: messages.serviceLineInformation.split.unknown,
-					line2: `(${messages.serviceLineInformation.leadStatus.UNL})`
-				};
-			case 'Galvanized Requiring Replacement':
-				return {
-					line1: messages.serviceLineInformation.split.galvanizedRequiring,
-					line2: messages.serviceLineInformation.split.replacement
-				};
-			case 'Cast/Ductile Iron or Transite':
-				return {
-					line1: messages.serviceLineInformation.split.castDuctile,
-					line2: messages.serviceLineInformation.split.orTransite
-				};
-			case 'Copper - No Lead Solder':
-				return {
-					line1: `${messages.serviceLineInformation.split.copper} -`,
-					line2: messages.serviceLineInformation.split.noLeadSolder
-				};
-			case 'Copper - Lead Solder':
-				return {
-					line1: `${messages.serviceLineInformation.split.copper} -`,
-					line2: messages.serviceLineInformation.split.leadSolder
-				};
-			case 'Plastic - PVC, HDPE, PEX':
-				return {
-					line1: `${messages.serviceLineInformation.split.plastic} -`,
-					line2: messages.serviceLineInformation.split.pvchdpepex
-				};
-			default: {
-				const words = label.split(' ');
-				const midpoint = Math.ceil(words.length / 2);
-				return {
-					line1: words.slice(0, midpoint).join(' '),
-					line2: words.slice(midpoint).join(' ')
-				};
-			}
-		}
-	}
 </script>
 
 <!-- Service Line Diagram -->
@@ -133,9 +52,9 @@
 			</text>
 		{:else if overallCode === 'GRR'}
 			<rect
-				x="-120"
+				x={lang() === 'en' ? '-120' : '-150'}
 				y="-12"
-				width="240"
+				width={lang() === 'en' ? '240' : '300'}
 				height="24"
 				fill={getMaterialColor(overallCode)}
 				stroke="#ffffff"
@@ -163,9 +82,9 @@
 			</text>
 		{:else if overallCode === 'U'}
 			<rect
-				x="-65"
+				x={lang() === 'en' ? '-65' : '-75'}
 				y="-12"
-				width="130"
+				width={lang() === 'en' ? '130' : '150'}
 				height="24"
 				fill={getMaterialColor(overallCode)}
 				stroke="#ffffff"
@@ -233,23 +152,66 @@
 	/>
 
 	<!-- Labels -->
-	<text x="40" y="110" text-anchor="middle" class="fill-earth/80 text-sm font-medium"
-		>{messages.serviceLineInformation.components.waterMain}</text
-	>
+	{#if lang() === 'en'}
+		<text x="40" y="110" text-anchor="middle" class="fill-earth/80 text-sm font-medium"
+			>{messages.serviceLineInformation.components.waterMain}</text
+		>
+	{:else}
+		<text x="40" y="105" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
+			<tspan x="41" dy="0"
+				>{messages.serviceLineInformation.components.waterMain.split(' ')[0]}</tspan
+			>
+			<tspan x="40" dy="14"
+				>{messages.serviceLineInformation.components.waterMain.split(' ').slice(1).join(' ')}</tspan
+			>
+		</text>
+	{/if}
 	<text x="140" y="110" text-anchor="middle" class="fill-earth/80 text-sm font-medium"
 		>{messages.serviceLineInformation.components.gooseneck}</text
 	>
 
 	<!-- Utility portion label with text wrapping -->
 	<text x="285" y="105" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
-		<tspan x="285" dy="0">{messages.serviceLineInformation.components.utilityPortion}</tspan>
-		<tspan x="283" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{#if lang() === 'en'}
+			<tspan x="285" dy="0">{messages.serviceLineInformation.components.utilityPortion}</tspan>
+			<tspan x="283" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{:else}
+			<tspan x="285" dy="0"
+				>{messages.serviceLineInformation.components.utilityPortion
+					.split(' ')
+					.slice(0, 2)
+					.join(' ')}</tspan
+			>
+			<tspan x="285" dy="14"
+				>{messages.serviceLineInformation.components.utilityPortion
+					.split(' ')
+					.slice(2)
+					.join(' ')}</tspan
+			>
+			<tspan x="283" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{/if}
 	</text>
 
 	<!-- Customer portion label with text wrapping -->
 	<text x="450" y="105" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
-		<tspan x="442" dy="0">{messages.serviceLineInformation.components.customerPortion}</tspan>
-		<tspan x="442" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{#if lang() === 'en'}
+			<tspan x="442" dy="0">{messages.serviceLineInformation.components.customerPortion}</tspan>
+			<tspan x="442" dy="14">{messages.serviceLineInformation.components.ofServiceLine}</tspan>
+		{:else}
+			<tspan x="442" dy="0">{messages.serviceLineInformation.components.customerPortion}</tspan>
+			<tspan x="442" dy="14"
+				>{messages.serviceLineInformation.components.ofServiceLine
+					.split(' ')
+					.slice(0, 3)
+					.join(' ')}</tspan
+			>
+			<tspan x="442" dy="14"
+				>{messages.serviceLineInformation.components.ofServiceLine
+					.split(' ')
+					.slice(3)
+					.join(' ')}</tspan
+			>
+		{/if}
 	</text>
 
 	<!-- Water main (Circle on far left) -->
@@ -268,8 +230,9 @@
 			stroke-linecap="round"
 		>
 			<title
-				>{messages.serviceLineInformation.components.gooseneck}: {getMaterialLabel(
-					gooseneckMaterial
+				>{messages.serviceLineInformation.components.gooseneck}: {formatServiceLineMaterial(
+					gooseneckMaterial,
+					{ lang: lang() }
 				)}</title
 			>
 		</path>
@@ -305,8 +268,9 @@
 		rx="4"
 	>
 		<title
-			>{messages.serviceLineInformation.components.utilitySide}: {getMaterialLabel(
-				utilitySideMaterial
+			>{messages.serviceLineInformation.components.utilitySide}: {formatServiceLineMaterial(
+				utilitySideMaterial,
+				{ lang: lang() }
 			)}</title
 		>
 	</rect>
@@ -323,35 +287,13 @@
 		rx="4"
 	>
 		<title
-			>{messages.serviceLineInformation.components.customerSide}: {getMaterialLabel(
-				customerSideMaterial
+			>{messages.serviceLineInformation.components.customerSide}: {formatServiceLineMaterial(
+				customerSideMaterial,
+				{ lang: lang() }
 			)}</title
 		>
 	</rect>
-
-	<!-- Material labels below pipes with text wrapping -->
-	<text x="140" y="200" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
-		{#if splitLabel(getMaterialLabel(gooseneckMaterial)).line2}
-			<tspan x="140" dy="0">{splitLabel(getMaterialLabel(gooseneckMaterial)).line1}</tspan>
-			<tspan x="140" dy="15">{splitLabel(getMaterialLabel(gooseneckMaterial)).line2}</tspan>
-		{:else}
-			{getMaterialLabel(gooseneckMaterial)}
-		{/if}
-	</text>
-	<text x="285" y="200" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
-		{#if splitLabel(getMaterialLabel(utilitySideMaterial)).line2}
-			<tspan x="285" dy="0">{splitLabel(getMaterialLabel(utilitySideMaterial)).line1}</tspan>
-			<tspan x="285" dy="15">{splitLabel(getMaterialLabel(utilitySideMaterial)).line2}</tspan>
-		{:else}
-			{getMaterialLabel(utilitySideMaterial)}
-		{/if}
-	</text>
-	<text x="440" y="200" text-anchor="middle" class="fill-earth/80 text-sm font-medium">
-		{#if splitLabel(getMaterialLabel(customerSideMaterial)).line2}
-			<tspan x="440" dy="0">{splitLabel(getMaterialLabel(customerSideMaterial)).line1}</tspan>
-			<tspan x="440" dy="15">{splitLabel(getMaterialLabel(customerSideMaterial)).line2}</tspan>
-		{:else}
-			{getMaterialLabel(customerSideMaterial)}
-		{/if}
-	</text>
+	<MaterialLabel material={gooseneckMaterial} x={140} y={200} />
+	<MaterialLabel material={utilitySideMaterial} x={285} y={200} />
+	<MaterialLabel material={customerSideMaterial} x={440} y={200} />
 </svg>

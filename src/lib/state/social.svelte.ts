@@ -123,8 +123,23 @@ class SocialState {
 
 		ctx.fillStyle = 'white';
 		ctx.font = '48px "Basis Grotesque", -apple-system, sans-serif';
-		ctx.fillText(`Chicago, ${messages[lang].share.image.checkYourLeadStatus}:`, 80, 920);
-		ctx.fillText('grist.org/chicago-lead', 80, 980);
+
+		if (lang === 'en') {
+			ctx.fillText(`Chicago, ${messages[lang].share.image.checkYourLeadStatus}:`, 80, 920);
+			ctx.fillText('grist.org/chicago-lead', 80, 980);
+		} else {
+			ctx.fillText(
+				`Chicago, ${messages[lang].share.image.checkYourLeadStatus.split(' ').slice(0, 3).join(' ')}`,
+				80,
+				860
+			);
+			ctx.fillText(
+				`${messages[lang].share.image.checkYourLeadStatus.split(' ').slice(3).join(' ')}:`,
+				80,
+				920
+			);
+			ctx.fillText('grist.org/chicago-lead/?lang=es', 80, 980);
+		}
 
 		// Convert to blob and show preview
 		canvas.toBlob(

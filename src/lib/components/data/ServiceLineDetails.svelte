@@ -2,8 +2,8 @@
 	import { getContext } from 'svelte';
 
 	import { messages as i18nMessages, type Language } from '$lib/i18n/messages';
-	import ServiceLineDiagram from '$lib/components/search/ServiceLineDiagram.svelte';
-	import ServiceLineDiagramLoading from '$lib/components/search/ServiceLineDiagramLoading.svelte';
+	import ServiceLineDiagram from '$lib/components/service-line/ServiceLineDiagram.svelte';
+	import ServiceLineDiagramLoading from '$lib/components/service-line/ServiceLineDiagramLoading.svelte';
 	import {
 		multiServiceLineStore,
 		serviceLineCount,

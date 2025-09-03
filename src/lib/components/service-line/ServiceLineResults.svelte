@@ -160,7 +160,7 @@
 					</div>
 				</div>
 			{:else}
-				<div class="flex items-center gap-1 sm:gap-2">
+				<div class="flex items-center gap-1 self-start sm:gap-2">
 					<span class="text-earth text-xs sm:text-sm"
 						>{messages.selectedAddress.leadStatus.label}:</span
 					>
@@ -188,14 +188,14 @@
 						</span>
 					{:else if displayCode === 'L' || displayCode === 'GRR' || displayCode === 'NL'}
 						<span
-							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
+							class="inline-flex items-center rounded-full border-2 border-white px-2 py-0.5 text-center text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor(displayCode)}"
 						>
 							{messages.selectedAddress.leadStatus[displayCode]}
 						</span>
 					{:else}
 						<span
-							class="inline-flex items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white sm:px-2.5 sm:text-sm"
+							class="inline-flex items-center rounded-full border-2 border-white px-2 py-0.5 text-center text-xs font-medium text-white sm:px-2.5 sm:text-sm"
 							style="background-color: {getMaterialColor('U')}"
 						>
 							{messages.selectedAddress.leadStatus.U}
@@ -204,7 +204,7 @@
 					{#if !isLoading}
 						<button
 							onclick={shareResults}
-							class="inline-flex cursor-pointer items-center self-start rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:px-2.5 sm:text-sm"
+							class="inline-flex cursor-pointer items-center rounded-full border-2 border-white px-2 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:px-2.5 sm:text-sm"
 							style="background-color: {COLORS.EARTH}"
 							title="Share your results"
 						>

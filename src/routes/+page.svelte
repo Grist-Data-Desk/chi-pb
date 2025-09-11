@@ -584,7 +584,7 @@
 				{#if ui.resourcesExpanded && !isTabletOrAbove}
 					<div
 						bind:this={resourcesPanelRef}
-						class="floating-panel scrollbar-thin scrollbar-position z-10 max-h-[calc(50svh-8rem)] overflow-y-auto p-3"
+						class="floating-panel scrollbar-thin scrollbar-position z-30 max-h-[calc(50svh-8rem)] overflow-y-auto p-3"
 					>
 						<Resources />
 					</div>
@@ -592,7 +592,7 @@
 			</div>
 			{#if ui.resourcesExpanded && isTabletOrAbove}
 				<div
-					class="floating-panel scrollbar-thin scrollbar-position absolute top-4 left-[calc(400px+2rem)] z-10 hidden h-fit max-h-[calc(50svh+2rem)] w-[320px] overflow-y-auto p-4 sm:block"
+					class="floating-panel scrollbar-thin scrollbar-position absolute top-4 left-[calc(400px+2rem)] z-30 hidden h-fit max-h-[calc(50svh+2rem)] w-[320px] overflow-y-auto p-4 sm:block"
 					bind:this={resourcesPanelRef}
 				>
 					<Resources />
